@@ -18,15 +18,12 @@ amr <- function(t, y, parms) {
       (1-sigma_2)*mu_r1*R1 + sigma_2*mu_t*R1 +
       (1-sigma_1)*mu_r2*R2 + sigma_1*mu_t*R2
     
-    dX = beta*S*X - (1-sigma_1+sigma_2)*mu_x*X - (sigma_1+sigma_2)*mu_t*X + 
-      (1-sigma_1+sigma_2)*eta_rx_1*R1 + (1-sigma_1+sigma_2)*eta_rx_2*R2 - 
-      sigma_1*eta_xr_1*X - sigma_2*eta_xr_2*X
+    dX = beta*S*X - (1-sigma_1+sigma_2)*mu_x*X - (sigma_1+sigma_2)*mu_t*X + eta_rx_1*R1 + eta_rx_2*R2 - 
+      eta_xr_1*X - eta_xr_2*X
     
-    dR1 = beta*S*R1 - (1-sigma_2)*mu_r1*R1 - sigma_2*mu_t*R1 - 
-      (1-sigma_1+sigma_2)*eta_rx_1*R1 + sigma_1*eta_xr_1*X
+    dR1 = beta*S*R1 - (1-sigma_2)*mu_r1*R1 - sigma_2*mu_t*R1 - eta_rx_1*R1 + eta_xr_1*X
     
-    dR2 = beta*S*R2 - (1-sigma_1)*mu_r2*R2 - sigma_1*mu_t*R2 - 
-      (1-sigma_1+sigma_2)*eta_rx_2*R2 + sigma_2*eta_xr_2*X
+    dR2 = beta*S*R2 - (1-sigma_1)*mu_r2*R2 - sigma_1*mu_t*R2 - eta_rx_2*R2 + eta_xr_2*X
     
     dC_X = 0
     dC_R1 = 0
@@ -34,12 +31,9 @@ amr <- function(t, y, parms) {
     
     #Calculating the Proportion Integrals
     if(t > t_n) {
-      dC_X = (beta*S*X + eta_rx_1*R1 + eta_rx_2*R2)/((beta*S*X + eta_rx_1*R1 + eta_rx_2*R2)+
-                                                       beta*S*R1 + eta_xr_1*X + beta*S*R2 + eta_xr_2*X)
-      dC_R1 = beta*S*R1 + eta_xr_1*X/((beta*S*X + eta_rx_1*R1 + eta_rx_2*R2)+
-                                                        beta*S*R1 + eta_xr_1*X + beta*S*R2 + eta_xr_2*X)
-      dC_R2 = beta*S*R2 + eta_xr_2*X/((beta*S*X + eta_rx_1*R1 + eta_rx_2*R2)+
-                                        beta*S*R1 + eta_xr_1*X + beta*S*R2 + eta_xr_2*X)
+      dC_X = beta*S*X + eta_rx_1*R1 + eta_rx_2*R2
+      dC_R1 = beta*S*R1 + eta_xr_1*X
+      dC_R2 = beta*S*R2 + eta_xr_2*X
     }
     
     return(list(c(dS,dX,dR1,dR2,dC_X,dC_R1,dC_R2)))
@@ -51,7 +45,7 @@ amr <- function(t, y, parms) {
 init <- c(S = 0.99, X = 1-0.99, R1 = 0, R2 =0,
           C_X = 0, C_R1 = 0, C_R2 =0)
 
-parms = c(beta = 0.3, 
+parms = c(beta = 0.35, 
           sigma_1 = 0.4,
           sigma_2 = 0.4,
           mu_x = 1/20,
@@ -63,7 +57,7 @@ parms = c(beta = 0.3,
           eta_xr_2 = 0.05,
           eta_rx_2 = 0.01,
           eff_tax1 = 1,
-          eff_tax2 = 0.2,
+          eff_tax2 = 1,
           t_n = 100)
 
 # Run the Model -----------------------------------------------------------
@@ -72,16 +66,15 @@ testrun <- data.frame(ode(y = init, func = amr, times = seq(0, 365), parms = par
 
 ggplot(testrun, aes(time, R1)) + geom_line()
 
-testrun[9:11] <- testrun[,3:5]/rowSums(testrun[,3:5])
-testrun$avgRes <- rowMeans(testrun[,10:11])
-colnames(testrun)[9:12] <- c("WT", "Res1", "Res2", "AvgRes")
-comb_prop = melt(testrun, id.vars = "time", measure.vars = tail(colnames(testrun), 4))
+testrun$avgRes <- rowMeans(testrun[,4:5]); colnames(testrun)[9] <- c("AvgRes")
+
+comb_prop = melt(testrun, id.vars = "time", measure.vars = c("X","R1","R2","AvgRes"))
 
 ggplot(data = comb_prop, aes(x = time, y = value, color = variable)) + geom_line() + theme_bw() +
-  scale_x_continuous(name = "Time", expand = c(0, 0)) +  scale_y_continuous(name = "% Infected", expand = c(0, 0)) +
+  scale_x_continuous(name = "Time", expand = c(0, 0)) +  scale_y_continuous(name = "% Infected", expand = c(0, 0), limits = c(0,0.7)) +
   theme(legend.text=element_text(size=12), legend.title = element_blank(), axis.text=element_text(size=12), 
         axis.title.y=element_text(size=12), axis.title.x = element_text(size=12), plot.margin = unit(c(0.35,1,0.35,1), "cm"),
-        legend.spacing.x = unit(0.3, 'cm'), legend.position = "bottom") 
+        legend.spacing.x = unit(0.3, 'cm'), legend.position = "bottom")
 
 # Calculating Integrals ---------------------------------------------------
 
@@ -101,7 +94,7 @@ Int_cum <- data.frame("time" = testrun$time,
 comb_sigma <- expand.grid(sigma_1 = seq(0,1,0.1),
                           sigma_2 = seq(0,1,0.1))
 
-parms1 = c(beta = 0.1, sigma_1 = 0.4, sigma_2 = 0.4, mu_x = 1/20, mu_r1 = 1/10,
+parms1 = c(beta = 0.35, sigma_1 = 0.4, sigma_2 = 0.4, mu_x = 1/20, mu_r1 = 1/10,
           mu_r2 = 1/10, mu_t = 1/4, eta_xr_1 = 0.01, eta_rx_1 = 0.01,
           eta_xr_2 = 0.05, eta_rx_2 = 0.01, eff_tax1 = 0.2,
           eff_tax2 = 0.2, t_n = 100)
@@ -115,21 +108,18 @@ for(i in 1:nrow(comb_sigma)){
   parms1[c("sigma_1", "sigma_2")] <- comb_sigma[i,]
   
   run <- data.frame(ode(y = init, func = amr, times = seq(0, 365), parms = parms1))
-  run[9:11] <- run[,3:5]/rowSums(run[,3:5])
-  run$avgRes <- rowMeans(run[,10:11])
-  colnames(run)[9:12] <- c("WT", "PropRes1", "PropRes2", "AvgPropRes")
   
-  Int_cum <- data.frame("time" = run$time,
-                        "cum_resprop" = rowMeans(run[,7:8])/2,
-                        "cum_sum" = rowSums(run[,6:8]))
-  
-  print(i)
+  run$avgRes <- rowMeans(run[,4:5])
+  colnames(run)[9] <- c("AvgPropRes")
+  run$resprop <- rowMeans(run[,7:8])
+  run$cumsum <- rowSums(run[,6:8])
   
   data_store[i,] <- c(comb_sigma[i,],
-                      tail(Int_cum$cum_sum,1),
-                      tail(Int_cum$cum_resprop,1),
-                      tail(run[,4],1),
-                      tail(run[,5],1))
+                   tail(run$cumsum,1),
+                   tail(run$resprop,1),
+                   tail(run[,7],1),
+                   tail(run[,8],1)) 
+  
 }
 
 colnames(data_store) <- c("sigma1", "sigma2", "wt_res", "avgres", "res1", "res2")
@@ -144,7 +134,7 @@ for(i in 1:4){
     geom_tile() + labs(fill = c("Tot_Inf", "AvgRes", "Res1", "Res 2")[i]) +
     scale_x_discrete(name = bquote("Fraction Pop Treated with Class 1 ("*sigma[1]*")"), expand = c(0, 0)) +  
     scale_y_discrete(name = bquote("Fraction Pop Treated with Class 2 ("*sigma[2]*")"), expand = c(0, 0)) +
-    scale_fill_viridis() 
+    scale_fill_viridis(direction = -1) 
 }
 
 ggarrange(plotlist = plot_list)
