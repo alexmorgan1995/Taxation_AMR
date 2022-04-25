@@ -48,10 +48,10 @@ integral <- function(data, t_n){
 
 init <- c(S = 0.99, X = 1-0.99, R1 = 0, R2 =0)
 
-parms = c(beta = 0.5, sigma_1 = 0.35, sigma_2 = 0.35, mu_x = 1/15, mu_r1 = 1/12,
+parms = c(beta = 0.5, sigma_1 = 0.35, sigma_2 = 0.35, mu_x = 1/15, mu_r1 = 1/10,
            mu_r2 = 1/12, mu_t = 1/4, eta_xr_1 = 0.01, eta_rx_1 = 0.01,
-           eta_xr_2 = 0.05, eta_rx_2 = 0.01, eff_tax1 = 1,
-           eff_tax2 = 1, t_n = 500)
+           eta_xr_2 = 0.01, eta_rx_2 = 0.01, eff_tax1 = .5,
+           eff_tax2 = .5, t_n = 500)
 
 # Run the Model -----------------------------------------------------------
 

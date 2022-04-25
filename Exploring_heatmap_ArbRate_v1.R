@@ -60,7 +60,7 @@ data_store <- list()
 for(i in 1:nrow(comb_tax)){
   parms1[c("eff_tax1", "eff_tax2")] <- comb_tax[i,]
   
-  run <- data.frame(ode(y = init, func = amr, times = seq(0, 2000), parms = parms1))
+  run <- data.frame(ode(y = init, func = amr, times = seq(0, 1000), parms = parms1))
   
   run$AvgRes <- rowMeans(run[,4:5])
   run$TotInf <- rowSums(run[,3:5])
