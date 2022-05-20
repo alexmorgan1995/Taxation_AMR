@@ -12,9 +12,12 @@ amr <- function(t, y, parms) {
     if(t > t_n) {
     sigma_1 <- sigma_1*eff_tax1  
     sigma_2 <- sigma_2*eff_tax2
-    sigma_3 <- sigma_2*eff_tax3
+    sigma_3 <- sigma_3*eff_tax3
     }
     
+    print(sigma_1)
+    print(sigma_2)
+    print(sigma_3)
     dX = - beta*X*(W+(R1*c1)+(R2*c2)+(R3*c3)) + (1-sigma_1+sigma_2+sigma_3)*mu_w*W + (sigma_1+sigma_2+sigma_3)*mu_t*W +
       (1-sigma_2+sigma_3)*mu_r*R1 + (sigma_2+sigma_3)*mu_t*R1 +
       (1-sigma_1+sigma_3)*mu_r*R2 + (sigma_1+sigma_3)*mu_t*R2 + 

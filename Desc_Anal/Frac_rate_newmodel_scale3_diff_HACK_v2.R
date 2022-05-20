@@ -364,6 +364,33 @@ taxdiff_comb <- ggplot(tax_melt, aes(x = time, y = (1-value)*100, color = variab
 
 ggarrange(trajdiff, taxdiff_comb, nrow = 2, ncol = 1, common.legend = T, legend = "bottom")
 
+
+# User Friendly Version ---------------------------------------------------
+
+trajdiff <- ggplot(data = comb_prop, aes(x = time, y = value*100, color = variable)) + geom_line() + theme_bw() +
+  annotate("rect", xmin=c(parms[["t_n"]], parms[["t_n"]] + (365*3), parms[["t_n"]] + (365*3)*2, parms[["t_n"]] + (365*3)*3, parms[["t_n"]] + (365*3)*4, parms[["t_n"]] + (365*3)*5), 
+           xmax= c(parms[["t_n"]] + (365*3), parms[["t_n"]] + (365*3)*2, parms[["t_n"]] + (365*3)*3, parms[["t_n"]] + (365*3)*4, parms[["t_n"]] + (365*3)*5, Inf), 
+           ymin=c(rep(0, 6)), ymax=c(rep(Inf, 6)), alpha=rep(c(0.2, 0.125), 3), fill=rep("red", 6)) + 
+  scale_x_continuous(name = "Time (days)", expand = c(0, 0), limits = c(0, 10000)) +  scale_y_continuous(name = "% Infected", expand = c(0, 0), limits = c(0,100)) + 
+  theme(legend.text=element_text(size=12), legend.title = element_blank(), axis.text=element_text(size=12), 
+        axis.title.y=element_text(size=12), axis.title.x = element_text(size=12), plot.margin = unit(c(0.35,1,0.35,1), "cm"),
+        legend.spacing.x = unit(0.3, 'cm'), legend.position = "bottom") + 
+  scale_color_manual(values = c("black" ,"red", "blue", "green"), labels = c("Wild Type", "High Resistance", "Intermediate Resistance", "Low Resistance"))
+
+
+taxdiff_comb <- ggplot(tax_melt, aes(x = time, y = (1-value)*100, color = variable)) + geom_line(size = 1.2) + theme_bw() + 
+  annotate("rect", xmin=c(parms[["t_n"]], parms[["t_n"]] + (365*3), parms[["t_n"]] + (365*3)*2, parms[["t_n"]] + (365*3)*3, parms[["t_n"]] + (365*3)*4, parms[["t_n"]] + (365*3)*5), 
+           xmax= c(parms[["t_n"]] + (365*3), parms[["t_n"]] + (365*3)*2, parms[["t_n"]] + (365*3)*3, parms[["t_n"]] + (365*3)*4, parms[["t_n"]] + (365*3)*5, Inf), 
+           ymin=c(rep(0, 6)), ymax=c(rep(Inf, 6)), alpha=rep(c(0.2, 0.125), 3), fill=rep("red", 6)) + 
+  scale_x_continuous(name = "Time (days)", expand = c(0, 0)) +  scale_y_continuous(name = "Effective Tax Rate (%)", expand = c(0, 0), limits = c(0,101)) + 
+  theme(legend.text=element_text(size=12), legend.title = element_blank(), axis.text=element_text(size=12), 
+        axis.title.y=element_text(size=12), axis.title.x = element_text(size=12), plot.margin = unit(c(0.35,1,0.35,1), "cm"),
+        legend.spacing.x = unit(0.3, 'cm'), legend.position = "bottom") + 
+  scale_color_manual(values = c("red", "blue", "green"), labels = c("Wild Type", "High Resistance", "Intermediate Resistance", "Low Resistance"))
+
+ggarrange(trajdiff, taxdiff_comb, nrow = 2, ncol = 1, common.legend = T, legend = "bottom")
+
+
 # Compare the Total Infection ---------------------------------------------
 
 totinf_data <- data.frame("time" = seq(0, 10000),
