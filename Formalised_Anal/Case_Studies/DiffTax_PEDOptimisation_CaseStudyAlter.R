@@ -64,8 +64,6 @@ amr <- function(t, y, parms) {
       sigma_3 <- sigma_base3*(1-(eff_tax3_6*PED3)) 
     }
     
-    print(sigma_1)
-    
     sigma_1 <- ifelse(sigma_1 > 0, sigma_1, 0)
     sigma_2 <- ifelse(sigma_2 > 0, sigma_2, 0)
     sigma_3 <- ifelse(sigma_3 > 0, sigma_3, 0)
@@ -214,7 +212,7 @@ parms = c(beta = 5, sigma_1 = 0.25, sigma_2 = 0.25, sigma_3 = 0.25,
           eff_tax1_4 = 0, eff_tax2_4 = 0, eff_tax3_4 = 0, 
           eff_tax1_5 = 0, eff_tax2_5 = 0, eff_tax3_5 = 0, 
           eff_tax1_6 = 0, eff_tax2_6 = 0, eff_tax3_6 = 0, 
-          PED1 = 1, PED2 = 1, PED3 = 1, 
+          PED1 = 1, PED2 = 0.75, PED3 = 0.5, 
           t_n = 3000, time_between = Inf, rho = 0.5)
 
 # Run the Models ----------------------------------------------------------
@@ -345,12 +343,11 @@ usage_fun <- function(parms){
                                      rep((1-parms[["eff_tax2_6"]])*0.25, 7001-365*3*6)),
                      "PopUsage3" = c(sapply(1:6, function(x) rep((1-parms[[paste0("eff_tax3_", x)]])*0.25, 365*3)),
                                      rep((1-parms[["eff_tax3_6"]])*0.25, 7001-365*3*6)))
+  usage[usage < 0] <- 0
   usage$totusage = rowSums(usage[2:4])
   usage$reduc_use = 0.75 - usage$totusage
   return(usage)
 }
-
-
 
 #Now I need to do this for all 6 scenarios. 
 parms_flat <- parms; parms_flat[grep("eff_tax", names(parms), value =T)]  <- 0.5
@@ -369,6 +366,7 @@ parm_list <- list(parms_flat, parms_single1, parms_single2, parms_single3,
 
 over_parms <- append(parm_list, diff_tax_list)
 list_usage <- lapply(over_parms, usage_fun)
+
 
 # Relative Reduction Integral Comparison --------------------------------------------
 

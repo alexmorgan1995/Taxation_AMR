@@ -343,6 +343,7 @@ usage_fun <- function(parms){
                                      rep(parms[["eff_tax2_6"]]*0.25, 7001-365*3*6)),
                      "PopUsage3" = c(sapply(1:6, function(x) rep(parms[[paste0("eff_tax3_", x)]]*0.25, 365*3)),
                                      rep(parms[["eff_tax3_6"]]*0.25, 7001-365*3*6)))
+  #usage[usage < 0] <- 0
   usage$totusage = rowSums(usage[2:4])
   usage$reduc_use = 0.75 - usage$totusage
   return(usage)
@@ -356,7 +357,6 @@ parms_single3 <- parms; parms_single3[grep("eff_tax3", names(parms), value =T)] 
 parms_dual12 <- parms; parms_dual12[grep("eff_tax1|eff_tax2", names(parms), value =T)]  <- 0.5
 parms_dual23 <- parms; parms_dual23[grep("eff_tax2|eff_tax3", names(parms), value =T)]  <- 0.5
 parms_dual13 <- parms; parms_dual13[grep("eff_tax1|eff_tax2", names(parms), value =T)]  <- 0.5
-
 
 parm_list <- list(parms_flat,parms_single1,parms_single2,parms_single3,parms_dual12,parms_dual23,parms_dual13)
 
