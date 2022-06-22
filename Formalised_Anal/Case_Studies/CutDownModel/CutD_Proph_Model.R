@@ -31,13 +31,11 @@ amr <- function(t, y, parms) {
     if(t > t_n) {
       R1 <- R_base1*(1-eff_tax1_1) 
       R2 <- R_base2*(1-eff_tax2_1)
-      R3 <- R_base3*(1-eff_tax3_1)
     }
     
     if(t > (t_n + time_between)) {
       R1 <- R_base1*(1-eff_tax1_2) 
       R2 <- R_base2*(1-eff_tax2_2)
-      R3 <- R_base3*(1-eff_tax3_2)
     }
     
     if(t > (t_n + time_between + time_between)) {
