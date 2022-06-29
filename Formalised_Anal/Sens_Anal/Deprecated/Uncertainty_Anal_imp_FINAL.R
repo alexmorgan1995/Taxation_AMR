@@ -1,5 +1,4 @@
-library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); library("rootSolve"); library("viridis"); library("cowplot")
-
+library("deSolve"); library("parallel")
 rm(list=ls())
 
 # ODE Equations -----------------------------------------------------------
@@ -85,6 +84,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func){
     
     #First Run
     testrun <- data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms))
+    testrun[testrun < 1e-10] <- 0; testrun[is.na(testrun)] <- 0
     values <- tail(testrun, 1)[4:6]
     
     parms[grep("eff_tax1", names(parms), value = T)] <- (parms[["base_tax"]]*(values[1]/values[2]))
@@ -92,19 +92,20 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func){
     parms[grep("eff_tax3", names(parms), value = T)] <- (parms[["base_tax"]]*(values[3]/values[2]))
     parms[parms < 0] <- 0
 
-    if(int_gen >= 2 & int_gen <= 6) {
+    if(int_gen <= 2 | int_gen >= 6) {
       testrun <- data.frame(ode(y = init, func = func, times = seq(0, 10000), parms = parms))
     }
     
     #Second Run
     if(int_gen >= 2){
       testrun1 <- data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]] + parms[["time_between"]]), parms = parms))
+      testrun1[testrun1 < 1e-10] <- 0; testrun1[is.na(testrun1)] <- 0
       values1 <- tail(testrun1, 1)[4:6]
       
       low_char <- names(values1)[which.min(values1)]
       high_char <- names(values1)[which.max(values1)]
       med_char <- names(values1)[setdiff(1:3, c(which.min(values1), which.max(values1)))]
-
+      
       parms[grep(paste0("eff_tax",substr(low_char, 2, 2)), names(parms), value = T)[-1]] <- (parms[["base_tax"]]*(tail(testrun1[low_char],1)/values[2]))
       parms[grep(paste0("eff_tax",substr(med_char, 2, 2)), names(parms), value = T)[-1]] <- (parms[["base_tax"]]*(tail(testrun1[med_char],1)/values[2]))
       parms[grep(paste0("eff_tax",substr(high_char, 2, 2)), names(parms), value = T)[-1]] <- (parms[["base_tax"]]*(tail(testrun1[high_char],1)/values[2]))
@@ -117,6 +118,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func){
     
     if(int_gen >= 3){
       testrun2 <- data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*2)), parms = parms))
+      testrun2[testrun2 < 1e-10] <- 0; testrun2[is.na(testrun2)] <- 0
       values2 <- tail(testrun2, 1)[4:6]
       
       low_char1 <- names(values2)[which.min(values2)]
@@ -135,6 +137,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func){
     
     if(int_gen >= 4){
       testrun3 <- data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*3)), parms = parms))
+      testrun3[testrun3 < 1e-10] <- 0; testrun3[is.na(testrun3)] <- 0
       values3 <- tail(testrun3, 1)[4:6]
       
       low_char2 <- names(values3)[which.min(values3)]
@@ -153,6 +156,8 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func){
     
     if(int_gen >= 5){
       testrun4 <- data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*4)), parms = parms))
+      testrun4[testrun4 < 1e-10] <- 0; testrun4[is.na(testrun4)] <- 0
+      
       values4 <- tail(testrun4, 1)[4:6]
       
       low_char3 <- names(values4)[which.min(values4)]
@@ -171,6 +176,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func){
     
     if(int_gen >= 6){
       testrun5 <- data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*5)), parms = parms))
+      testrun5[testrun5 < 1e-10] <- 0; testrun5[is.na(testrun5)] <- 0
       values5 <- tail(testrun5, 1)[4:6]
       
       low_char4 <- names(values5)[which.min(values5)]
@@ -267,6 +273,8 @@ colnames(parm_data_comb)[12:29] <- names(parms)[13:30]
 colnames(parm_data_comb)[30:32] <- names(parms)[2:4]
 colnames(parm_data_comb)[33:35] <- names(parms)[31:33]
 
+print(parm_data_comb)
+
 # Creating the Parallel Montonicity Function ------------------------------
 
 mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun) {
@@ -298,13 +306,11 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun) {
     }
     
     data_temp <- out[out[,1] > parms[["t_n"]],]
-
+    
     out_vec <- signif(c(sum(data_temp[3:6]),
                         sum(rowMeans(data_temp[4:6]))),5)
     
     reduc_usage_vec <- sum(usage_fun(parms)[,6])
-    
-    print(out_vec[1])    
     
     store_vec_inf[i] <- (out_vec[1] - base_tot_inf)/reduc_usage_vec
     store_vec_res[i] <- (base_int_res - out_vec[2])/reduc_usage_vec
@@ -316,27 +322,25 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun) {
   return(output)
 }
 
+# Run the Model ----------------------------------------------------------
 
-mono_func(1, parm_data_comb, 
-          init = c(X = 0.99, W = 1-0.99, R1 = 0, R2 = 0, R3 = 0), 
-          amr_ode = amr, 
-          usage_fun = usage_fun,
-          multi_int_fun = multi_int_fun)
+start_time <- Sys.time()
 
+test <- mclapply(1:1000, 
+                 FUN = mono_func, 
+                 parms_frame = parm_data_comb, 
+                 init = c(X = 0.99, W = 1-0.99, R1 = 0, R2 = 0, R3 = 0), 
+                 amr_ode = amr, 
+                 usage_fun = usage_fun,
+                 multi_int_fun = multi_int_fun,
+                 mc.cores = 10)
 
-sapply(1:2, mono_func, parm_data_comb,init = c(X = 0.99, W = 1-0.99, R1 = 0, R2 = 0, R3 = 0), 
-       amr_ode = amr, 
-       usage_fun = usage_fun,
-       multi_int_fun = multi_int_fun)
+print(test)
 
+comb_data <- data.frame(do.call(rbind, test))
 
+saveRDS(comb_data, "/cluster/home/amorgan/Sens_Anal_Output/comb_data.RDS")
 
-# Testbed -----------------------------------------------------------------
+end_time <- Sys.time()
+print(end_time - start_time)
 
-parm_test <- parm_data_comb[1,]
-parm_test[grep("eff_tax1", names(parm_test), value =T)]  <- parm_test[["base_tax"]]
-out <- data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parm_test))
-out$totinf <- rowSums(out[3:6])
-out$avgres <- rowMeans(out[4:6])
-p_test <- melt(out, id.vars = "time", measure.vars = colnames(out[3:8]))
-ggplot(p_test, aes(time, value, color = variable)) + geom_line()
