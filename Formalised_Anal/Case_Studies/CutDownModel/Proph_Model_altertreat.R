@@ -71,28 +71,28 @@ amr <- function(t, y, parms) {
   dS = lambda - lambda*S + 
     mu_wt*eta*Wc + mu_r*eta*Rc1 + mu_r*eta*Rc2 + mu_r*eta*Rc3 + 
     P1*theta + P2*theta + P3*theta + 
-    Pr*rho*(R1+R2+R3)*Wc + 
-    Pr*(R2+R3)*Rc1 + Pr*(R1+R3)*Rc2 + Pr*(R1+R2)*Rc3 - 
+    Pr*zeta*(R1+R2+R3)*Wc + 
+    Pr*zeta*(R2+R3)*Rc1 + Pr*zeta*(R1+R3)*Rc2 + Pr*zeta*(R1+R2)*Rc3 - 
     Pr*(R1+R2+R3)*S - 
     beta*S*(Wc + Wi) - beta*S*(Ri1 + Rc1)*fc1 - beta*S*(Ri2 + Rc2)*fc2 - beta*S*(Ri3 + Rc3)*fc3 +
     tau*(R1+R2+R3)*Wi + tau*(R2+R3)*Ri1 + tau*(R1+R3)*Ri2 + tau*(R1+R2)*Ri3   
     
-  dWc = -lambda*Wc - mu_wt*eta*Wc + mu_wt*Wi - Pr*(R1+R2+R3)*Wc + 
+  dWc = -lambda*Wc - mu_wt*eta*Wc + mu_wt*Wi - Pr*zeta*(R1+R2+R3)*Wc + 
     beta*S*(Wc + Wi)*psi + kappa*(Rc1 + Rc2 + Rc3) 
   
   dWi = -lambda*Wi- mu_wt*Wi - tau*(R1+R2+R3)*Wi + beta*S*(Wc + Wi)*(1-psi)
   
-  dRc1 = -lambda*Rc1 - mu_r*eta*Rc1 + mu_r*Ri1 + Pr*R1*(1-rho)*Wc - Pr*(R2+R3)*Rc1 + 
-    beta*S*(Ri1 + Rc1)*psi*fc1 - kappa*Rc1 + Pr*R1*(1-rho)*S
+  dRc1 = -lambda*Rc1 - mu_r*eta*Rc1 + mu_r*Ri1 + Pr*R1*(1-zeta)*Wc - Pr*zeta*(R2+R3)*Rc1 + #The last zeta term here corresponds to a reduce effect of treatment in Resistant infections 
+    beta*S*(Ri1 + Rc1)*psi*fc1 - kappa*Rc1 + Pr*R1*(1-rho)*S #Ideally we would model treatment failure here - but that would require multidrug resistance or replacement of strains - so ignored the 1-zeta here 
   
   dRi1 = -lambda*Ri1 - mu_r*Ri1 - tau*(R2 + R3)*Ri1 + beta*S*(Ri1 + Rc1)*(1-psi)*fc1
   
-  dRc2 = -lambda*Rc2 - mu_r*eta*Rc2 + mu_r*Ri2 + Pr*R2*(1-rho)*Wc - Pr*(R1+R3)*Rc2 + 
+  dRc2 = -lambda*Rc2 - mu_r*eta*Rc2 + mu_r*Ri2 + Pr*R2*(1-zeta)*Wc - Pr*zeta*(R1+R3)*Rc2 + 
     beta*S*(Ri2 + Rc2)*psi*fc2 - kappa*Rc2 + Pr*R2*(1-rho)*S
   
   dRi2 = -lambda*Ri2 - mu_r*Ri2 - tau*(R1 + R3)*Ri2 + beta*S*(Ri2 + Rc2)*(1-psi)*fc2
   
-  dRc3 = -lambda*Rc3 - mu_r*eta*Rc3 + mu_r*Ri3 + Pr*R3*(1-rho)*Wc - Pr*(R1+R2)*Rc3 + 
+  dRc3 = -lambda*Rc3 - mu_r*eta*Rc3 + mu_r*Ri3 + Pr*R3*(1-zeta)*Wc - Pr*zeta*(R1+R2)*Rc3 + 
     beta*S*(Ri3 + Rc3)*psi*fc3 - kappa*Rc3 + Pr*R3*(1-rho)*S
   
   dRi3 = -lambda*Ri3 - mu_r*Ri3 - tau*(R1 + R2)*Ri3 + beta*S*(Ri3 + Rc3)*(1-psi)*fc3

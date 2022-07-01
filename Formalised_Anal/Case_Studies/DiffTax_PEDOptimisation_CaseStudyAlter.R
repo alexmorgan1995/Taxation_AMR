@@ -437,6 +437,6 @@ usage$minline = pmin(usage[,2], usage[,3])
 usage_df <- melt(usage, id.vars=c("time","minline"), variable.name="Scenario", value.name="Usage")
 
 ggplot(usage_df, aes(time, Usage, color = Scenario)) + geom_line(size = 1.2) + theme_bw() + 
-  scale_y_continuous(name = "Fraction of Population Treated", limits = c(0,1)) + 
+  scale_y_continuous(name = "Fraction of Infecteds/Colonised Treated", limits = c(0,1)) + 
   geom_ribbon(aes(ymax=Usage, ymin=minline), fill = "red", alpha = 0.2)
 
