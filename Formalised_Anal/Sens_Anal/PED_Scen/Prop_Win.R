@@ -19,8 +19,8 @@ for(i in seq_along(win_import_opt)) win_import_opt[[i]] <- as(win_import_opt[[i]
 #Infections
 #We want to minimise this - minimise the increase in total infections for each change in usage 
 win_inf <- (win_import[,1:10])
-win_inf <- (win_import_pess[,1:10])
-win_inf <- (win_import_opt[,1:10])
+#win_inf <- (win_import_pess[,1:10])
+#win_inf <- (win_import_opt[,1:10])
 
 
 
@@ -42,10 +42,8 @@ prop_win_inf$Interventions <- factor(prop_win_inf$Interventions, levels = c(prop
 #Resistance
 
 win_res <- (win_import[,11:20])
-win_res <- (win_import_pess[,11:20])
-win_res <- (win_import_opt[,11:20])
-
-
+#win_res <- (win_import_pess[,11:20])
+#win_res <- (win_import_opt[,11:20])
 
 win_res_trans <- t(apply(win_res, 1, function(x) {
   val = max(x)
