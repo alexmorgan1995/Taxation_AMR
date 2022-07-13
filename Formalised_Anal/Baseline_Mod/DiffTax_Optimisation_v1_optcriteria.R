@@ -7,7 +7,24 @@ setwd("/Users/amorgan/Documents/PostDoc/PrelimAnalysis/RCode")
 # Integral Function -------------------------------------------------------
 
 integral <- function(data, t_n){
+  
+  base <- as.numeric(data[data[,1] == t_n-1, 4:6])
   data_temp <- data[data[,1] > t_n,]
+  
+  greater <- data.frame(time = seq(t_n+1, 10000),
+                        diffR1 = base[1] - data_temp[,4],
+                        diffR2 = base[2] - data_temp[,5],
+                        diffR3 = base[3] - data_temp[,6])
+  
+  vector <- c()
+  
+  for(i in 1:nrow(greater)) {
+    if(greater[i,2] > 0 & greater[i,3] > 0 & greater[i,4] > 0) {
+      vector <- append(vector, 1)
+    } else{
+      vector <- append(vector, 0)
+    }
+  }
   
   out_vec <- signif(c(sum(data_temp[3:6]),
                       sum(data_temp[4:6]),
@@ -15,7 +32,8 @@ integral <- function(data, t_n){
                       sum(rowMeans(data_temp[4:6])),
                       sum(data_temp[4]),
                       sum(data_temp[5]),
-                      sum(data_temp[6])),5)
+                      sum(data_temp[6]),
+                      sum(vector)),5)
   return(out_vec)
 }
 
@@ -279,12 +297,7 @@ parms = c(beta = 5, sigma_1 = 0.25, sigma_2 = 0.25, sigma_3 = 0.25,
 #Flat Tax
 parms1 <- parms; parms1[grep("eff_tax", names(parms1), value = TRUE)] <- 0.5
 testrun_flat <- remNA_func(data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)))
-testrun_flat$AverageRes <- rowMeans(testrun_flat[,4:6])
-testrun_flat$TotInf <- rowSums(testrun_flat[,3:6])
 
-test_plot_flat <- melt(testrun_flat, id.vars = "time", measure.vars = colnames(testrun_flat)[4:6])
-
-ggplot(test_plot_flat, aes(time, value, color = variable)) + geom_line() + theme_bw()
 
 #Dual Tax
 dual_p <- matrix(c(1,1, 2,2, 3,3), ncol = 2, nrow = 3) 
@@ -318,19 +331,11 @@ for(i in 1:6) {
                                    "scen" = paste0("diff", i))
 }
 
-
-test_plot <- melt(diff_tax_list[[6]], id.vars = "time", measure.vars = colnames(diff_tax_list[[6]])[4:6])
-
-ggplot(test_plot, aes(time, value, color = variable)) + geom_line() + theme_bw()
-
 # Obtain the Integrals ----------------------------------------------------
 
 parms1 <- parms; parms1[grep("eff_tax", names(parms1), value = TRUE)] <- 0.5
 
 inf_int = data.frame("Flat_All" = integral(testrun_flat, 3000), 
-                     "Dual_12" = integral(dual_list[[1]], 3000), 
-                     "Dual_13" = integral(dual_list[[2]], 3000), 
-                     "Dual_23" = integral(dual_list[[3]], 3000), 
                      "Single_1" = integral(single_list[[1]], 3000),
                      "Single_2" = integral(single_list[[2]], 3000),
                      "Single_3" = integral(single_list[[3]], 3000),
@@ -341,7 +346,7 @@ inf_int = data.frame("Flat_All" = integral(testrun_flat, 3000),
                      "Diff_5" = integral(diff_tax_list[[5]], 3000),
                      "Diff_6" = integral(diff_tax_list[[6]], 3000))
 
-rownames(inf_int) <- c("Total Infections", "Res_Inf", "WT_Inf", "Average Resistance", "R1", "R2" , "R3")
+rownames(inf_int) <- c("Total Infections", "Res_Inf", "WT_Inf", "Average Resistance", "R1", "R2" , "R3", "Under Baseline")
 
 # Plotting the Matrix -----------------------------------------------------
 
@@ -364,7 +369,7 @@ ggplot(OG_melt, aes(Var2, Var1)) + theme_bw() +
         strip.text = element_blank(), legend.position="none")
 
 #Limited Number 
-lim_OG_melt <- subset(OG_melt, (Var1 == "Total Infections" | Var1 =="Average Resistance"))
+lim_OG_melt <- subset(OG_melt, (Var1 == "Total Infections" | Var1 =="Average Resistance" | Var1 == "Under Baseline"))
 
 ggplot(lim_OG_melt, aes(Var2, Var1)) + theme_bw() +
   geom_tile(aes(fill = rescale)) + 

@@ -63,23 +63,23 @@ amr <- function(t, y, parms) {
   dS = lambda - lambda*S + 
     mu_wt*eta*Wc + mu_r*eta*Rc1 + mu_r*eta*Rc2 + 
     P1*theta + P2*theta + 
-    Pr*rho*(R1+R2)*Wc + 
-    Pr*(R2)*Rc1 + Pr*(R1)*Rc2 - Pr*(R1+R2)*S - 
+    Pr*zeta*(R1+R2)*Wc + 
+    Pr*(R2)*Rc1*zeta*switch + Pr*(R1)*Rc2*zeta*switch - Pr*(R1+R2)*S - 
     beta*S*(Wc + Wi) - beta*S*(Ri1 + Rc1)*fc1 - beta*S*(Ri2 + Rc2)*fc2 +
     tau*(R1+R2)*Wi + tau*(R2)*Ri1 + tau*(R1)*Ri2
     
-  dWc = -lambda*Wc - mu_wt*eta*Wc + mu_wt*Wi - Pr*(R1+R2)*zeta*Wc + 
-    beta*S*(Wc + Wi)*psi + kappa*(Rc1 + Rc2) 
+  dWc = -lambda*Wc - mu_wt*eta*Wc + mu_wt*Wi - Pr*(R1+R2)*Wc + 
+    beta*S*(Wc + Wi)*psi + kappa*(Rc1 + Rc2)*(1-R1 + R2)
   
   dWi = -lambda*Wi- mu_wt*Wi - tau*(R1+R2)*Wi + beta*S*(Wc + Wi)*(1-psi)
   
-  dRc1 = -lambda*Rc1 - mu_r*eta*Rc1 + mu_r*Ri1 + Pr*R1*(1-zeta)*Wc - Pr*(R2)*zeta*Rc1 + 
-    beta*S*(Ri1 + Rc1)*psi*fc1 - kappa*Rc1 + Pr*R1*(1-rho)*S
+  dRc1 = -lambda*Rc1 - mu_r*eta*Rc1 + mu_r*Ri1 + Pr*R1*(1-zeta)*Wc - Pr*(R2)*Rc1*zeta*switch + 
+    beta*S*(Ri1 + Rc1)*psi*fc1 - kappa*Rc1*(1-R1 + R2) + Pr*R1*(1-rho)*S
   
   dRi1 = -lambda*Ri1 - mu_r*Ri1 - tau*(R2)*Ri1 + beta*S*(Ri1 + Rc1)*(1-psi)*fc1
   
-  dRc2 = -lambda*Rc2 - mu_r*eta*Rc2 + mu_r*Ri2 + Pr*R2*(1-zeta)*Wc - Pr*(R1)*zeta*Rc2 + 
-    beta*S*(Ri2 + Rc2)*psi*fc2 - kappa*Rc2 + Pr*R2*(1-rho)*S
+  dRc2 = -lambda*Rc2 - mu_r*eta*Rc2 + mu_r*Ri2 + Pr*R2*(1-zeta)*Wc - Pr*(R1)*Rc2*zeta*switch + 
+    beta*S*(Ri2 + Rc2)*psi*fc2 - kappa*Rc2*(1-R1 + R2) + Pr*R2*(1-rho)*S
   
   dRi2 = -lambda*Ri2 - mu_r*Ri2 - tau*(R1)*Ri2 + beta*S*(Ri2 + Rc2)*(1-psi)*fc2
   
@@ -101,12 +101,12 @@ init <- c(S = 0.99, Wc = 1-0.99, Wi = 0,
           Rc2 = 0, Ri2 = 0,
           P1 = 0, P2 = 0)
 
-parms = c(beta = 5, R1 = 0.3, R2 = 0.3, 
-          lambda = 0.1, Pr = 10, rho = 0.01, theta = 0.01,
-          tau = 0.01, psi = 0.95, kappa = 0.1, eta = 0.01, 
-          fc1 = 0.9, fc2 = 0.86, 
-          mu_wt = 1/12, mu_r = 1/10,  
-          zeta = 0.1, 
+parms = c(beta = 3, R1 = 0.3, R2 = 0.3, 
+          lambda = 0.01, Pr = 1, rho = 0.75, theta = 0.075,
+          tau = 0.1, psi = 0.95, kappa = 0.1, eta = 0.01, 
+          fc1 = 0.9, fc2 = 0.7, 
+          mu_wt = 1/15, mu_r = 1/10,  
+          zeta = 0.75, switch = 1,  
           
           eff_tax1_1 = 0, eff_tax2_1 = 0, 
           eff_tax1_2 = 0, eff_tax2_2 = 0, 
@@ -116,7 +116,6 @@ parms = c(beta = 5, R1 = 0.3, R2 = 0.3,
           eff_tax1_6 = 0, eff_tax2_6 = 0,
           
           t_n = 1000, time_between = Inf)
-
 
 #Flat Tax
 parms1 <- parms
