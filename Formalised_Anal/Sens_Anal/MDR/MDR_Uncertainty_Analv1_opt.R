@@ -1,8 +1,5 @@
-library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); library("rootSolve"); library("viridis"); library("cowplot")
-
+library("deSolve"); library("parallel")
 rm(list=ls())
-
-setwd("/Users/amorgan/Documents/PostDoc/PrelimAnalysis/RCode")
 
 # Integral Function -------------------------------------------------------
 
@@ -67,16 +64,13 @@ amr <- function(t, y, parms) {
     sigma2 <- ifelse(sigma2 > 0, sigma2, 0)
     sigma3 <- ifelse(sigma3 > 0, sigma3, 0)
     
-    
-    
-    
     dX = lambda - lambda*X - beta*X*(Wt + R1*c1 + R2*c2 + R3*c3 + R12*c12 + R13*c13 + R23*c23 + R123*c123) +
       r_wt*Wt*(1 - sigma1 + sigma2 + sigma3) + r_r*R1*sigma1 + r_r*R2*sigma2 + r_r*R3*sigma3 +
       r_rr*R12*(sigma1 + sigma2) + r_rr*R13*(sigma1 + sigma3) + r_rr*R23*(sigma2 + sigma3) + 
       r_rrr*R123*(sigma1 + sigma2 + sigma3) + r_t*(1-rho)*(Wt*(sigma1 + sigma2 + sigma3) + R1*(sigma2 + sigma3) + 
                                                              R2*(sigma1 + sigma3) + R3*(sigma1 + sigma2) + 
                                                              R12*sigma3 + R13*sigma2 + R23*sigma1)
-      
+    
     dWt = - lambda*Wt + beta*X*Wt - r_wt*Wt*(1 - sigma1 + sigma2 + sigma3) - r_t*Wt*(1-rho)*(sigma1 + sigma2 + sigma3) +
       eta_rw*(R1 + R2 + R3 + R12 + R13 + R23 + R123)*(1 - sigma1 + sigma2 + sigma3) - 
       eta_wr*Wt*rho*(sigma1 + sigma2 + sigma3)
@@ -115,7 +109,7 @@ remNA_func <- function(dataframe){
   n_data <- ncol(dataframe)-1
   
   timing <- t(sapply(1:n_data, function(x)  dataframe[max(which(!is.na(dataframe[,x+1]))),]))
-
+  
   if(timing[1,1] != 10000) {
     for(i in 1:n_data){
       dataframe[seq(timing[[1]]+2,10001),i+1] <- timing[i,i+1]
@@ -135,7 +129,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func){
   testrun <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms, hmax = 1)))
   testrun <- agg_func(testrun)
   values <- tail(testrun, 1)[4:6]
-
+  
   parms[grep("eff_tax1", names(parms), value = T)] <- (parms[["base_tax"]]*(values[1]/values[2]))
   parms[grep("eff_tax2", names(parms), value = T)] <- (parms[["base_tax"]]*(values[2]/values[2]))
   parms[grep("eff_tax3", names(parms), value = T)] <- (parms[["base_tax"]]*(values[3]/values[2]))
@@ -151,7 +145,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func){
     testrun1 <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]] + parms[["time_between"]]), parms = parms, hmax = 1)))
     testrun1 <- agg_func(testrun1)
     values1 <- tail(testrun1, 1)[4:6]
-
+    
     if(values1[1] == 0 & values1[2] == 0 & values1[3] == 0) {
       parms[grep(paste0("eff_tax"), names(parms), value = T)[-seq(1,3)]] <- 0
     } else {
@@ -239,7 +233,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func){
   if(int_gen >= 6){
     testrun5 <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*5)), parms = parms, hmax = 1)))
     testrun5 <- agg_func(testrun5)
-     values5 <- tail(testrun5, 1)[4:6]
+    values5 <- tail(testrun5, 1)[4:6]
     
     if(values5[1] == 0 & values5[2] == 0 & values5[3] == 0) {
       parms[grep(paste0("eff_tax"), names(parms), value = T)[-seq(1,15)]] <- 0
@@ -289,8 +283,7 @@ usage_fun <- function(parms){
   return(usage)
 }
 
-
-# Parameters --------------------------------------------------------------
+# Baseline Parms ----------------------------------------------------------
 
 init <- c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
           R12 = 0, R13 = 0, R23 = 0,
@@ -310,197 +303,173 @@ parms = c(lambda = 1/365*(2),
           eff_tax1_4 = 0, eff_tax2_4 = 0, eff_tax3_4 = 0, 
           eff_tax1_5 = 0, eff_tax2_5 = 0, eff_tax3_5 = 0, 
           eff_tax1_6 = 0, eff_tax2_6 = 0, eff_tax3_6 = 0, 
-          PED1 = 1, PED2 = 1, PED3 = 1, 
+          PED1 = 1.75, PED2 = 1.5, PED3 = 1.25, 
           t_n = 3000, time_between = Inf, rho = 0.1, base_tax = 0.5)
 
-# Run Model ---------------------------------------------------------------
+# The Function ------------------------------------------------------------
 
+low_parm <- c(0, #lambda
+              0, #beta
+              1/50, #r_wt
+              1/50, #r_r
+              1/50, #r_rr
+              1/50, #r_rrr
+              1/50, #r_t
+              0, #eta_wr
+              0, #eta_rw
+              0, #eta_rr
+              0, #eta_rrr
+              0.5, #c1
+              0.5, #c2
+              0.5, #c3
+              0.5, #c12
+              0.5, #c13
+              0.5, #c23
+              0.5, #c123
+              0, #rho
+              0) #baseline tax
 
+high_parm <- c(1/300, #lambda
+              10, #beta
+              1/5, #r_wt
+              1/5, #r_r
+              1/5, #r_rr
+              1/5, #r_rrr
+              1/5, #r_t
+              2, #eta_wr
+              2, #eta_rw
+              2, #eta_rr
+              2, #eta_rrr
+              1, #c1
+              1, #c2
+              1, #c3
+              1, #c12
+              1, #c13
+              1, #c23
+              1, #c123
+              1, #rho
+              1) #baseline tax
 
-parms = c(lambda = 1/365*(2), 
-          beta = 5, sigma1 = 0.25, sigma2 = 0.25, sigma3 = 0.25,
-          r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, 
-          r_t = 1/7, eta_wr = 0.5, eta_rw = 0.03, 
-          eta_rr = 0.1, eta_rrr = 0.1,  
-          c1 = 0.95, c2 = 0.92, c3 = 0.85,
-          c12 = 0.85, c13 = 0.82, c23 = 0.75,
-          c123 = 0.7,
-          eff_tax1_1 = 0, eff_tax2_1 = 0, eff_tax3_1 = 0, 
-          eff_tax1_2 = 0, eff_tax2_2 = 0, eff_tax3_2 = 0, 
-          eff_tax1_3 = 0, eff_tax2_3 = 0, eff_tax3_3 = 0, 
-          eff_tax1_4 = 0, eff_tax2_4 = 0, eff_tax3_4 = 0, 
-          eff_tax1_5 = 0, eff_tax2_5 = 0, eff_tax3_5 = 0, 
-          eff_tax1_6 = 0, eff_tax2_6 = 0, eff_tax3_6 = 0, 
-          PED1 = 1, PED2 = 1, PED3 = 1, 
-          t_n = 3000, time_between = Inf, rho = 0.1, base_tax = 0.5)
+#Creating the Parm Dataframe
 
+parm_data <- data.frame(t(replicate(100000, runif(20, low_parm, high_parm))))
+colnames(parm_data) <- c("lambda", "beta", "r_wt", "r_r", "r_rr", "r_rrr","r_t",
+                         "eta_wr", "eta_rw", "eta_rr", "eta_rrr",
+                         "c1", "c2", "c3", "c12", "c13", "c23", "c123",  
+                         "rho", "base_tax")
 
-parms[grep("eff_tax3", names(parms),value = T)] <- 0.5
+parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")] <- t(sapply(1:nrow(parm_data), function(x) 
+  sort(as.numeric(parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")][x,]), decreasing = F)))
 
-testrun <- remNA_func(data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms)))
+parm_data[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")] <- t(sapply(1:nrow(parm_data), function(x) 
+  sort(as.numeric(parm_data[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")][x,]), decreasing = T)))
 
-int_test <- integral(testrun, 3000)
+append_data <- data.frame(matrix(0, nrow = 100000, ncol = 18),
+                          matrix(0.25, nrow = 100000, ncol = 3),
+                          matrix(1, nrow = 100000, ncol = 3),
+                          t_n = 3000,
+                          time_between = Inf)
 
-# Test Plotting -----------------------------------------------------------
+parm_data_comb <- data.frame(parm_data, append_data)
+colnames(parm_data_comb)[21:38] <- names(parms)[22:39]
+colnames(parm_data_comb)[39:41] <- names(parms)[3:5]
+colnames(parm_data_comb)[42:44] <- names(parms)[40:42]
 
-test_plot <- melt(testrun, id.vars = "time", measure.vars = colnames(testrun)[-1])
+# Creating the Parallel Montonicity Function ------------------------------
 
-# Aggregated Test Plotting ------------------------------------------------
-
-agg_data <- agg_func(testrun)
-agg_data$avgres <- rowMeans(agg_data[,4:6])
-
-test_plot_agg <- melt(agg_data, id.vars = "time", measure.vars = colnames(agg_data)[-1])
-
-ggplot(test_plot_agg, aes(time, value, color = variable)) + geom_line(size = 1.1) + theme_bw() + 
-  scale_y_continuous(name = "Average Resistance", expand = c(0, 0)) + scale_x_continuous(name = "Time (days)", expand = c(0, 0)) +
-  labs(color="Strains")
-
-# Intervention Scenarios --------------------------------------------------
-
-parms = c(lambda = 1/365*(2), 
-          beta = 5, sigma1 = 0.25, sigma2 = 0.25, sigma3 = 0.25,
-          r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, 
-          r_t = 1/7, eta_wr = 0.5, eta_rw = 0.03, 
-          eta_rr = 0.1, eta_rrr = 0.1,  
-          c1 = 0.95, c2 = 0.92, c3 = 0.85,
-          c12 = 0.85, c13 = 0.82, c23 = 0.75,
-          c123 = 0.7,
-          eff_tax1_1 = 0, eff_tax2_1 = 0, eff_tax3_1 = 0, 
-          eff_tax1_2 = 0, eff_tax2_2 = 0, eff_tax3_2 = 0, 
-          eff_tax1_3 = 0, eff_tax2_3 = 0, eff_tax3_3 = 0, 
-          eff_tax1_4 = 0, eff_tax2_4 = 0, eff_tax3_4 = 0, 
-          eff_tax1_5 = 0, eff_tax2_5 = 0, eff_tax3_5 = 0, 
-          eff_tax1_6 = 0, eff_tax2_6 = 0, eff_tax3_6 = 0, 
-          PED1 = 1, PED2 = 1, PED3 = 1, 
-          t_n = 3000, time_between = Inf, rho = 0.1, base_tax = 0.5)
-
-#Flat Tax
-parms1 <- parms; parms1[grep("eff_tax", names(parms1), value = TRUE)] <- 0.5
-testrun_flat <- remNA_func(data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)))
-
-#Single Tax 
-single_list <- list()
-for(i in 1:3) {
-  parms1 <- parms
-  parms1[grep(paste0("eff_tax", i), names(parms1), value = TRUE)] <- 0.5
-  single_list[[i]] <- data.frame(remNA_func(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)))
-}
-
-#Diff Tax
-diff_tax_list <- list()
-for(i in 1:6) {
-  parms1 <- parms
-  dat <- multi_int_fun(i, 365*3, parms1, init, amr, agg_func)[[1]]
-  diff_tax_list[[i]] <- dat
-}
-
-agg_data <- agg_func(diff_tax_list[[6]])
-
-colnames(agg_data)[3:6] <- c("Wild Type",
-                             "High Res (HR)",
-                             "Medium Res (MR)",
-                             "Low Res (LR)")
+mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func) {
+  parms_base = parms_frame[n,]
+  #Run Baseline
+  run_base <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, hmax = 1)))
+  run_base_agg <- agg_func(run_base)
+  values <- tail(run_base, 1)
   
-test_plot_agg <- melt(agg_data, id.vars = "time", measure.vars = colnames(agg_data)[-c(1:2)])
-
-ggplot(test_plot_agg, aes(time, value, color = variable)) + geom_line(size = 1.1) + theme_bw() + 
-  scale_y_continuous(name = "Average Resistance", expand = c(0, 0), limits = c(0.1, 0.6)) + scale_x_continuous(name = "Time (days)", expand = c(0, 0)) +
-  theme(legend.text=element_text(size=12), legend.title = element_blank(), axis.text=element_text(size=12), 
-        axis.title.y=element_text(size=12), axis.title.x= element_text(size=12), plot.margin = unit(c(0.35,1,0.35,1), "cm"),legend.position="bottom",
-        legend.spacing.x = unit(0.3, 'cm'))
-
-# Obtain the Integrals ----------------------------------------------------
-
-parms1 <- parms; parms1[grep("eff_tax", names(parms1), value = TRUE)] <- 0.5
-
-inf_int = data.frame("Flat_All" = integral(testrun_flat, 3000), 
-                     "Single_1" = integral(single_list[[1]], 3000),
-                     "Single_2" = integral(single_list[[2]], 3000),
-                     "Single_3" = integral(single_list[[3]], 3000),
-                     "Diff_1" = integral(diff_tax_list[[1]], 3000),
-                     "Diff_2" = integral(diff_tax_list[[2]], 3000),
-                     "Diff_3" = integral(diff_tax_list[[3]], 3000),
-                     "Diff_4" = integral(diff_tax_list[[4]], 3000),
-                     "Diff_5" = integral(diff_tax_list[[5]], 3000),
-                     "Diff_6" = integral(diff_tax_list[[6]], 3000))
-
-rownames(inf_int) <- c("Total Infections", "Average Resistance")
-
-
-# Plot Baseline -----------------------------------------------------------
-
-OG_melt <- melt(as.matrix(inf_int), measure.vars = colnames(inf_int))
-rescale_data <- t(apply(inf_int, MARGIN = 1, FUN = function(X) (X - min(X))/diff(range(X))))
-rescale_melt <- melt(as.matrix(rescale_data), measure.vars = colnames(rescale_data))
-
-OG_melt$rescale <- rescale_melt[,3]
-
-ggplot(OG_melt, aes(Var2, Var1)) + theme_bw() +
-  geom_tile(aes(fill = rescale)) + 
-  facet_grid(Var1 ~ ., scales = "free_y") +
-  geom_text(aes(label=value), color = "black") + 
-  scale_fill_distiller(palette ="Blues", direction = 1) +
-  scale_x_discrete(name = "Intervention", expand = c(0, 0))  +   
-  scale_y_discrete(name = "Outcome Measure", expand = c(0, 0)) + 
-  theme(strip.background = element_blank(), axis.text=element_text(size=11),
-        strip.text = element_blank(), legend.position="none")
-
-# Rescaled for Denominator ------------------------------------------------
-
-
-diff_tax_list <- list()
-
-for(i in 1:6) {
-  diff_tax_list[[i]] <- data.frame(multi_int_fun(i, 365*3, parms, init, amr, agg_func)[[2]])
+  if(values[4] == 0 & values[5] == 0 & values[6] == 0) {
+    while(values[4] == 0 & values[5] == 0 & values[6] == 0) {
+      parms_base[c(1:20)] <- runif(20,low_parm, high_parm)
+      
+      parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")] <- sort(as.numeric(parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")]), decreasing = F)
+      parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")] <- 
+        sort(as.numeric(parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")]), decreasing = T)
+      
+      run_base <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, hmax = 1)))
+      run_base_agg <- agg_func(run_base)
+      values <- tail(run_base, 1)
+    }
+  }
+  
+  run <- run_base[run_base[,1] > parms[["t_n"]],]
+  run_base_agg <- run_base_agg[run_base_agg[,1] > parms[["t_n"]],]
+   
+  base_tot_inf <- signif(sum(run[3:10]), 5)
+  base_int_res <- signif(sum(rowMeans(run_base_agg[4:6]), 5))
+  
+  #Need to calculate a different baseline for each scenario for antibiotic usage 
+  store_vec_res <- c()
+  store_vec_inf <- c()
+  
+  for(i in 1:10){
+    parms = parms_base
+    if(i == 1) {
+      parms[grep("eff_tax", names(parms), value =T)]  <- parms[["base_tax"]]
+      out <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, hmax = 1)))
+    }
+    if(i >= 2 & i <= 4) {
+      parms[grep(paste0("eff_tax", i-1), names(parms), value =T)]  <- parms[["base_tax"]]
+      out <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, hmax = 1)))
+      
+    }
+    if(i >= 5 & i <= 10) {
+      
+      diff <- multi_int_fun(i-4, 365*3, parms, init, amr_ode, agg_func)
+      out <- diff[[1]]
+      parms <- diff[[2]]
+    }
+    
+    data_temp <- out[out[,1] > parms[["t_n"]],]
+    data_temp_agg <- agg_func(data_temp)
+    
+    out_vec <- signif(c(sum(data_temp[3:10]),
+                        sum(rowMeans(data_temp_agg[4:6]))),5)
+    
+    reduc_usage_vec <- sum(usage_fun(parms)[,6])
+    
+    store_vec_inf[i] <- (out_vec[1] - base_tot_inf)/reduc_usage_vec
+    store_vec_res[i] <- (base_int_res - out_vec[2])/reduc_usage_vec
+  }
+  
+  output <- c(store_vec_inf, store_vec_res, parms_base[c(1:20)] )
+  names(output) <- c("flat_inf", "single1_inf", "single2_inf", "single3_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", 
+                     "flat_res", "single1_res", "single2_res", "single3_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res", 
+                     names(parms_base[c(1:20)]))
+  return(output)
 }
 
-#Find The Resistance Lost 
-#Baseline
 
-base <- remNA_func(data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms)))
-base_totinf <- integral(base, 3000)[1]
-base_avgres_int <- integral(base, 3000)[2]
+# Run the Model ----------------------------------------------------------
 
-#Lost Resistance Function 
-#Supply a dataframe with time and the effective tax over time for class 1, 2 and 3.
-#I need to extract the 1-6 data with the 
+start_time <- Sys.time()
 
-#Now I need to do this for all 6 scenarios. 
-parms_flat <- parms; parms_flat[grep("eff_tax", names(parms), value =T)]  <- 0.5
-parms_single1 <- parms; parms_single1[grep("eff_tax1", names(parms), value =T)]  <- 0.5
-parms_single2 <- parms; parms_single2[grep("eff_tax2", names(parms), value =T)]  <- 0.5
-parms_single3 <- parms; parms_single3[grep("eff_tax3", names(parms), value =T)]  <- 0.5
+test <- mclapply(1:5000, 
+                 FUN = mono_func, 
+                 parms_frame = parm_data_comb, 
+                 init = c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
+                          R12 = 0, R13 = 0, R23 = 0,
+                          R123 = 0), 
+                 amr_ode = amr, 
+                 usage_fun = usage_fun,
+                 multi_int_fun = multi_int_fun,
+                 low_parm = low_parm,
+                 high_parm = high_parm,
+                 agg_func = agg_func,
+                 mc.cores = 10)
 
-parm_list <- list(parms_flat,parms_single1,parms_single2,parms_single3,parms_dual12,parms_dual23,parms_dual13)
+print(test)
 
-over_parms <- append(parm_list, diff_tax_list)
-list_usage <- lapply(over_parms, usage_fun)
+comb_data <- data.frame(do.call(rbind, test))
 
-# Relative Reduction Integral Comparison --------------------------------------------
+saveRDS(parm_data_comb, "/cluster/home/amorgan/Sens_Anal_Output/parmFULL_MDRv1_opt.RDS")
+saveRDS(comb_data, "/cluster/home/amorgan/Sens_Anal_Output/comb_dataFULLMDRv1_pot.RDS")
 
-reduc_usage_vec <- sapply(1:length(list_usage), function(x) sum(list_usage[[x]][,6]))
-rel_AvgRes <- base_avgres_int - inf_int[2,]
-rel_totinf <- inf_int[1,] - base_totinf
-
-comp_totinf <- rel_totinf/reduc_usage_vec
-comp_res <- rel_AvgRes/reduc_usage_vec
-
-data.frame.rel <- rbind(comp_totinf, comp_res); rownames(data.frame.rel) <- c("Total Infections", "Average Resistance")
-
-rescale_data_rel <- t(apply(data.frame.rel, MARGIN = 1, FUN = function(X) (X - min(X))/diff(range(X))))
-OG_melt_rel <- melt(as.matrix(data.frame.rel), measure.vars = colnames(data.frame.rel))
-rescale_melt_rel <- melt(as.matrix(rescale_data_rel), measure.vars = colnames(rescale_data_rel))
-OG_melt_rel$rescale <- rescale_melt_rel[,3]
-
-OG_melt_rel$value <- round(OG_melt_rel$value, digits = 3)
-
-ggplot(OG_melt_rel, aes(Var2, Var1)) + theme_bw() +
-  geom_tile(aes(fill = rescale)) + 
-  facet_grid(Var1 ~ ., scales = "free_y") +
-  geom_text(aes(label=value), color = "black") + 
-  scale_fill_distiller(palette ="Blues", direction = 1) +
-  scale_x_discrete(name = "Intervention", expand = c(0, 0))  +   
-  scale_y_discrete(name = "Outcome Measure", expand = c(0, 0)) + 
-  theme(strip.background = element_blank(), axis.text=element_text(size=11),
-        strip.text = element_blank(), legend.position="none")
+end_time <- Sys.time()
+print(end_time - start_time)
