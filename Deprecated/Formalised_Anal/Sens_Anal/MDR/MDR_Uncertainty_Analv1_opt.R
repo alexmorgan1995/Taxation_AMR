@@ -303,7 +303,7 @@ parms = c(lambda = 1/365*(2),
           eff_tax1_4 = 0, eff_tax2_4 = 0, eff_tax3_4 = 0, 
           eff_tax1_5 = 0, eff_tax2_5 = 0, eff_tax3_5 = 0, 
           eff_tax1_6 = 0, eff_tax2_6 = 0, eff_tax3_6 = 0, 
-          PED1 = 1, PED2 = 1, PED3 = 1, 
+          PED1 = 1.75, PED2 = 1.5, PED3 = 1.25, 
           t_n = 3000, time_between = Inf, rho = 0.1, base_tax = 0.5)
 
 # The Function ------------------------------------------------------------
@@ -450,7 +450,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
 
 start_time <- Sys.time()
 
-test <- mclapply(1:nrow(parm_data_comb), 
+test <- mclapply(1:5000, 
                  FUN = mono_func, 
                  parms_frame = parm_data_comb, 
                  init = c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
@@ -468,8 +468,8 @@ print(test)
 
 comb_data <- data.frame(do.call(rbind, test))
 
-saveRDS(parm_data_comb, "/cluster/home/amorgan/Sens_Anal_Output/parmFULL_MDRv1.RDS")
-saveRDS(comb_data, "/cluster/home/amorgan/Sens_Anal_Output/comb_dataFULLMDRv1.RDS")
+saveRDS(parm_data_comb, "/cluster/home/amorgan/Sens_Anal_Output/parmFULL_MDRv1_opt.RDS")
+saveRDS(comb_data, "/cluster/home/amorgan/Sens_Anal_Output/comb_dataFULLMDRv1_pot.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)
