@@ -1,4 +1,5 @@
-library("deSolve"); library("parallel")
+library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); library("rootSolve"); library("viridis"); library("cowplot")
+
 rm(list=ls())
 
 # Integral Function -------------------------------------------------------
@@ -16,16 +17,16 @@ integral <- function(data, t_n, thresh){
   #Determine the X% Thresholds that you want to be under
   thresholds <- unlist(data[t_n-1, 11:13]* thresh)
   under_thresh <- sweep(data[data[,1] > t_n,][,11:13], 2, thresholds)
-  
+
   #Calculate the number of days you are under said threshold
   under_50 <- c(nrow(under_thresh[under_thresh$aggR1 < 0,]), 
                 nrow(under_thresh[under_thresh$aggR2 < 0,]), 
                 nrow(under_thresh[under_thresh$aggR3 < 0,]))
-  
+
   #Find the Sum and make each value proportionate to one another 
   prop_vec <- under_50 / sum(under_50)
   prop_vec <- prop_vec[prop_vec != 0]
-  
+
   #Output the Optimisation Criteria 
   out_vec <- signif(c(sum(data_temp[3:10]),
                       sum(rowMeans(data_temp[11:13])),
@@ -121,6 +122,8 @@ amr <- function(t, y, parms) {
                   dR123)))
   })
 }
+
+
 
 # Clean Model Run --------------------------------------------------------------
 
@@ -288,17 +291,19 @@ agg_func <- function(data) {
 
 # Extract Usage -----------------------------------------------------------
 
-usage_fun <- function(parms){
+usage_fun <- function(parms, data){
+  tot_inf <- rowSums(data[3001:10001,3:10])
+  
   usage = data.frame("time" = seq(0,7000),
                      "PopUsage1" = c(sapply(1:6, function(x) rep((1-parms[[paste0("eff_tax1_", x)]])*parms[["sigma1"]], 365*3)),
-                                     rep((1-parms[["eff_tax1_6"]])*parms[["sigma1"]], 7001-365*3*6)),
+                                     rep((1-parms[["eff_tax1_6"]])*parms[["sigma1"]], 7001-365*3*6))*tot_inf,
                      "PopUsage2" = c(sapply(1:6, function(x) rep((1-parms[[paste0("eff_tax2_", x)]])*parms[["sigma2"]], 365*3)),
-                                     rep((1-parms[["eff_tax2_6"]])*parms[["sigma2"]], 7001-365*3*6)),
+                                     rep((1-parms[["eff_tax2_6"]])*parms[["sigma2"]], 7001-365*3*6))*tot_inf,
                      "PopUsage3" = c(sapply(1:6, function(x) rep((1-parms[[paste0("eff_tax3_", x)]])*parms[["sigma3"]], 365*3)),
-                                     rep((1-parms[["eff_tax3_6"]])*parms[["sigma3"]], 7001-365*3*6)))
+                                     rep((1-parms[["eff_tax3_6"]])*parms[["sigma3"]], 7001-365*3*6))*tot_inf)
   usage[usage < 0] <- 0
   usage$totusage = rowSums(usage[2:4])
-  usage$reduc_use = parms[["sigma1"]] + parms[["sigma2"]] + parms[["sigma3"]] - usage$totusage
+  usage$reduc_use = (parms[["sigma1"]] + parms[["sigma2"]] + parms[["sigma3"]])*tot_inf - usage$totusage
   return(usage)
 }
 
@@ -311,10 +316,10 @@ init <- c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
 parms = c(lambda = 1/365*(2), 
           beta = 5, sigma1 = 0.25, sigma2 = 0.25, sigma3 = 0.25,
           r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, 
-          r_t = 1/7, eta_wr = 0.2, eta_rw = 0.04, 
-          eta_rr = 0.1, eta_rrr = 0.1,  
-          c1 = 0.95, c2 = 0.92, c3 = 0.85,
-          c12 = 0.85, c13 = 0.82, c23 = 0.75,
+          r_t = 1/7, eta_wr = 0.3, eta_rw = 0.04, 
+          eta_rr = 0.01, eta_rrr = 0.01,  
+          c1 = 0.95, c2 = 0.925, c3 = 0.85,
+          c12 = 0.85, c13 = 0.825, c23 = 0.75,
           c123 = 0.7,
           eff_tax1_1 = 0, eff_tax2_1 = 0, eff_tax3_1 = 0, 
           eff_tax1_2 = 0, eff_tax2_2 = 0, eff_tax3_2 = 0, 
@@ -323,172 +328,148 @@ parms = c(lambda = 1/365*(2),
           eff_tax1_5 = 0, eff_tax2_5 = 0, eff_tax3_5 = 0, 
           eff_tax1_6 = 0, eff_tax2_6 = 0, eff_tax3_6 = 0, 
           PED1 = 1, PED2 = 1, PED3 = 1, 
-          t_n = 3000, time_between = Inf, rho = 0.1, base_tax = 0.5)
+          t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
 
-# The Function ------------------------------------------------------------
+# Intervention Scenarios --------------------------------------------------
 
-low_parm <- c(0, #lambda
-              0, #beta
-              1/50, #r_wt
-              1/50, #r_r
-              1/50, #r_rr
-              1/50, #r_rrr
-              1/50, #r_t
-              0, #eta_wr
-              0, #eta_rw
-              0, #eta_rr
-              0, #eta_rrr
-              0.5, #c1
-              0.5, #c2
-              0.5, #c3
-              0.5, #c12
-              0.5, #c13
-              0.5, #c23
-              0.5, #c123
-              0, #rho
-              0) #baseline tax
+#Flat Tax
+parms1 <- parms; parms1[grep(paste0("eff_tax"), names(parms1), value = TRUE)] <- 0.5
+testrun_flat <- list(remNA_func(data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1))))
 
-high_parm <- c(1/300, #lambda
-              10, #beta
-              1/5, #r_wt
-              1/5, #r_r
-              1/5, #r_rr
-              1/5, #r_rrr
-              1/5, #r_t
-              2, #eta_wr
-              2, #eta_rw
-              2, #eta_rr
-              2, #eta_rrr
-              1, #c1
-              1, #c2
-              1, #c3
-              1, #c12
-              1, #c13
-              1, #c23
-              1, #c123
-              1, #rho
-              1) #baseline tax
-
-#Creating the Parm Dataframe
-
-parm_data <- data.frame(t(replicate(100000, runif(20, low_parm, high_parm))))
-colnames(parm_data) <- c("lambda", "beta", "r_wt", "r_r", "r_rr", "r_rrr","r_t",
-                         "eta_wr", "eta_rw", "eta_rr", "eta_rrr",
-                         "c1", "c2", "c3", "c12", "c13", "c23", "c123",  
-                         "rho", "base_tax")
-
-parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")] <- t(sapply(1:nrow(parm_data), function(x) 
-  sort(as.numeric(parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")][x,]), decreasing = F)))
-
-parm_data[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")] <- t(sapply(1:nrow(parm_data), function(x) 
-  sort(as.numeric(parm_data[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")][x,]), decreasing = T)))
-
-append_data <- data.frame(matrix(0, nrow = 100000, ncol = 18),
-                          matrix(0.25, nrow = 100000, ncol = 3),
-                          matrix(1, nrow = 100000, ncol = 3),
-                          t_n = 3000,
-                          time_between = Inf)
-
-parm_data_comb <- data.frame(parm_data, append_data)
-colnames(parm_data_comb)[21:38] <- names(parms)[22:39]
-colnames(parm_data_comb)[39:41] <- names(parms)[3:5]
-colnames(parm_data_comb)[42:44] <- names(parms)[40:42]
-
-# Creating the Parallel Montonicity Function ------------------------------
-
-mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func) {
-  parms_base = parms_frame[n,]
-  #Run Baseline
-  run_base <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, hmax = 1)))
-  run_base_agg <- agg_func(run_base)
-  values <- tail(run_base, 1)
-  
-  if(values[4] == 0 & values[5] == 0 & values[6] == 0) {
-    while(values[4] == 0 & values[5] == 0 & values[6] == 0) {
-      parms_base[c(1:20)] <- runif(20,low_parm, high_parm)
-      
-      parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")] <- sort(as.numeric(parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")]), decreasing = F)
-      parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")] <- 
-        sort(as.numeric(parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")]), decreasing = T)
-      
-      run_base <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, hmax = 1)))
-      run_base_agg <- agg_func(run_base)
-      values <- tail(run_base, 1)
-    }
-  }
-  
-  run <- run_base[run_base[,1] > parms[["t_n"]],]
-  run_base_agg <- run_base_agg[run_base_agg[,1] > parms[["t_n"]],]
-   
-  base_tot_inf <- signif(sum(run[3:10]), 5)
-  base_int_res <- signif(sum(rowMeans(run_base_agg[4:6]), 5))
-  
-  #Need to calculate a different baseline for each scenario for antibiotic usage 
-  store_vec_res <- c()
-  store_vec_inf <- c()
-  
-  for(i in 1:10){
-    parms = parms_base
-    if(i == 1) {
-      parms[grep("eff_tax", names(parms), value =T)]  <- parms[["base_tax"]]
-      out <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, hmax = 1)))
-    }
-    if(i >= 2 & i <= 4) {
-      parms[grep(paste0("eff_tax", i-1), names(parms), value =T)]  <- parms[["base_tax"]]
-      out <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, hmax = 1)))
-      
-    }
-    if(i >= 5 & i <= 10) {
-      
-      diff <- multi_int_fun(i-4, 365*3, parms, init, amr_ode, agg_func)
-      out <- diff[[1]]
-      parms <- diff[[2]]
-    }
-    
-    data_temp <- out[out[,1] > parms[["t_n"]],]
-    data_temp_agg <- agg_func(data_temp)
-    
-    out_vec <- signif(c(sum(data_temp[3:10]),
-                        sum(rowMeans(data_temp_agg[4:6]))),5)
-    
-    reduc_usage_vec <- sum(usage_fun(parms)[,6])
-    
-    store_vec_inf[i] <- (out_vec[1] - base_tot_inf)/reduc_usage_vec
-    store_vec_res[i] <- (base_int_res - out_vec[2])/reduc_usage_vec
-  }
-  
-  output <- c(store_vec_inf, store_vec_res, parms_base[c(1:20)] )
-  names(output) <- c("flat_inf", "single1_inf", "single2_inf", "single3_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", 
-                     "flat_res", "single1_res", "single2_res", "single3_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res", 
-                     names(parms_base[c(1:20)]))
-  return(output)
+#Single Tax 
+single_list <- list()
+for(i in 1:3) {
+  parms1 <- parms
+  parms1[grep(paste0("eff_tax", i), names(parms1), value = TRUE)] <- 0.5
+  single_list[[i]] <- data.frame(remNA_func(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)))
 }
 
+#Diff Tax
+diff_tax_list <- list()
+for(i in 1:6) {
+  dat <- multi_int_fun(i, 365*3, parms, init, amr, agg_func)[[1]]
+  diff_tax_list[[i]] <- data.frame(dat)
+}
 
-# Run the Model ----------------------------------------------------------
+# Obtain the Integrals ----------------------------------------------------
 
-start_time <- Sys.time()
+list_scen <- unlist(list(testrun_flat, single_list, diff_tax_list), recursive = FALSE)
 
-test <- mclapply(1:5000, 
-                 FUN = mono_func, 
-                 parms_frame = parm_data_comb, 
-                 init = c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
-                          R12 = 0, R13 = 0, R23 = 0,
-                          R123 = 0), 
-                 amr_ode = amr, 
-                 usage_fun = usage_fun,
-                 multi_int_fun = multi_int_fun,
-                 low_parm = low_parm,
-                 high_parm = high_parm,
-                 agg_func = agg_func,
-                 mc.cores = 10)
+opt_crit = data.frame("Flat_All" = integral(list_scen[[1]], 3000, 0.75), 
+                     "Single_1" = integral(list_scen[[2]], 3000, 0.75),
+                     "Single_2" = integral(list_scen[[3]], 3000, 0.75),
+                     "Single_3" = integral(list_scen[[4]], 3000, 0.75),
+                     "Diff_1" = integral(list_scen[[5]], 3000, 0.75),
+                     "Diff_2" = integral(list_scen[[6]], 3000, 0.75),
+                     "Diff_3" = integral(list_scen[[7]], 3000, 0.75),
+                     "Diff_4" = integral(list_scen[[8]], 3000, 0.75),
+                     "Diff_5" = integral(list_scen[[9]], 3000, 0.75),
+                     "Diff_6" = integral(list_scen[[10]], 3000, 0.75))
 
-print(test)
+rownames(opt_crit) <- c("Tot_Inf", "AvgRes", "Shan_Ind")
 
-comb_data <- data.frame(do.call(rbind, test))
+rescale_data <- data.frame(t(apply(opt_crit[1:2,], MARGIN = 1, FUN = function(X) (X - min(X))/diff(range(X)))))
+rescale_data["Shan_Ind",] <- unlist(c("Flat_All" = NA, (opt_crit[3,2:10] - min(opt_crit[3,2:10]))/diff(range(opt_crit[3,2:10]))))
 
-saveRDS(parm_data_comb, "/cluster/home/amorgan/Sens_Anal_Output/parmFULL_MDRv1.RDS")
-saveRDS(comb_data, "/cluster/home/amorgan/Sens_Anal_Output/comb_dataFULLMDRv1.RDS")
+# Absolute Plotting Matrix ------------------------------------------------
 
-end_time <- Sys.time()
-print(end_time - start_time)
+#All of the plots
+
+OG_melt <- melt(as.matrix(opt_crit), measure.vars = colnames(opt_crit))
+rescale_melt <- melt(as.matrix(rescale_data), measure.vars = colnames(rescale_data))
+
+OG_melt$rescale <- rescale_melt[,3]
+
+ggplot(OG_melt, aes(Var2, Var1)) + theme_bw() +
+  geom_tile(aes(fill = rescale)) + 
+  facet_grid(Var1 ~ ., scales = "free_y") +
+  geom_text(aes(label=value), color = "black") + 
+  scale_fill_distiller(palette ="Blues", direction = 1) +
+  scale_x_discrete(name = "Intervention", expand = c(0, 0))  +   
+  scale_y_discrete(name = "Outcome Measure", expand = c(0, 0)) + 
+  theme(strip.background = element_blank(), axis.text=element_text(size=11),
+        strip.text = element_blank(), legend.position="none")
+
+# Creating Relative Integrals ---------------------------------------------
+
+diff_tax_list <- list()
+
+for(i in 1:6) {
+  diff_tax_list[[i]] <- data.frame(multi_int_fun(i, 365*3, parms, init, amr, agg_func)[[2]], 
+                                   "scen" = paste0("diff", i))
+}
+
+#Find The Resistance Lost 
+#Baseline
+
+base <- data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms))
+base_totinf <- integral(base, 3000, 0.75)[1]
+base_avgres_int <- integral(base, 3000, 0.75)[2]
+
+#Lost Resistance Function 
+#Supply a dataframe with time and the effective tax over time for class 1, 2 and 3.
+#I need to extract the 1-6 data with the 
+
+#Change in Usage From Baseline - Only for differential taxation models 
+
+#Now I need to do this for all 6 scenarios. 
+parms_flat <- parms; parms_flat[grep("eff_tax", names(parms), value =T)]  <- 0.5
+parms_single1 <- parms; parms_single1[grep("eff_tax1", names(parms), value =T)]  <- 0.5
+parms_single2 <- parms; parms_single2[grep("eff_tax2", names(parms), value =T)]  <- 0.5
+parms_single3 <- parms; parms_single3[grep("eff_tax3", names(parms), value =T)]  <- 0.5
+
+parm_list <- list(parms_flat,parms_single1,parms_single2,parms_single3)
+
+over_parms <- append(parm_list, diff_tax_list)
+
+list_usage <- list()
+
+for(i in 1:10) {
+  list_usage[[i]] <- usage_fun(over_parms[[i]], list_scen[[i]])
+}
+
+# Relative Reduction Integral Comparison --------------------------------------------
+
+reduc_usage_vec <- sapply(1:length(list_usage), function(x) sum(list_usage[[x]][,6]))
+rel_AvgRes <- base_avgres_int - opt_crit[2,]
+rel_totinf <- opt_crit[1,] - base_totinf
+
+comp_totinf <- rel_totinf/reduc_usage_vec
+comp_res <- rel_AvgRes/reduc_usage_vec
+
+data.frame.rel <- rbind(comp_totinf, comp_res); rownames(data.frame.rel) <- c("Total Infections", "Average Resistance")
+data.frame.rel["Shannon Index",] <- opt_crit["Shan_Ind",]
+
+rescale_data_rel <- data.frame(t(apply(data.frame.rel, MARGIN = 1, FUN = function(X) (X - min(X))/diff(range(X)))))
+rescale_data_rel["Shannon Index",] <- rescale_data["Shan_Ind",]
+
+OG_melt_rel <- melt(as.matrix(data.frame.rel), measure.vars = colnames(data.frame.rel))
+OG_melt_rel$Var2 <- factor(rep(c("Flat Tax", "Single Tax (HR)", "Single Tax (MR)", "Single Tax (LR)",
+                               "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)", "Diff Tax (4 Rd)",
+                               "Diff Tax (5 Rd)","Diff Tax (6 Rd)"), each = 3))
+
+OG_melt_rel$Var2  <- factor(OG_melt_rel$Var2 , levels = unique(OG_melt_rel$Var2))
+
+rescale_melt_rel <- melt(as.matrix(rescale_data_rel), measure.vars = colnames(rescale_data_rel))
+
+rescale_melt_rel$Var2 <- factor(rep(c("Flat Tax", "Single Tax (HR)", "Single Tax (MR)", "Single Tax (LR)",
+                               "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)", "Diff Tax (4 Rd)",
+                               "Diff Tax (5 Rd)","Diff Tax (6 Rd)"), each = 3))
+
+rescale_melt_rel$Var2  <- factor(rescale_melt_rel$Var2 , levels = unique(rescale_melt_rel$Var2))
+
+OG_melt_rel$rescale <- rescale_melt_rel[,3]
+
+OG_melt_rel$value <- round(OG_melt_rel$value, digits = 3)
+
+ggplot(OG_melt_rel, aes(Var2, Var1)) + theme_bw() +
+  geom_tile(aes(fill = rescale)) + 
+  facet_grid(Var1 ~ ., scales = "free_y") +
+  geom_text(aes(label=value), color = "black") + 
+  scale_fill_distiller(palette ="Blues", direction = 1) +
+  scale_x_discrete(name = "Intervention", expand = c(0, 0))  +   
+  scale_y_discrete(name = "Outcome Measure", expand = c(0, 0)) + 
+  theme(strip.background = element_blank(), axis.text=element_text(size=11),
+        strip.text = element_blank(), legend.position="none",
+        axis.text.x = element_text(angle = 45, hjust=1))
+

@@ -1,39 +1,6 @@
 library("deSolve"); library("parallel")
 rm(list=ls())
 
-# Integral Function -------------------------------------------------------
-
-integral <- function(data, t_n, thresh){
-  
-  #Aggregate the Data into Resistance Classes
-  data$aggR1 <- data$R1 + data$R12 + data$R13 + data$R123
-  data$aggR2 <- data$R2 + data$R12 + data$R23 + data$R123
-  data$aggR3 <- data$R3 + data$R13 + data$R23 + data$R123
-  
-  #Subset the Dataframe so that only results after the intervention start
-  data_temp <- data[data[,1] > t_n,]
-  
-  #Determine the X% Thresholds that you want to be under
-  thresholds <- unlist(data[t_n-1, 11:13]* thresh)
-  under_thresh <- sweep(data[data[,1] > t_n,][,11:13], 2, thresholds)
-  
-  #Calculate the number of days you are under said threshold
-  under_50 <- c(nrow(under_thresh[under_thresh$aggR1 < 0,]), 
-                nrow(under_thresh[under_thresh$aggR2 < 0,]), 
-                nrow(under_thresh[under_thresh$aggR3 < 0,]))
-  
-  #Find the Sum and make each value proportionate to one another 
-  prop_vec <- under_50 / sum(under_50)
-  prop_vec <- prop_vec[prop_vec != 0]
-  
-  #Output the Optimisation Criteria 
-  out_vec <- signif(c(sum(data_temp[3:10]),
-                      sum(rowMeans(data_temp[11:13])),
-                      -sum(sapply(1:length(prop_vec), function(x) prop_vec[x]*log(prop_vec[x])))), 5)
-  
-  return(out_vec)
-}
-
 # ODEs --------------------------------------------------------------------
 
 amr <- function(t, y, parms) {
@@ -134,7 +101,9 @@ remNA_func <- function(dataframe){
       dataframe[seq(timing[[1]]+2,10001),i+1] <- timing[i,i+1]
     }
   }
+  
   dataframe[dataframe < 1e-10] <- 0
+  
   return(dataframe)
 }
 
@@ -288,17 +257,19 @@ agg_func <- function(data) {
 
 # Extract Usage -----------------------------------------------------------
 
-usage_fun <- function(parms){
+usage_fun <- function(parms, data){
+  tot_inf <- rowSums(data[3001:10001, 3:10])
+  
   usage = data.frame("time" = seq(0,7000),
                      "PopUsage1" = c(sapply(1:6, function(x) rep((1-parms[[paste0("eff_tax1_", x)]])*parms[["sigma1"]], 365*3)),
-                                     rep((1-parms[["eff_tax1_6"]])*parms[["sigma1"]], 7001-365*3*6)),
+                                     rep((1-parms[["eff_tax1_6"]])*parms[["sigma1"]], 7001-365*3*6))*tot_inf,
                      "PopUsage2" = c(sapply(1:6, function(x) rep((1-parms[[paste0("eff_tax2_", x)]])*parms[["sigma2"]], 365*3)),
-                                     rep((1-parms[["eff_tax2_6"]])*parms[["sigma2"]], 7001-365*3*6)),
+                                     rep((1-parms[["eff_tax2_6"]])*parms[["sigma2"]], 7001-365*3*6))*tot_inf,
                      "PopUsage3" = c(sapply(1:6, function(x) rep((1-parms[[paste0("eff_tax3_", x)]])*parms[["sigma3"]], 365*3)),
-                                     rep((1-parms[["eff_tax3_6"]])*parms[["sigma3"]], 7001-365*3*6)))
+                                     rep((1-parms[["eff_tax3_6"]])*parms[["sigma3"]], 7001-365*3*6))*tot_inf)
   usage[usage < 0] <- 0
   usage$totusage = rowSums(usage[2:4])
-  usage$reduc_use = parms[["sigma1"]] + parms[["sigma2"]] + parms[["sigma3"]] - usage$totusage
+  usage$reduc_use = (parms[["sigma1"]] + parms[["sigma2"]] + parms[["sigma3"]])*tot_inf - usage$totusage
   return(usage)
 }
 
@@ -311,10 +282,10 @@ init <- c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
 parms = c(lambda = 1/365*(2), 
           beta = 5, sigma1 = 0.25, sigma2 = 0.25, sigma3 = 0.25,
           r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, 
-          r_t = 1/7, eta_wr = 0.2, eta_rw = 0.04, 
-          eta_rr = 0.1, eta_rrr = 0.1,  
-          c1 = 0.95, c2 = 0.92, c3 = 0.85,
-          c12 = 0.85, c13 = 0.82, c23 = 0.75,
+          r_t = 1/7, eta_wr = 0.3, eta_rw = 0.04, 
+          eta_rr = 0.01, eta_rrr = 0.01,  
+          c1 = 0.95, c2 = 0.925, c3 = 0.85,
+          c12 = 0.85, c13 = 0.825, c23 = 0.75,
           c123 = 0.7,
           eff_tax1_1 = 0, eff_tax2_1 = 0, eff_tax3_1 = 0, 
           eff_tax1_2 = 0, eff_tax2_2 = 0, eff_tax3_2 = 0, 
@@ -323,7 +294,7 @@ parms = c(lambda = 1/365*(2),
           eff_tax1_5 = 0, eff_tax2_5 = 0, eff_tax3_5 = 0, 
           eff_tax1_6 = 0, eff_tax2_6 = 0, eff_tax3_6 = 0, 
           PED1 = 1, PED2 = 1, PED3 = 1, 
-          t_n = 3000, time_between = Inf, rho = 0.1, base_tax = 0.5)
+          t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
 
 # The Function ------------------------------------------------------------
 
@@ -350,15 +321,15 @@ low_parm <- c(0, #lambda
 
 high_parm <- c(1/300, #lambda
               10, #beta
-              1/5, #r_wt
-              1/5, #r_r
-              1/5, #r_rr
-              1/5, #r_rrr
-              1/5, #r_t
-              2, #eta_wr
-              2, #eta_rw
-              2, #eta_rr
-              2, #eta_rrr
+              1/2, #r_wt
+              1/2, #r_r
+              1/2, #r_rr
+              1/2, #r_rrr
+              1/2, #r_t
+              1, #eta_wr
+              1, #eta_rw
+              1, #eta_rr
+              1, #eta_rrr
               1, #c1
               1, #c2
               1, #c3
@@ -372,6 +343,7 @@ high_parm <- c(1/300, #lambda
 #Creating the Parm Dataframe
 
 parm_data <- data.frame(t(replicate(100000, runif(20, low_parm, high_parm))))
+
 colnames(parm_data) <- c("lambda", "beta", "r_wt", "r_r", "r_rr", "r_rrr","r_t",
                          "eta_wr", "eta_rw", "eta_rr", "eta_rrr",
                          "c1", "c2", "c3", "c12", "c13", "c23", "c123",  
@@ -396,8 +368,10 @@ colnames(parm_data_comb)[42:44] <- names(parms)[40:42]
 
 # Creating the Parallel Montonicity Function ------------------------------
 
-mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func) {
+mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func, thresh) {
+  
   parms_base = parms_frame[n,]
+  
   #Run Baseline
   run_base <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, hmax = 1)))
   run_base_agg <- agg_func(run_base)
@@ -405,7 +379,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   
   if(values[4] == 0 & values[5] == 0 & values[6] == 0) {
     while(values[4] == 0 & values[5] == 0 & values[6] == 0) {
-      parms_base[c(1:20)] <- runif(20,low_parm, high_parm)
+      parms_base[c(1:20)] <- runif(20, low_parm, high_parm)
       
       parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")] <- sort(as.numeric(parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")]), decreasing = F)
       parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")] <- 
@@ -426,6 +400,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   #Need to calculate a different baseline for each scenario for antibiotic usage 
   store_vec_res <- c()
   store_vec_inf <- c()
+  store_vec_shan <- c()
   
   for(i in 1:10){
     parms = parms_base
@@ -450,20 +425,41 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
     
     out_vec <- signif(c(sum(data_temp[3:10]),
                         sum(rowMeans(data_temp_agg[4:6]))),5)
+    reduc_usage_vec <- sum(usage_fun(parms, out)[,6])
     
-    reduc_usage_vec <- sum(usage_fun(parms)[,6])
+    #Aggregation
+    out$aggR1 <- out$R1 + out$R12 + out$R13 + out$R123
+    out$aggR2 <- out$R2 + out$R12 + out$R23 + out$R123
+    out$aggR3 <- out$R3 + out$R13 + out$R23 + out$R123
     
+    #Determine the X% Thresholds that you want to be under
+    thresholds <- unlist(out[parms[["t_n"]]-1, 11:13]*thresh)
+    
+    under_thresh <- sweep(out[out[,1] > parms[["t_n"]],][,11:13], 2, thresholds)
+    
+    #Calculate the number of days you are under said threshold
+    under_50 <- c(nrow(under_thresh[under_thresh$aggR1 < 0,]), 
+                  nrow(under_thresh[under_thresh$aggR2 < 0,]), 
+                  nrow(under_thresh[under_thresh$aggR3 < 0,]))
+
+    #Find the Sum and make each value proportionate to one another 
+    prop_vec <- under_50 / sum(under_50)
+    prop_vec <- prop_vec[prop_vec != 0]
+    
+    #Store Computation Vectors 
     store_vec_inf[i] <- (out_vec[1] - base_tot_inf)/reduc_usage_vec
     store_vec_res[i] <- (base_int_res - out_vec[2])/reduc_usage_vec
+    store_vec_shan[i] <- -sum(sapply(1:length(prop_vec), function(x) prop_vec[x]*log(prop_vec[x])))
   }
   
-  output <- c(store_vec_inf, store_vec_res, parms_base[c(1:20)] )
+  output <- c(store_vec_inf, store_vec_res, store_vec_shan, parms_base[c(1:20)])
   names(output) <- c("flat_inf", "single1_inf", "single2_inf", "single3_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", 
-                     "flat_res", "single1_res", "single2_res", "single3_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res", 
+                     "flat_res", "single1_res", "single2_res", "single3_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res",
+                     "flat_shan", "single1_shan", "single2_shan", "single3_shan", "diff1_shan", "diff2_shan", "diff3_shan", "diff4_shan", "diff5_shan", "diff6_shan",
                      names(parms_base[c(1:20)]))
+  
   return(output)
 }
-
 
 # Run the Model ----------------------------------------------------------
 
@@ -481,14 +477,14 @@ test <- mclapply(1:5000,
                  low_parm = low_parm,
                  high_parm = high_parm,
                  agg_func = agg_func,
+                 thresh = 0.75,
                  mc.cores = 10)
-
-print(test)
 
 comb_data <- data.frame(do.call(rbind, test))
 
-saveRDS(parm_data_comb, "/cluster/home/amorgan/Sens_Anal_Output/parmFULL_MDRv1.RDS")
-saveRDS(comb_data, "/cluster/home/amorgan/Sens_Anal_Output/comb_dataFULLMDRv1.RDS")
+saveRDS(parm_data_comb, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms.RDS")
+saveRDS(comb_data, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)
+

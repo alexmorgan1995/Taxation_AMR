@@ -1,4 +1,5 @@
-library("deSolve"); library("parallel")
+library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); library("rootSolve"); library("viridis"); library("cowplot")
+
 rm(list=ls())
 
 # Integral Function -------------------------------------------------------
@@ -311,10 +312,10 @@ init <- c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
 parms = c(lambda = 1/365*(2), 
           beta = 5, sigma1 = 0.25, sigma2 = 0.25, sigma3 = 0.25,
           r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, 
-          r_t = 1/7, eta_wr = 0.2, eta_rw = 0.04, 
-          eta_rr = 0.1, eta_rrr = 0.1,  
-          c1 = 0.95, c2 = 0.92, c3 = 0.85,
-          c12 = 0.85, c13 = 0.82, c23 = 0.75,
+          r_t = 1/7, eta_wr = 0.3, eta_rw = 0.04, 
+          eta_rr = 0.01, eta_rrr = 0.01,  
+          c1 = 0.95, c2 = 0.925, c3 = 0.85,
+          c12 = 0.85, c13 = 0.825, c23 = 0.75,
           c123 = 0.7,
           eff_tax1_1 = 0, eff_tax2_1 = 0, eff_tax3_1 = 0, 
           eff_tax1_2 = 0, eff_tax2_2 = 0, eff_tax3_2 = 0, 
@@ -323,172 +324,76 @@ parms = c(lambda = 1/365*(2),
           eff_tax1_5 = 0, eff_tax2_5 = 0, eff_tax3_5 = 0, 
           eff_tax1_6 = 0, eff_tax2_6 = 0, eff_tax3_6 = 0, 
           PED1 = 1, PED2 = 1, PED3 = 1, 
-          t_n = 3000, time_between = Inf, rho = 0.1, base_tax = 0.5)
+          t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
 
-# The Function ------------------------------------------------------------
+# Testing the Outcome Measure ---------------------------------------------
+parms1 <- parms; parms1[grep(paste0("eff_tax1"), names(parms1), value = TRUE)] <- 0.5
 
-low_parm <- c(0, #lambda
-              0, #beta
-              1/50, #r_wt
-              1/50, #r_r
-              1/50, #r_rr
-              1/50, #r_rrr
-              1/50, #r_t
-              0, #eta_wr
-              0, #eta_rw
-              0, #eta_rr
-              0, #eta_rrr
-              0.5, #c1
-              0.5, #c2
-              0.5, #c3
-              0.5, #c12
-              0.5, #c13
-              0.5, #c23
-              0.5, #c123
-              0, #rho
-              0) #baseline tax
+#Baseline Test Run
+testrun_flat <- remNA_func(data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)))
+integral(testrun_flat, 3000, 0.75) 
 
-high_parm <- c(1/300, #lambda
-              10, #beta
-              1/5, #r_wt
-              1/5, #r_r
-              1/5, #r_rr
-              1/5, #r_rrr
-              1/5, #r_t
-              2, #eta_wr
-              2, #eta_rw
-              2, #eta_rr
-              2, #eta_rrr
-              1, #c1
-              1, #c2
-              1, #c3
-              1, #c12
-              1, #c13
-              1, #c23
-              1, #c123
-              1, #rho
-              1) #baseline tax
+#Baseline Differential Taxation Run 
+diff_test_run <- multi_int_fun(6, 365*3, parms, init, amr, agg_func)[[1]]
+integral(diff_test_run, 3000, 0.75) 
 
-#Creating the Parm Dataframe
+# Baseline Model ----------------------------------------------------------
 
-parm_data <- data.frame(t(replicate(100000, runif(20, low_parm, high_parm))))
-colnames(parm_data) <- c("lambda", "beta", "r_wt", "r_r", "r_rr", "r_rrr","r_t",
-                         "eta_wr", "eta_rw", "eta_rr", "eta_rrr",
-                         "c1", "c2", "c3", "c12", "c13", "c23", "c123",  
-                         "rho", "base_tax")
+parms1 <- parms
+testrun_flat <- remNA_func(data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)))
+test_run_agg <- agg_func(testrun_flat) 
 
-parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")] <- t(sapply(1:nrow(parm_data), function(x) 
-  sort(as.numeric(parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")][x,]), decreasing = F)))
+test_run_agg$AverageRes <- rowMeans(testrun_flat[,4:6])
+test_run_agg$TotInf <- rowSums(testrun_flat[,3:10])
 
-parm_data[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")] <- t(sapply(1:nrow(parm_data), function(x) 
-  sort(as.numeric(parm_data[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")][x,]), decreasing = T)))
+test_plot_flat <- melt(testrun_flat, id.vars = "time", measure.vars = colnames(testrun_flat)[4:6])
+ggplot(test_plot_flat, aes(time, value, color = variable)) + geom_line() + theme_bw()
 
-append_data <- data.frame(matrix(0, nrow = 100000, ncol = 18),
-                          matrix(0.25, nrow = 100000, ncol = 3),
-                          matrix(1, nrow = 100000, ncol = 3),
-                          t_n = 3000,
-                          time_between = Inf)
+# Intervention Scenarios --------------------------------------------------
 
-parm_data_comb <- data.frame(parm_data, append_data)
-colnames(parm_data_comb)[21:38] <- names(parms)[22:39]
-colnames(parm_data_comb)[39:41] <- names(parms)[3:5]
-colnames(parm_data_comb)[42:44] <- names(parms)[40:42]
+#Flat Tax
+parms1 <- parms; parms1[grep(paste0("eff_tax"), names(parms1), value = TRUE)] <- 0.5
+testrun_flat <- list(remNA_func(data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1))))
 
-# Creating the Parallel Montonicity Function ------------------------------
-
-mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func) {
-  parms_base = parms_frame[n,]
-  #Run Baseline
-  run_base <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, hmax = 1)))
-  run_base_agg <- agg_func(run_base)
-  values <- tail(run_base, 1)
-  
-  if(values[4] == 0 & values[5] == 0 & values[6] == 0) {
-    while(values[4] == 0 & values[5] == 0 & values[6] == 0) {
-      parms_base[c(1:20)] <- runif(20,low_parm, high_parm)
-      
-      parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")] <- sort(as.numeric(parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")]), decreasing = F)
-      parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")] <- 
-        sort(as.numeric(parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")]), decreasing = T)
-      
-      run_base <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, hmax = 1)))
-      run_base_agg <- agg_func(run_base)
-      values <- tail(run_base, 1)
-    }
-  }
-  
-  run <- run_base[run_base[,1] > parms[["t_n"]],]
-  run_base_agg <- run_base_agg[run_base_agg[,1] > parms[["t_n"]],]
-   
-  base_tot_inf <- signif(sum(run[3:10]), 5)
-  base_int_res <- signif(sum(rowMeans(run_base_agg[4:6]), 5))
-  
-  #Need to calculate a different baseline for each scenario for antibiotic usage 
-  store_vec_res <- c()
-  store_vec_inf <- c()
-  
-  for(i in 1:10){
-    parms = parms_base
-    if(i == 1) {
-      parms[grep("eff_tax", names(parms), value =T)]  <- parms[["base_tax"]]
-      out <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, hmax = 1)))
-    }
-    if(i >= 2 & i <= 4) {
-      parms[grep(paste0("eff_tax", i-1), names(parms), value =T)]  <- parms[["base_tax"]]
-      out <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, hmax = 1)))
-      
-    }
-    if(i >= 5 & i <= 10) {
-      
-      diff <- multi_int_fun(i-4, 365*3, parms, init, amr_ode, agg_func)
-      out <- diff[[1]]
-      parms <- diff[[2]]
-    }
-    
-    data_temp <- out[out[,1] > parms[["t_n"]],]
-    data_temp_agg <- agg_func(data_temp)
-    
-    out_vec <- signif(c(sum(data_temp[3:10]),
-                        sum(rowMeans(data_temp_agg[4:6]))),5)
-    
-    reduc_usage_vec <- sum(usage_fun(parms)[,6])
-    
-    store_vec_inf[i] <- (out_vec[1] - base_tot_inf)/reduc_usage_vec
-    store_vec_res[i] <- (base_int_res - out_vec[2])/reduc_usage_vec
-  }
-  
-  output <- c(store_vec_inf, store_vec_res, parms_base[c(1:20)] )
-  names(output) <- c("flat_inf", "single1_inf", "single2_inf", "single3_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", 
-                     "flat_res", "single1_res", "single2_res", "single3_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res", 
-                     names(parms_base[c(1:20)]))
-  return(output)
+#Single Tax 
+single_list <- list()
+for(i in 1:3) {
+  parms1 <- parms
+  parms1[grep(paste0("eff_tax", i), names(parms1), value = TRUE)] <- 0.5
+  single_list[[i]] <- data.frame(remNA_func(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)),
+                                 "scen" = paste0("single_", "eff_tax", i))
 }
 
+#Diff Tax
+diff_tax_list <- list()
+for(i in 1:6) {
+  dat <- multi_int_fun(i, 365*3, parms, init, amr, agg_func)[[1]]
+  diff_tax_list[[i]] <- data.frame(dat,
+                                   "scen" = paste0("diff", i))
+}
 
-# Run the Model ----------------------------------------------------------
+# Plotting the Scenarios --------------------------------------------------
 
-start_time <- Sys.time()
+#Create a combined list of all the scenarios
+list_scen <- unlist(list(testrun_flat, single_list, diff_tax_list), recursive = FALSE)
 
-test <- mclapply(1:5000, 
-                 FUN = mono_func, 
-                 parms_frame = parm_data_comb, 
-                 init = c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
-                          R12 = 0, R13 = 0, R23 = 0,
-                          R123 = 0), 
-                 amr_ode = amr, 
-                 usage_fun = usage_fun,
-                 multi_int_fun = multi_int_fun,
-                 low_parm = low_parm,
-                 high_parm = high_parm,
-                 agg_func = agg_func,
-                 mc.cores = 10)
+melt_data <- list()
 
-print(test)
+#Melt each one
+for(i in 1:length(list_scen)) {
+  data_agg <- agg_func(list_scen[[i]]) 
+  colnames(data_agg)[4:6] <- c("High Res (HR)", "Medium Res (MR)", "Low Res (LR)") 
+  melt_data[[i]] <- data.frame(melt(data_agg, id.vars = "time", measure.vars = colnames(data_agg)[4:6]),
+                               "scen" = c("flat", "single1", "single2", "single3",
+                                          "diff1", "diff2", "diff3", "diff4", "diff5", "diff6")[i])
+}
 
-comb_data <- data.frame(do.call(rbind, test))
+p_data <- list()
 
-saveRDS(parm_data_comb, "/cluster/home/amorgan/Sens_Anal_Output/parmFULL_MDRv1.RDS")
-saveRDS(comb_data, "/cluster/home/amorgan/Sens_Anal_Output/comb_dataFULLMDRv1.RDS")
+#Plotting Loop
+for(i in 1:length(melt_data)) {
+ data <- melt_data[[i]]
+ p_data[[i]] <- ggplot(data, aes(time, value, color = variable)) + geom_line() + theme_bw() + theme(legend.position = "bottom") +
+   labs(x = "Time", y = "Prevalence", color = "")
+}
 
-end_time <- Sys.time()
-print(end_time - start_time)

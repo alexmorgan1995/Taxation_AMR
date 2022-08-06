@@ -2,15 +2,16 @@ library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); 
 
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/PrelimAnalysis/Theoretical_Analysis/Formalised_Anal/Sens_Anal/MDR/")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Formalised_Analysis/Model_Output/")
 
+test <- readRDS("/Users/amorgan/Downloads/MDR_run.RDS")
 # Import in Dataset -------------------------------------------------------
 
-win_import <- readRDS("comb_dataFULLMDR.RDS")
+win_import <- readRDS("result_Shan_MDR.RDS")
 
 for(i in seq_along(win_import)) win_import[[i]] <- as(win_import[[i]], class(win_import[[i]][[1]]))
 
-# Altering Data -----------------------------------------------------------
+# Altering Data Infections ------------------------------------------------
 
 #Infections
 #We want to minimise this - minimise the increase in total infections for each change in usage 
@@ -31,13 +32,11 @@ prop_win_inf <- data.frame("Infections" = colSums(win_inf_trans)/nrow(win_inf_tr
                                                          "Diff Tax (1 Round)", "Diff Tax (2 Round)",
                                                          "Diff Tax (3 Round)", "Diff Tax (4 Round)", 
                                                          "Diff Tax (5 Round)", "Diff Tax (6 Round)")))
-prop_win_inf$Interventions <- factor(prop_win_inf$Interventions, levels = c(prop_win_inf$Interventions ))
+prop_win_inf$Interventions <- factor(prop_win_inf$Interventions, levels = c(prop_win_inf$Interventions))
 
-#Resistance
+# Altering Data Resistance ------------------------------------------------
 
 win_res <- (win_import[,11:20])
-#win_res <- (win_import_pess[,11:20])
-#win_res <- (win_import_opt[,11:20])
 
 win_res_trans <- t(apply(win_res, 1, function(x) {
   val = max(x)
@@ -52,9 +51,14 @@ prop_win_res <- data.frame("Resistance" = colSums(win_res_trans)/nrow(win_res_tr
                                                          "Diff Tax (1 Round)", "Diff Tax (2 Round)",
                                                          "Diff Tax (3 Round)", "Diff Tax (4 Round)", 
                                                          "Diff Tax (5 Round)", "Diff Tax (6 Round)")))
-prop_win_res$Interventions <- factor(prop_win_res$Interventions, levels = c(prop_win_res$Interventions ))
 
-#Combine the Two Together 
+prop_win_res$Interventions <- factor(prop_win_res$Interventions, levels = c(prop_win_res$Interventions))
+
+# Altering Data Shannon's Index -------------------------------------------
+
+win_shan <- (win_import[,21:30])
+
+# Combining All Together --------------------------------------------------
 
 combdata <- prop_win_res; combdata$Infections <- prop_win_inf$Infections
 

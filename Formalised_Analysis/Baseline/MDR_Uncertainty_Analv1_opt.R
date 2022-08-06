@@ -3,33 +3,14 @@ rm(list=ls())
 
 # Integral Function -------------------------------------------------------
 
-integral <- function(data, t_n, thresh){
-  
-  #Aggregate the Data into Resistance Classes
-  data$aggR1 <- data$R1 + data$R12 + data$R13 + data$R123
-  data$aggR2 <- data$R2 + data$R12 + data$R23 + data$R123
-  data$aggR3 <- data$R3 + data$R13 + data$R23 + data$R123
-  
-  #Subset the Dataframe so that only results after the intervention start
+integral <- function(data, t_n){
   data_temp <- data[data[,1] > t_n,]
+  data_temp$aggR1 <- data_temp$R1 + data_temp$R12 + data_temp$R13 + data_temp$R123
+  data_temp$aggR2 <- data_temp$R2 + data_temp$R12 + data_temp$R23 + data_temp$R123
+  data_temp$aggR3 <- data_temp$R3 + data_temp$R13 + data_temp$R23 + data_temp$R123
   
-  #Determine the X% Thresholds that you want to be under
-  thresholds <- unlist(data[t_n-1, 11:13]* thresh)
-  under_thresh <- sweep(data[data[,1] > t_n,][,11:13], 2, thresholds)
-  
-  #Calculate the number of days you are under said threshold
-  under_50 <- c(nrow(under_thresh[under_thresh$aggR1 < 0,]), 
-                nrow(under_thresh[under_thresh$aggR2 < 0,]), 
-                nrow(under_thresh[under_thresh$aggR3 < 0,]))
-  
-  #Find the Sum and make each value proportionate to one another 
-  prop_vec <- under_50 / sum(under_50)
-  prop_vec <- prop_vec[prop_vec != 0]
-  
-  #Output the Optimisation Criteria 
   out_vec <- signif(c(sum(data_temp[3:10]),
-                      sum(rowMeans(data_temp[11:13])),
-                      -sum(sapply(1:length(prop_vec), function(x) prop_vec[x]*log(prop_vec[x])))), 5)
+                      sum(rowMeans(data_temp[11:13]))), 5)
   
   return(out_vec)
 }
@@ -322,7 +303,7 @@ parms = c(lambda = 1/365*(2),
           eff_tax1_4 = 0, eff_tax2_4 = 0, eff_tax3_4 = 0, 
           eff_tax1_5 = 0, eff_tax2_5 = 0, eff_tax3_5 = 0, 
           eff_tax1_6 = 0, eff_tax2_6 = 0, eff_tax3_6 = 0, 
-          PED1 = 1, PED2 = 1, PED3 = 1, 
+          PED1 = 1.75, PED2 = 1.5, PED3 = 1.25, 
           t_n = 3000, time_between = Inf, rho = 0.1, base_tax = 0.5)
 
 # The Function ------------------------------------------------------------
@@ -487,8 +468,8 @@ print(test)
 
 comb_data <- data.frame(do.call(rbind, test))
 
-saveRDS(parm_data_comb, "/cluster/home/amorgan/Sens_Anal_Output/parmFULL_MDRv1.RDS")
-saveRDS(comb_data, "/cluster/home/amorgan/Sens_Anal_Output/comb_dataFULLMDRv1.RDS")
+saveRDS(parm_data_comb, "/cluster/home/amorgan/Sens_Anal_Output/parmFULL_MDRv1_opt.RDS")
+saveRDS(comb_data, "/cluster/home/amorgan/Sens_Anal_Output/comb_dataFULLMDRv1_pot.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)
