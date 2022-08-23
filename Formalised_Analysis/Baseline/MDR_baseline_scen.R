@@ -394,6 +394,17 @@ p_data <- list()
 for(i in 1:length(melt_data)) {
  data <- melt_data[[i]]
  p_data[[i]] <- ggplot(data, aes(time, value, color = variable)) + geom_line() + theme_bw() + theme(legend.position = "bottom") +
-   labs(x = "Time", y = "Prevalence", color = "")
+   labs(x = "Time", y = "Prevalence", title = c("Flat Tax",
+                                                "Single Tax (HR)","Single Tax (MR)","Single Tax (LR)",
+                                                "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)",
+                                                "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)")[i], color = "")
 }
 
+ggarrange(p_data[[1]], "", "",
+          p_data[[2]], p_data[[3]],p_data[[4]], 
+          p_data[[5]], p_data[[6]], p_data[[7]],
+          p_data[[8]], p_data[[9]], p_data[[10]],
+          labels = c("A", "", "",
+                     "B", "", "",
+                     "C", "", "",
+                     "", "", ""), hjust = -.1,  nrow = 4, ncol = 3, common.legend = T, legend = "bottom")

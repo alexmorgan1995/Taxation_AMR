@@ -349,6 +349,9 @@ colnames(parm_data) <- c("lambda", "beta", "r_wt", "r_r", "r_rr", "r_rrr","r_t",
                          "c1", "c2", "c3", "c12", "c13", "c23", "c123",  
                          "rho", "base_tax")
 
+parm_data[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr")] <- t(sapply(1:nrow(parm_data), function(x) 
+  sort(as.numeric(parm_data[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr")][x,]), decreasing = T)))
+
 parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")] <- t(sapply(1:nrow(parm_data), function(x) 
   sort(as.numeric(parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")][x,]), decreasing = F)))
 
@@ -381,6 +384,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
     while(values[4] == 0 & values[5] == 0 & values[6] == 0) {
       parms_base[c(1:20)] <- runif(20, low_parm, high_parm)
       
+      parms_base[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr")] <- sort(as.numeric(parms_base[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr")]), decreasing = T)
       parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")] <- sort(as.numeric(parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")]), decreasing = F)
       parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")] <- 
         sort(as.numeric(parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")]), decreasing = T)
@@ -391,8 +395,8 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
     }
   }
   
-  run <- run_base[run_base[,1] > parms[["t_n"]],]
-  run_base_agg <- run_base_agg[run_base_agg[,1] > parms[["t_n"]],]
+  run <- run_base[run_base[,1] > parms_base[["t_n"]],]
+  run_base_agg <- run_base_agg[run_base_agg[,1] > parms_base[["t_n"]],]
    
   base_tot_inf <- signif(sum(run[3:10]), 5)
   base_int_res <- signif(sum(rowMeans(run_base_agg[4:6]), 5))
