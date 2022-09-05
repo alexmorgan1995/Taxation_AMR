@@ -300,7 +300,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   
   if(values[4] == 0 & values[5] == 0 & values[6] == 0) {
     while(values[4] == 0 & values[5] == 0 & values[6] == 0) {
-      parms_base[c(1:23)] <- as.list(runif(23, explored_parms$low_parms, explored_parms$high_parms))
+      parms_base[c(1:23)] <- as.list(runif(23, explored_parms$low_parms, explored_parms$high_parm))
       
       if(sum(unlist(parms_base[c("sigma1", "sigma2", "sigma3")])) > 1) {
         parms_base[c("sigma1", "sigma2", "sigma3")] <- as.list(unlist(parms_base[c("sigma1", "sigma2", "sigma3")])/
@@ -390,7 +390,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
 
 start_time <- Sys.time()
 
-test <- mclapply(1:20, 
+test <- mclapply(1:nrow(parm_data_comb), 
                  FUN = mono_func, 
                  parms_frame = parm_data_comb, 
                  init = c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,

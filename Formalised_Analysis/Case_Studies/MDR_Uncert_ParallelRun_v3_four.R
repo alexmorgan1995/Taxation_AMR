@@ -1,9 +1,8 @@
-library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); library("rootSolve"); library("viridis"); library("cowplot")
-library("rbenchmark")
-
+library("deSolve"); library("parallel")
 rm(list=ls())
 
 # ODEs --------------------------------------------------------------------
+
 
 amr <- function(t, y, parms) {
   with(as.list(c(y, parms)), {
@@ -64,7 +63,7 @@ amr <- function(t, y, parms) {
       sigma4 <- sigma4/(sigma1 + sigma2 + sigma3 + sigma4)
     }
     
-
+    
     dX = lambda - lambda*X - 
       beta*X*(Wt + R1*c1 + R2*c2 + R3*c3 + R4*c4 + 
                 R12*c12 + R13*c13 + R14*c14 + 
@@ -159,8 +158,7 @@ amr <- function(t, y, parms) {
   })
 }
 
-
-# Function to Remove NAs and Round Data -----------------------------------
+# Clean Model Run --------------------------------------------------------------
 
 remNA_func <- function(dataframe){
   n_data <- ncol(dataframe)-1
@@ -176,88 +174,7 @@ remNA_func <- function(dataframe){
   return(dataframe)
 }
 
-
-# Integral Function -------------------------------------------------------
-
-integral <- function(data, t_n, thresh){
-  
-  #Aggregate the Data into Resistance Classes
-  data$aggR1 <- data$R1 + data$R12 + data$R13 + data$R14 + data$R123 + data$R124 + data$R134 + data$R1234
-  data$aggR2 <- data$R2 + data$R12 + data$R24 + data$R23 + data$R123 + data$R124 + data$R234 + data$R1234
-  data$aggR3 <- data$R3 + data$R13 + data$R23 + data$R34 + data$R123 + data$R134 + data$R234 + data$R1234
-  data$aggR4 <- data$R4 + data$R14 + data$R24 + data$R34 + data$R124 + data$R134 + data$R234 + data$R1234
-  
-  #Subset the Dataframe so that only results after the intervention start
-  data_temp <- data[data[,1] > t_n,]
-  
-  #Determine the X% Thresholds that you want to be under
-  thresholds <- unlist(data[t_n-1, 19:22]* thresh)
-  under_thresh <- sweep(data[data[,1] > t_n,][,19:22], 2, thresholds)
-  
-  #Calculate the number of days you are under said threshold
-  under_50 <- c(nrow(under_thresh[under_thresh$aggR1 < 0,]), 
-                nrow(under_thresh[under_thresh$aggR2 < 0,]), 
-                nrow(under_thresh[under_thresh$aggR3 < 0,]),
-                nrow(under_thresh[under_thresh$aggR4 < 0,]))
-  
-  #Find the Sum and make each value proportionate to one another 
-  prop_vec <- under_50 / sum(under_50)
-  prop_vec <- prop_vec[prop_vec != 0]
-  
-  #Output the Optimisation Criteria 
-  out_vec <- signif(c(sum(data_temp[3:18]),
-                      sum(rowMeans(data_temp[19:22])),
-                      -sum(sapply(1:length(prop_vec), function(x) prop_vec[x]*log(prop_vec[x])))), 5)
-  
-  return(out_vec)
-}
-
-
-# Function to Aggregate Resistance ----------------------------------------
-
-agg_func <- function(data) {
-  agg_data <- data.frame("time" = data$time,
-                         "Susc" = data$X,
-                         "WT" = data$Wt, 
-                         "R1" = data$R1 + data$R12 + data$R13 + data$R14 + data$R123 + data$R124 + data$R134 + data$R1234,
-                         "R2" = data$R2 + data$R12 + data$R24 + data$R23 + data$R123 + data$R124 + data$R234 + data$R1234,
-                         "R3" = data$R3 + data$R13 + data$R23 + data$R34 + data$R123 + data$R134 + data$R234 + data$R1234,
-                         "R4" = data$R4 + data$R14 + data$R24 + data$R34 + data$R124 + data$R134 + data$R234 + data$R1234)
-  return(agg_data)
-}
-
-# Function to Extract Antibiotic Usage Reductions -------------------------
-
-usage_fun <- function(parms){
-  usage = data.frame("time" = seq(0,7000),
-                     "PopUsage1" = c(sapply(1:6, function(x) 
-                       rep(parms[["sigma1"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,1]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,1]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,1]))), 365*3)),
-                       parms[["sigma1"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,1]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,1]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,1]))), 
-                                               7001-365*3*6)),
-                     
-                     "PopUsage2" = c(sapply(1:6, function(x) 
-                       rep(parms[["sigma2"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,2]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,2]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,2]))), 365*3)),
-                       parms[["sigma2"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,2]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,2]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,2]))), 
-                                               7001-365*3*6)),
-                     
-                     "PopUsage3" = c(sapply(1:6, function(x) 
-                       rep(parms[["sigma3"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,3]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,3]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,3]))), 365*3)),
-                       parms[["sigma3"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,3]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,3]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,3]))), 
-                                               7001-365*3*6)),
-                     
-                     "PopUsage4" = c(sapply(1:6, function(x) 
-                       rep(parms[["sigma4"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,4]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,4]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,4]))), 365*3)),
-                       parms[["sigma3"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,4]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,4]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,4]))), 
-                                               7001-365*3*6)))
-  
-  usage[usage < 0] <- 0
-  usage$totusage = rowSums(usage[2:5])
-  usage$reduc_use = parms[["sigma1"]] + parms[["sigma2"]] + parms[["sigma3"]] + parms[["sigma4"]] - usage$totusage
-  return(usage)
-}
-
 # Dual Model --------------------------------------------------------------
-
 
 multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func){
   
@@ -267,18 +184,17 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func){
   run_1rd <- agg_func(remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms))))
   
   values_1rd <<- tail(run_1rd, 1)[4:7]
-
+  
   low_char_1rd <- names(values_1rd)[which.min(values_1rd)]
   high_char_1rd <- names(values_1rd)[which.max(values_1rd)]
   med_char_1rd <- names(values_1rd)[setdiff(1:4, c(which.min(values_1rd), which.max(values_1rd)))]
   med_char_val <- mean(as.numeric(values_1rd[med_char_1rd]))
-
+  
   parms[["eff_tax"]][as.numeric(substr(low_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[low_char_1rd]/med_char_val)))
   parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/med_char_val)))
   parms[["eff_tax"]][as.numeric(substr(med_char_1rd[1], 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd][1]/med_char_val)))
   parms[["eff_tax"]][as.numeric(substr(med_char_1rd[2], 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd][2]/med_char_val)))
   parms[["eff_tax"]][parms[["eff_tax"]] < 0] <- 0
-  
   
   if(int_gen > 1) {
     
@@ -309,7 +225,49 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func){
   return(list(out_run, parms))
 }
 
+# Aggregated Function -----------------------------------------------------
 
+agg_func <- function(data) {
+  agg_data <- data.frame("time" = data$time,
+                         "Susc" = data$X,
+                         "WT" = data$Wt, 
+                         "R1" = data$R1 + data$R12 + data$R13 + data$R14 + data$R123 + data$R124 + data$R134 + data$R1234,
+                         "R2" = data$R2 + data$R12 + data$R24 + data$R23 + data$R123 + data$R124 + data$R234 + data$R1234,
+                         "R3" = data$R3 + data$R13 + data$R23 + data$R34 + data$R123 + data$R134 + data$R234 + data$R1234,
+                         "R4" = data$R4 + data$R14 + data$R24 + data$R34 + data$R124 + data$R134 + data$R234 + data$R1234)
+  return(agg_data)
+}
+
+
+# Extract Usage -----------------------------------------------------------
+
+usage_fun <- function(parms){
+  usage = data.frame("time" = seq(0,7000),
+                     "PopUsage1" = c(sapply(1:6, function(x) 
+                       rep(parms[["sigma1"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,1]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,1]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,1]))), 365*3)),
+                       parms[["sigma1"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,1]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,1]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,1]))), 
+                                               7001-365*3*6)),
+                     
+                     "PopUsage2" = c(sapply(1:6, function(x) 
+                       rep(parms[["sigma2"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,2]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,2]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,2]))), 365*3)),
+                       parms[["sigma2"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,2]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,2]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,2]))), 
+                                               7001-365*3*6)),
+                     
+                     "PopUsage3" = c(sapply(1:6, function(x) 
+                       rep(parms[["sigma3"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,3]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,3]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,3]))), 365*3)),
+                       parms[["sigma3"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,3]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,3]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,3]))), 
+                                               7001-365*3*6)),
+                     
+                     "PopUsage4" = c(sapply(1:6, function(x) 
+                       rep(parms[["sigma4"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,4]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,4]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,4]))), 365*3)),
+                       parms[["sigma3"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,4]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,4]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,4]))), 
+                                               7001-365*3*6)))
+  
+  usage[usage < 0] <- 0
+  usage$totusage = rowSums(usage[2:5])
+  usage$reduc_use = parms[["sigma1"]] + parms[["sigma2"]] + parms[["sigma3"]] + parms[["sigma4"]] - usage$totusage
+  return(usage)
+}
 
 # Baseline Parms ----------------------------------------------------------
 
@@ -341,99 +299,271 @@ parms = list(lambda = 1/365*(2),
                               nrow = 4, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
 
-diff_test_run <- agg_func(multi_int_fun(6, 365*3, parms, init, amr, agg_func)[[1]])
-diff_test_run <- melt(diff_test_run, id.vars = "time", measure.vars = colnames(diff_test_run)[4:7])
-ggplot(diff_test_run, aes(time, value, color = variable)) + geom_line() + theme_bw()
+# The Function ------------------------------------------------------------
 
+low_parm <- c(1/3650*(2), #lambda
+              0, #beta
+              0, #sigma1
+              0, #sigma2
+              0, #sigma3
+              0, #sigma4
+              1/50, #r_wt
+              1/50, #r_r
+              1/50, #r_rr
+              1/50, #r_rrr
+              1/50, #r_rrrr
+              1/50, #r_t
+              0.03, #eta_wr
+              0.004, #eta_rw
+              0.001, #eta_rr
+              0.001, #eta_rrr
+              0.001, #eta_rrrr
+              0.5, #c1
+              0.5, #c2
+              0.5, #c3
+              0.5, #c4
+              0.5, #c12
+              0.5, #c13
+              0.5, #c14
+              0.5, #c23
+              0.5, #c24
+              0.5, #c34
+              0.5, #c123
+              0.5, #c124
+              0.5, #c134
+              0.5, #c234
+              0.5, #c1234
+              0, #rho
+              0) #baseline tax
 
-parms1 <- parms
-parms1[["eff_tax"]][4,] <- 0.5
-test_run <- agg_func(data.frame(remNA_func(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1))))
-test_run <- melt(test_run, id.vars = "time", measure.vars = colnames(test_run)[4:7])
-ggplot(test_run, aes(time, value, color = variable)) + geom_line() + theme_bw()
+high_parm <- c(1/36.5*(2), #lambda
+               10, #beta
+               1, #sigma1
+               1, #sigma2
+               1, #sigma3
+               1, #sigma4
+               1/2, #r_wt
+               1/2, #r_r
+               1/2, #r_rr
+               1/2, #r_rrr
+               1/2, #r_rrrr
+               1/2, #r_t
+               3, #eta_wr
+               0.4, #eta_rw
+               0.1, #eta_rr
+               0.1, #eta_rrr
+               0.1, #eta_rrrr
+               1, #c1
+               1, #c2
+               1, #c3
+               1, #c4
+               1, #c12
+               1, #c13
+               1, #c14
+               1, #c23
+               1, #c24
+               1, #c34
+               1, #c123
+               1, #c124
+               1, #c134
+               1, #c234
+               1, #c1234
+               1, #rho
+               1) #baseline tax
 
-# Testing the Outcome Measure ---------------------------------------------
+#Creating the Parm Dataframe
 
-parms1 <- parms; parms1[["eff_tax"]][,] <- 0.5
+parm_data <- data.frame(t(replicate(10000, runif(34, low_parm, high_parm))))
 
-#Baseline Test Run
-testrun_flat <- remNA_func(data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)))
-integral(testrun_flat, 3000, 0.75) 
+colnames(parm_data) <- c("lambda", "beta", "sigma1", "sigma2", "sigma3",  "sigma4", 
+                         "r_wt", "r_r", "r_rr", "r_rrr","r_rrrr","r_t",
+                         "eta_wr", "eta_rw", "eta_rr", "eta_rrr", "eta_rrrr",
+                         "c1", "c2", "c3","c4", "c12", "c13", "c14", "c23","c24","c34", 
+                         "c123", "c124","c134", "c234", "c1234",  
+                         "rho", "base_tax")
 
-#Baseline Differential Taxation Run 
-diff_test_run <- multi_int_fun(6, 365*3, parms, init, amr, agg_func)[[1]]
-integral(diff_test_run, 3000, 0.75) 
-
-# Baseline Model ----------------------------------------------------------
-
-parms1 <- parms
-testrun_flat <- remNA_func(data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)))
-test_run_agg <- agg_func(testrun_flat) 
-
-test_run_agg$AverageRes <- rowMeans(testrun_flat[,4:7])
-test_run_agg$TotInf <- rowSums(testrun_flat[,3:18])
-
-test_plot_flat <- melt(testrun_flat, id.vars = "time", measure.vars = colnames(testrun_flat)[4:7])
-ggplot(test_plot_flat, aes(time, value, color = variable)) + geom_line() + theme_bw()
-
-# Intervention Scenarios --------------------------------------------------
-
-#Flat Tax
-
-parms1 <- parms; parms1[["eff_tax"]][,] <- 0.5
-testrun_flat <- list(remNA_func(data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1))))
-
-#Single Tax 
-single_list <- list()
-for(i in 1:4) {
-  parms1 <- parms
-  parms1[["eff_tax"]][i,] <- 0.5
-  single_list[[i]] <- data.frame(remNA_func(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)),
-                                 "scen" = paste0("single_", "eff_tax", i))
+for(i in 1:nrow(parm_data)) {
+  if(sum(parm_data[c("sigma1", "sigma2", "sigma3", "sigma4")][i,]) > 1) {
+    parm_data[c("sigma1", "sigma2", "sigma3", "sigma4")][i,] <- parm_data[c("sigma1", "sigma2", "sigma3", "sigma4")][i,]/
+      (sum(parm_data[c("sigma1", "sigma2", "sigma3", "sigma4")][i,]) + runif(1, 0, 1))
+  }
 }
 
-#Diff Tax
-diff_tax_list <- list()
-for(i in 1:6) {
-  dat <- multi_int_fun(i, 365*3, parms, init, amr, agg_func)[[1]]
-  diff_tax_list[[i]] <- data.frame(dat,
-                                   "scen" = paste0("diff", i))
+parm_data[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr", "eta_rrrr")] <- t(sapply(1:nrow(parm_data), function(x) 
+  sort(as.numeric(parm_data[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr", "eta_rrrr")][x,]), decreasing = T)))
+
+parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_rrrr", "r_t")] <- t(sapply(1:nrow(parm_data), function(x) 
+  sort(as.numeric(parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_rrrr", "r_t")][x,]), decreasing = F)))
+
+parm_data[c("c1", "c2", "c3","c4", "c12", "c13", "c14", "c23","c24","c34", 
+            "c123", "c124","c134", "c234", "c1234")] <- t(sapply(1:nrow(parm_data), function(x) 
+  sort(as.numeric(parm_data[c("c1", "c2", "c3","c4", "c12", "c13", "c14", "c23","c24","c34", 
+                              "c123", "c124","c134", "c234", "c1234")][x,]), decreasing = T)))
+
+parm_data_comb <- data.frame(parm_data, t_n = 3000,
+                             time_between = Inf)
+
+# Creating the Parallel Montonicity Function ------------------------------
+
+mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func, thresh) {
+  
+  parms_base = as.list(parms_frame[n,])
+  parms_base = append(parms_base, parms["PED"]); parms_base = append(parms_base, parms["eff_tax"])
+  
+  #Run Baseline
+  run_base <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, hmax = 1)))
+  run_base_agg <- agg_func(run_base)
+  values <- tail(run_base_agg, 1)
+  
+  if(values[4] == 0 & values[5] == 0 & values[6] == 0 & values[7] == 0) {
+    while(values[4] == 0 & values[5] == 0 & values[6] == 0 & values[7] == 0) {
+      parms_base[c(1:34)] <- as.list(runif(34, low_parm, high_parm))
+      
+      if(sum(unlist(parms_base[c("sigma1", "sigma2", "sigma3", "sigma4")])) > 1) {
+        parms_base[c("sigma1", "sigma2", "sigma3", "sigma4")] <- as.list(unlist(parms_base[c("sigma1", "sigma2", "sigma3", "sigma4")])/
+                                                                 (sum(unlist(parms_base[c("sigma1", "sigma2", "sigma3",  "sigma4")])) + runif(1, 0, 1)))
+      }
+      
+      parms_base[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr", "eta_rrrr")] <- 
+        as.list(sort(as.numeric(parms_base[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr", "eta_rrrr")]), decreasing = T))
+      
+      parms_base[c("r_wt", "r_r", "r_rr", "r_rrr","r_rrrr", "r_t")] <- 
+        as.list(sort(as.numeric(parms_base[c("r_wt", "r_r", "r_rr", "r_rrr","r_rrrr", "r_t")]), decreasing = F))
+      
+      parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")] <- 
+        as.list(sort(as.numeric(parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")]), decreasing = T))
+      
+      
+      parms_base[c("c1", "c2", "c3","c4", "c12", "c13", "c14", "c23","c24","c34", 
+                   "c123", "c124","c134", "c234", "c1234")] <- t(sapply(1:nrow(parms_base), function(x) 
+        sort(as.numeric(parms_base[c("c1", "c2", "c3","c4", "c12", "c13", "c14", "c23","c24","c34", 
+                                                "c123", "c124","c134", "c234", "c1234")][x,]), decreasing = F)))
+      
+      run_base <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, hmax = 1)))
+      run_base_agg <- agg_func(run_base)
+      values <- tail(run_base_agg, 1)
+    }
+  }
+  
+  run <- run_base[run_base[,1] > parms_base[["t_n"]],]
+  run_base_agg <- run_base_agg[run_base_agg[,1] > parms_base[["t_n"]],]
+  
+  base_tot_inf <- signif(sum(run[3:18]), 5)
+  base_int_res <- signif(sum(rowMeans(run_base_agg[4:7]), 5))
+  
+  #Need to calculate a different baseline for each scenario for antibiotic usage 
+  store_vec_res <- c()
+  store_vec_inf <- c()
+  store_vec_shan <- c()
+  
+  for(i in 1:11){
+    parms = parms_base
+    if(i == 1) {
+      parms[["eff_tax"]][,] <- parms[["base_tax"]]
+      out <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, hmax = 1)))
+    }
+    if(i >= 2 & i <= 5) {
+      parms[["eff_tax"]][i-1,]   <- parms[["base_tax"]]
+      out <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, hmax = 1)))
+    }
+    if(i >= 6 & i <= 11) {
+      diff <- multi_int_fun(i-5, 365*3, parms, init, amr_ode, agg_func)
+      out <- diff[[1]]
+      parms <- diff[[2]]
+    }
+    
+    data_temp <- out[out[,1] > parms[["t_n"]],]
+    data_temp_agg <- agg_func(data_temp)
+    
+    out_vec <- signif(c(sum(data_temp[3:18]),
+                        sum(rowMeans(data_temp_agg[4:7]))),5)
+    reduc_usage_vec <- sum(usage_fun(parms)[,6])
+    
+    #Aggregation
+    
+    out$aggR1 <- out$R1 + out$R12 + out$R13 + out$R14 + out$R123 + out$R124 + out$R134 + out$R1234
+    out$aggR2 <- out$R2 + out$R12 + out$R24 + out$R23 + out$R123 + out$R124 + out$R234 + out$R1234
+    out$aggR3 <- out$R3 + out$R13 + out$R23 + out$R34 + out$R123 + out$R134 + out$R234 + out$R1234
+    out$aggR4 <- out$R4 + out$R14 + out$R24 + out$R34 + out$R124 + out$R134 + out$R234 + out$R1234
+    
+    #Determine the X% Thresholds that you want to be under
+    thresholds <- unlist(out[parms[["t_n"]]-1, 19:22]*thresh)
+    
+    under_thresh <- sweep(out[out[,1] > parms[["t_n"]],][,19:22], 2, thresholds)
+    
+    #Calculate the number of days you are under said threshold
+    under_50 <- c(nrow(under_thresh[under_thresh$aggR1 < 0,]), 
+                  nrow(under_thresh[under_thresh$aggR2 < 0,]), 
+                  nrow(under_thresh[under_thresh$aggR3 < 0,]),
+                  nrow(under_thresh[under_thresh$aggR4 < 0,]))
+    
+    #Find the Sum and make each value proportionate to one another 
+    prop_vec <- under_50 / sum(under_50)
+    prop_vec <- prop_vec[prop_vec != 0]
+    
+    #Store Computation Vectors 
+    store_vec_inf[i] <- (out_vec[1] - base_tot_inf)/reduc_usage_vec
+    store_vec_res[i] <- (base_int_res - out_vec[2])/reduc_usage_vec
+    store_vec_shan[i] <- -sum(sapply(1:length(prop_vec), function(x) prop_vec[x]*log(prop_vec[x])))
+  }
+  
+  output <- c(store_vec_inf, store_vec_res, store_vec_shan, parms_base[c(1:38)])
+  names(output) <- c("flat_inf", "single1_inf", "single2_inf", "single3_inf", "single4_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", 
+                     "flat_res", "single1_res", "single2_res", "single3_res", "single4_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res",
+                     "flat_shan", "single1_shan", "single2_shan", "single3_shan", "single4_shan", "diff1_shan", "diff2_shan", "diff3_shan", "diff4_shan", "diff5_shan", "diff6_shan",
+                     names(parms_base[c(1:38)]))
+  
+  return(output)
 }
 
-# Plotting the Scenarios --------------------------------------------------
+# Run the Model ----------------------------------------------------------
 
-#Create a combined list of all the scenarios
-list_scen <- unlist(list(testrun_flat, single_list, diff_tax_list), recursive = FALSE)
+start_time <- Sys.time()
 
-melt_data <- list()
+test <- mclapply(1:1000, 
+                 FUN = mono_func, 
+                 parms_frame = parm_data_comb, 
+                 init = c(X = 0.99, Wt = 1-0.99, 
+                          R1 = 0, R2 = 0, R3 = 0, R4 = 0,
+                          R12 = 0, R13 = 0, R14 = 0, R23 = 0, R24 = 0, R34 = 0,
+                          R123 = 0, R124 = 0, R134 = 0, R234 = 0, 
+                          R1234 = 0), 
+                 amr_ode = amr, 
+                 usage_fun = usage_fun,
+                 multi_int_fun = multi_int_fun,
+                 low_parm = low_parm,
+                 high_parm = high_parm,
+                 agg_func = agg_func,
+                 thresh = 0.5,
+                 mc.cores = 10) 
 
-#Melt each one
-for(i in 1:length(list_scen)) {
-  data_agg <- agg_func(list_scen[[i]]) 
-  colnames(data_agg)[4:7] <- c("High Res (HR)", "Medium Res 1 (MR)", "Medium Res 2 (MR)", "Low Res (LR)") 
-  melt_data[[i]] <- data.frame(melt(data_agg, id.vars = "time", measure.vars = colnames(data_agg)[4:7]),
-                               "scen" = c("flat", "single1", "single2", "single3", "single4",
-                                          "diff1", "diff2", "diff3", "diff4", "diff5", "diff6")[i])
+#Combine the Output into a "normal" looking dataframe
+comb_data <- data.frame(do.call(rbind, test))
+comb_data_new <- data.frame(matrix(NA, nrow = nrow(comb_data), ncol = 30))
+
+for(i in 1:nrow(comb_data)) {
+  comb_data_new[i,] <- unlist(comb_data[i,1:30])
 }
 
-p_data <- list()
+colnames(comb_data_new) <- colnames(comb_data)[1:30]
 
-#Plotting Loop
-for(i in 1:length(melt_data)) {
-  data <- melt_data[[i]]
-  p_data[[i]] <- ggplot(data, aes(time, value, color = variable)) + geom_line() + theme_bw() + theme(legend.position = "bottom") +
-    labs(x = "Time", y = "Prevalence", title = c("Flat Tax",
-                                                 "Single Tax (HR)","Single Tax (MR1)", "Single Tax (MR2)", "Single Tax (LR)",
-                                                 "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)",
-                                                 "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)")[i], color = "")
+#Update the Parameter Set 
+parm_data_comb_new <- parm_data_comb
+parm_data_comb_new[1:nrow(comb_data),1:23] <- comb_data[,31:53]
+
+parm_list <- list()
+
+for(i in 1:nrow(parm_data_comb_new)) {
+  p_list <- as.list(unlist(parm_data_comb_new[i,]))
+  p_list <- append(p_list, parms["eff_tax"])
+  p_list <- append(p_list, parms["PED"])
+  parm_list[[i]] <- p_list
 }
 
-ggarrange(p_data[[1]], "", "",  "",
-          p_data[[2]], p_data[[3]],p_data[[4]], p_data[[5]], 
-          p_data[[6]], p_data[[7]], p_data[[8]], p_data[[9]],
-          p_data[[10]], p_data[[11]],  "",  "",
-          labels = c("A", "", "", "",
-                     "B", "", "", "",
-                     "C", "", "", "",
-                     "", "", "",""), hjust = -.1,  nrow = 4, ncol = 4, common.legend = T, legend = "bottom")
+#Save the output
 
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_four.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_four.RDS")
+
+end_time <- Sys.time()
+print(end_time - start_time)

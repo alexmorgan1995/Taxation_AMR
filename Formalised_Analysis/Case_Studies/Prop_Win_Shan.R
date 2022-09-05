@@ -6,7 +6,7 @@ setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/F
 
 # Import in Dataset -------------------------------------------------------
 
-win_import <- readRDS("MDR_run_v2.RDS")
+win_import <- readRDS("MDR_run_LHS.RDS")
 
 for(i in seq_along(win_import)) {
   win_import[[i]] <- as(win_import[[i]], class(win_import[[i]][[1]]))
