@@ -5,7 +5,7 @@ rm(list=ls())
 
 amr <- function(t, y, parms) {
   with(as.list(c(y, parms)), {
-    
+
     sigma_base1 <- sigma1
     sigma_base2 <- sigma2
     sigma_base3 <- sigma3
@@ -300,6 +300,9 @@ parms = c(lambda = 1/365*(2),
 
 low_parm <- c(1/3650*(2), #lambda
               0, #beta
+              0, #sigma1
+              0, #sigma2
+              0, #sigma3
               1/50, #r_wt
               1/50, #r_r
               1/50, #r_rr
@@ -321,6 +324,9 @@ low_parm <- c(1/3650*(2), #lambda
 
 high_parm <- c(1/36.5*(2), #lambda
               10, #beta
+              1, #sigma1
+              1, #sigma2
+              1, #sigma3
               1/2, #r_wt
               1/2, #r_r
               1/2, #r_rr
@@ -342,12 +348,20 @@ high_parm <- c(1/36.5*(2), #lambda
 
 #Creating the Parm Dataframe
 
-parm_data <- data.frame(t(replicate(100000, runif(20, low_parm, high_parm))))
+parm_data <- data.frame(t(replicate(100000, runif(23, low_parm, high_parm))))
 
-colnames(parm_data) <- c("lambda", "beta", "r_wt", "r_r", "r_rr", "r_rrr","r_t",
+colnames(parm_data) <- c("lambda", "beta", "sigma1", "sigma2", "sigma3",
+                         "r_wt", "r_r", "r_rr", "r_rrr","r_t",
                          "eta_wr", "eta_rw", "eta_rr", "eta_rrr",
                          "c1", "c2", "c3", "c12", "c13", "c23", "c123",  
                          "rho", "base_tax")
+
+if(sum(parm_data[c("sigma1", "sigma2", "sigma3",)]) > 1){
+  
+  
+}
+
+parm_data[c("sigma1", "sigma2", "sigma3",)]
 
 parm_data[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr")] <- t(sapply(1:nrow(parm_data), function(x) 
   sort(as.numeric(parm_data[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr")][x,]), decreasing = T)))

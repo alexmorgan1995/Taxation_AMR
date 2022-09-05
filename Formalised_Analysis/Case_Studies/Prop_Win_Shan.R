@@ -2,11 +2,11 @@ library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); 
 
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Formalised_Analysis/Model_Output/")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Formalised_Analysis/Model_Output/Comparison_Sens")
 
 # Import in Dataset -------------------------------------------------------
 
-win_import <- readRDS("MDR_run_v1.RDS")
+win_import <- readRDS("MDR_run_v2.RDS")
 
 for(i in seq_along(win_import)) {
   win_import[[i]] <- as(win_import[[i]], class(win_import[[i]][[1]]))
@@ -121,4 +121,26 @@ p_comb <- ggplot(melt_combdata, aes(y = value, x = as.factor(Interventions), fil
         axis.title.y=element_text(size=12), axis.title.x= element_text(size=12), plot.margin = unit(c(0.35,1,0.35,1), "cm"),
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
   scale_fill_manual(values = c("red", "blue", "darkgreen"),labels = c("Resistance", "Infections", "Shannons Index"))
+
+# Proportion of Wins HeatMap ----------------------------------------------
+
+melt_combdata$value <- round(melt_combdata$value, digits = 3)
+
+ggplot(melt_combdata, aes(Interventions, variable)) + theme_bw() +
+  geom_tile(aes(fill = value)) + 
+  facet_grid(variable ~ ., scales = "free_y") +
+  geom_text(aes(label=value), color = "black") + 
+  scale_fill_distiller(palette ="Blues", direction = 1) +
+  scale_x_discrete(name = "", expand = c(0, 0))  +   
+  scale_y_discrete(name = "Outcome Measure", expand = c(0, 0)) + 
+  guides(fill = guide_colorbar(title = "Probabilty that \nIntervention Wins",
+                               label.position = "bottom",
+                               title.position = "left", title.vjust = 1,
+                               # draw border around the legend
+                               frame.colour = "black",
+                               barwidth = 15,
+                               barheight = 1)) + 
+  theme(strip.background = element_blank(), axis.text=element_text(size=11),
+        strip.text = element_blank(), legend.position="bottom",
+        axis.text.x = element_text(angle = 45, hjust=1))
 

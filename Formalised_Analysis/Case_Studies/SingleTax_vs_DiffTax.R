@@ -2,11 +2,11 @@ library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); 
 
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Formalised_Analysis/Model_Output/")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Formalised_Analysis/Model_Output/Comparison_Sens")
 
 # Import in Dataset -------------------------------------------------------
 
-win_import <- readRDS("MDR_run_v1.RDS")
+win_import <- readRDS("MDR_run_v3_pess.RDS")
 
 for(i in seq_along(win_import)) {
   win_import[[i]] <- as(win_import[[i]], class(win_import[[i]][[1]]))
@@ -74,7 +74,7 @@ box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable)) +
               
               tip_length = 0.02,
               vjust = 0.5,
-              y_position = c(0.15, 0.175, 0.2, 0.225, 0.25, 0.275)) + coord_cartesian(ylim=c(-0.05, 0.4))
+              y_position = c(0.15, 0.175, 0.2, 0.225, 0.25, 0.275)) + coord_cartesian(ylim=c(-0.05, 0.5))
 
 #Resistance
 
@@ -114,7 +114,7 @@ box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable)) +
               test = wilcox.test,
               tip_length = 0.02,
               vjust = 0.5,
-              y_position = c(0.275, 0.3, 0.325, 0.35, 0.375, 0.4)) + coord_cartesian(ylim=c(-0.05, 0.46))
+              y_position = c(0.7, 0.775, 0.85, 0.925, 1, 1.75)) + coord_cartesian(ylim=c(-0.05, 1.5))
 
 #Shannon's
 
@@ -125,6 +125,10 @@ box_shan <-  ggplot(m_shan, aes(x=variable, y=value, fill = variable)) +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Shannon Index", x = "") + 
   scale_x_discrete(labels = c("Diff Tax (1 Rd)", "Diff Tax (2 Rds)", "Diff Tax (3 Rds)", "Diff Tax (4 Rds)", "Diff Tax (5 Rds)", "Diff Tax (6 Rds)")) +
   scale_fill_manual(values=c(magma(8)[-c(1:2)])) 
+
+#Kruskal Wallis
+
+kruskal.test(value ~ variable, data = m_shan)
 
 # Combine the Plots Together ----------------------------------------------
 

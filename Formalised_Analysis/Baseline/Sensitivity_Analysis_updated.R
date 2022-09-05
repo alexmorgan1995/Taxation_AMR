@@ -1,10 +1,16 @@
-library("deSolve"); library("parallel");library("deSolve"); library("parallel"); library("ggpubr"); library("reshape2")
+library("deSolve"); library("sensitivity"); library("parallel");library("deSolve"); library("parallel"); library("ggpubr"); library("reshape2")
 rm(list=ls())
 
 # ODEs --------------------------------------------------------------------
 
 amr <- function(t, y, parms) {
   with(as.list(c(y, parms)), {
+    
+    if(sigma1 + sigma2 + sigma3 > 1) {
+      sigma1 <- sigma1 / (sigma1 + sigma2 + sigma3 + runif(1, 0, 1))
+      sigma2 <- sigma2 / (sigma1 + sigma2 + sigma3 + runif(1, 0, 1))
+      sigma3 <- sigma3 / (sigma1 + sigma2 + sigma3 + runif(1, 0, 1))
+    }
     
     sigma_base1 <- sigma1
     sigma_base2 <- sigma2
@@ -255,24 +261,6 @@ agg_func <- function(data) {
   return(agg_data)
 }
 
-# Extract Usage -----------------------------------------------------------
-
-usage_fun <- function(parms, data){
-  tot_inf <- rowSums(data[3001:10001, 3:10])
-  
-  usage = data.frame("time" = seq(0,7000),
-                     "PopUsage1" = c(sapply(1:6, function(x) rep((1-parms[[paste0("eff_tax1_", x)]])*parms[["sigma1"]], 365*3)),
-                                     rep((1-parms[["eff_tax1_6"]])*parms[["sigma1"]], 7001-365*3*6))*tot_inf,
-                     "PopUsage2" = c(sapply(1:6, function(x) rep((1-parms[[paste0("eff_tax2_", x)]])*parms[["sigma2"]], 365*3)),
-                                     rep((1-parms[["eff_tax2_6"]])*parms[["sigma2"]], 7001-365*3*6))*tot_inf,
-                     "PopUsage3" = c(sapply(1:6, function(x) rep((1-parms[[paste0("eff_tax3_", x)]])*parms[["sigma3"]], 365*3)),
-                                     rep((1-parms[["eff_tax3_6"]])*parms[["sigma3"]], 7001-365*3*6))*tot_inf)
-  usage[usage < 0] <- 0
-  usage$totusage = rowSums(usage[2:4])
-  usage$reduc_use = (parms[["sigma1"]] + parms[["sigma2"]] + parms[["sigma3"]])*tot_inf - usage$totusage
-  return(usage)
-}
-
 # Baseline Parms ----------------------------------------------------------
 
 init <- c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
@@ -318,21 +306,21 @@ ode_function <- function(x, init, outcome) {
   for(z in 1:nrow(x)) {
     
     parms = c(lambda = x[z,1], 
-              beta = x[z,2], sigma1 = 0.25, sigma2 = 0.25, sigma3 = 0.25,
-              r_wt = x[z,3], r_r = x[z,4],  r_rr = x[z,5],  r_rrr = x[z,6], 
-              r_t = x[z,7], eta_wr = x[z,8], eta_rw = x[z,9], 
-              eta_rr = x[z,10], eta_rrr = x[z,11],  
-              c1 = x[z,12], c2 = x[z,13], c3 = x[z,14],
-              c12 = x[z,15], c13 = x[z,16], c23 = x[z,17],
-              c123 = x[z,18],
+              beta = x[z,2], sigma1 = x[z,3], sigma2 = x[z,4], sigma3 = x[z,5],
+              r_wt = x[z,6], r_r = x[z,7],  r_rr = x[z,8],  r_rrr = x[z,9], 
+              r_t = x[z,10], eta_wr = x[z,11], eta_rw = x[z,12], 
+              eta_rr = x[z,13], eta_rrr = x[z,14],  
+              c1 = x[z,15], c2 = x[z,16], c3 = x[z,17],
+              c12 = x[z,18], c13 = x[z,19], c23 = x[z,20],
+              c123 = x[z,21],
               eff_tax1_1 = 0, eff_tax2_1 = 0, eff_tax3_1 = 0, 
               eff_tax1_2 = 0, eff_tax2_2 = 0, eff_tax3_2 = 0, 
               eff_tax1_3 = 0, eff_tax2_3 = 0, eff_tax3_3 = 0, 
               eff_tax1_4 = 0, eff_tax2_4 = 0, eff_tax3_4 = 0, 
               eff_tax1_5 = 0, eff_tax2_5 = 0, eff_tax3_5 = 0, 
               eff_tax1_6 = 0, eff_tax2_6 = 0, eff_tax3_6 = 0, 
-              PED1 = x[z,19], PED2 = x[z,20], PED3 = x[z,21], 
-              t_n = 3000, time_between = Inf, rho = x[z,22], base_tax = x[z,23])
+              PED1 = x[z,22], PED2 = x[z,23], PED3 = x[z,24], 
+              t_n = 3000, time_between = Inf, rho = x[z,25], base_tax = x[z,26])
 
     run <- data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms))
     
@@ -355,40 +343,67 @@ ode_function <- function(x, init, outcome) {
 }
 
 #Test the output of the function
-ode_function(data.frame(beta = 2, mu_w = 1/15, mu_r = 1/10, 
-                        mu_t = 1/5, eta_wr = 0.02, eta_rw= 0.02, c1= 0.9, c2 = 0.85, c3 = 0.8,
-                        eff_tax1 = 1, eff_tax2 = 1, eff_tax3 = 1, rho = 0.5), 
-             c(X = 0.99, W = 1-0.99, R1 = 0, R2 =0, R3 =0),
-              1)
+ode_function(data.frame(lambda = 1/365*(2), 
+                        beta = 5, sigma1 = 0.25,sigma2 = 0.25,sigma3 = 0.25,
+                        r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, 
+                        r_t = 1/7, eta_wr = 0.3, eta_rw = 0.04, 
+                        eta_rr = 0.01, eta_rrr = 0.01,  
+                        c1 = 0.95, c2 = 0.925, c3 = 0.85,
+                        c12 = 0.85, c13 = 0.825, c23 = 0.75,
+                        c123 = 0.7,
+                        PED1 = 1, PED2 = 1, PED3 = 1, 
+                        rho = 0.05, base_tax = 0.5), 
+             c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
+               R12 = 0, R13 = 0, R23 = 0,
+               R123 = 0),
+             1)
 
 # Run the FAST -----------------------------------------------------------
 
-factors <- c("beta","mu_w", "mu_r", "mu_t", "eta_wr", "eta_rw",
-             "c1", "c2","c3", "eff_tax1", "eff_tax2","eff_tax3", "rho")
+factors <- c("lambda", "beta", "sigma1","sigma2", "sigma3", "r_wt", "r_r",  "r_rr",  "r_rrr", "r_t", 
+             "eta_wr", "eta_rw", "eta_rr", "eta_rrr",  
+             "c1", "c2", "c3", "c12", "c13", "c23", "c123",
+             "PED1", "PED2", "PED3", 
+             "rho", "base_tax")
 
 start_time <- Sys.time()
 
-init <- c(X = 0.99, W = 1-0.99, R1 = 0, R2 =0, R3 =0)
+init <- c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
+          R12 = 0, R13 = 0, R23 = 0,
+          R123 = 0)
 
 testfbd <- fast99(model = ode_function, factors = factors, n = 200, 
-                  q.arg = list(list(min=0.0001, max=10), 
-                               list(min=1/50, max=1/0.5),
-                               list(min=1/50, max = 1/0.5),
-                               list(min=1/50, max=1/0.5),
-                               list(min=0.002, max=0.2),
-                               list(min=0.002, max=0.2),
-                               list(min=0.0001, max=1),
-                               list(min=0.0001, max=1),
-                               list(min=0.0001, max=1),
-                               list(min=0.0001, max=1),
-                               list(min=0.0001, max=1),
-                               list(min=0.0001, max=1),
-                               list(min=0.0001, max=1)),
+                  q.arg = list(list(min=0.0001, max=0.1), #lambda
+                               list(min=0.0001, max=10), #beta
+                               list(min=0, max=1), #sigma1
+                               list(min=0, max=1), #sigma2
+                               list(min=0, max=1), #sigma3
+                               list(min=0.0001, max = 1/0.5), #r_wt
+                               list(min=0.0001, max=1/0.5), #r_r
+                               list(min=0.0001, max=1/0.5), #r_rr
+                               list(min=0.0001, max=1/0.5), #r_rrr
+                               list(min=0.0001, max=1/0.5), #r_t
+                               list(min=0.0001, max=1), #eta_wr
+                               list(min=0.0001, max=1), #eta_rw
+                               list(min=0.0001, max=1), #eta_rr
+                               list(min=0.0001, max=1), #eta_rrr
+                               list(min=0.5, max=1), #c1
+                               list(min=0.5, max=1), #c2
+                               list(min=0.5, max=1), #c3
+                               list(min=0.5, max=1), #c12
+                               list(min=0.5, max=1), #c13
+                               list(min=0.5, max=1), #c23
+                               list(min=0.5, max=1), #c123
+                               list(min=0, max=3), #PED1
+                               list(min=0, max=3), #PED2
+                               list(min=0, max=3), #PED3
+                               list(min=0, max=1), #rho
+                               list(min=0, max=1)), #basetax
                   init = init,
                   outcome = 2)
 
 
-testfbd$y
+out <- data.frame(testfbd$y)
 end_time <- Sys.time()
 end_time - start_time
 
