@@ -63,14 +63,13 @@ amr <- function(t, y, parms) {
       sigma4 <- sigma4/(sigma1 + sigma2 + sigma3 + sigma4)
     }
     
-    
     dX = lambda - lambda*X - 
       beta*X*(Wt + R1*c1 + R2*c2 + R3*c3 + R4*c4 + 
                 R12*c12 + R13*c13 + R14*c14 + 
                 R23*c23 + R24*c24 + R34*c34 + 
                 R123*c123 + R124*c124 + R134*c134 + R234*c234 +
                 R1234*c1234) +
-      r_wt*Wt*(1 - sigma1 + sigma2 + sigma3 + sigma4) + 
+      r_wt*Wt*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + 
       r_r*R1*sigma1 + r_r*R2*sigma2 + r_r*R3*sigma3 + r_r*R4*sigma4 +
       r_rr*R12*(sigma1 + sigma2) + r_rr*R13*(sigma1 + sigma3) + r_rr*R23*(sigma2 + sigma3) + r_rr*R14*(sigma1 + sigma4) + 
       r_rr*R24*(sigma2 + sigma4) + r_rr*R34*(sigma3 + sigma4) + 
@@ -89,12 +88,12 @@ amr <- function(t, y, parms) {
                      R234*(sigma1) + R134*(sigma2))
     
     dWt = - lambda*Wt + beta*X*Wt - 
-      r_wt*Wt*(1 - sigma1 + sigma2 + sigma3 + sigma4) - 
+      r_wt*Wt*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) - 
       r_t*Wt*(1-rho)*(sigma1 + sigma2 + sigma3 + sigma4) +
       eta_rw*(R1 + R2 + R3 + R4 + 
                 R12 + R13 + R14 + R23 + R24 + R34 +
                 R123 + R124 + R134 + R234 + 
-                R1234)*(1 - sigma1 + sigma2 + sigma3 + sigma4) - 
+                R1234)*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) - 
       eta_wr*Wt*rho*(sigma1 + sigma2 + sigma3 + sigma4)
     
     dR1 = - lambda*R1 + beta*X*R1*c1 - r_t*(1-rho)*(sigma2 + sigma3 + sigma4)*R1 - r_r*sigma1*R1 - eta_rr*R1*rho*sigma2 -
@@ -144,7 +143,6 @@ amr <- function(t, y, parms) {
     dR234 = - lambda*R234 + beta*X*R234*c234 - r_t*(1-rho)*R234*(sigma1) - r_rrr*(sigma2 + sigma3 + sigma4)*R234 - 
       eta_rw*R234*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_rrr*rho*(sigma4*R23) + eta_rrr*rho*sigma2*R34 + eta_rrr*rho*sigma3*R24 - 
       eta_rrrr*rho*R234*(sigma1)
-    
     
     dR1234 = - lambda*R1234 + beta*X*R1234*c1234 - r_rrrr*(sigma1 + sigma2 + sigma3 + sigma4)*R1234 - eta_rw*R1234*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + 
       eta_rrrr*rho*(R123*(sigma4) + R124*(sigma3) + R134*(sigma2) + R234*(sigma1))
@@ -217,7 +215,6 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func){
         parms[["eff_tax"]][parms[["eff_tax"]] < 0] <- 0
       }
     }
-    
   }
   
   out_run <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, 10000), parms = parms, hmax = 1)))
@@ -489,6 +486,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
       values <- tail(run_base_agg, 1)
     }
   }
+print(values)
   
   run <- run_base[run_base[,1] > parms_base[["t_n"]],]
   run_base_agg <- run_base_agg[run_base_agg[,1] > parms_base[["t_n"]],]
@@ -570,24 +568,6 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
 # Run the Model ----------------------------------------------------------
 
 start_time <- Sys.time()
-
-mclapply(1:2, 
-         FUN = mono_func, 
-         parms_frame = parm_data_comb, 
-         init = c(X = 0.99, Wt = 1-0.99, 
-                  R1 = 0, R2 = 0, R3 = 0, R4 = 0,
-                  R12 = 0, R13 = 0, R14 = 0, R23 = 0, R24 = 0, R34 = 0,
-                  R123 = 0, R124 = 0, R134 = 0, R234 = 0, 
-                  R1234 = 0), 
-         amr_ode = amr, 
-         usage_fun = usage_fun,
-         multi_int_fun = multi_int_fun,
-         low_parm = low_parm,
-         high_parm = high_parm,
-         agg_func = agg_func,
-         thresh = 0.5,
-         mc.cores = 10) 
-
 
 test <- mclapply(1:1000, 
                  FUN = mono_func, 

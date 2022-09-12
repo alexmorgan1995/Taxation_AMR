@@ -5,6 +5,7 @@ rm(list=ls())
 
 # ODEs --------------------------------------------------------------------
 
+
 amr <- function(t, y, parms) {
   with(as.list(c(y, parms)), {
     
@@ -64,14 +65,13 @@ amr <- function(t, y, parms) {
       sigma4 <- sigma4/(sigma1 + sigma2 + sigma3 + sigma4)
     }
     
-
     dX = lambda - lambda*X - 
       beta*X*(Wt + R1*c1 + R2*c2 + R3*c3 + R4*c4 + 
                 R12*c12 + R13*c13 + R14*c14 + 
                 R23*c23 + R24*c24 + R34*c34 + 
                 R123*c123 + R124*c124 + R134*c134 + R234*c234 +
                 R1234*c1234) +
-      r_wt*Wt*(1 - sigma1 + sigma2 + sigma3 + sigma4) + 
+      r_wt*Wt*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + 
       r_r*R1*sigma1 + r_r*R2*sigma2 + r_r*R3*sigma3 + r_r*R4*sigma4 +
       r_rr*R12*(sigma1 + sigma2) + r_rr*R13*(sigma1 + sigma3) + r_rr*R23*(sigma2 + sigma3) + r_rr*R14*(sigma1 + sigma4) + 
       r_rr*R24*(sigma2 + sigma4) + r_rr*R34*(sigma3 + sigma4) + 
@@ -90,64 +90,63 @@ amr <- function(t, y, parms) {
                      R234*(sigma1) + R134*(sigma2))
     
     dWt = - lambda*Wt + beta*X*Wt - 
-      r_wt*Wt*(1 - sigma1 + sigma2 + sigma3 + sigma4) - 
+      r_wt*Wt*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) - 
       r_t*Wt*(1-rho)*(sigma1 + sigma2 + sigma3 + sigma4) +
       eta_rw*(R1 + R2 + R3 + R4 + 
                 R12 + R13 + R14 + R23 + R24 + R34 +
                 R123 + R124 + R134 + R234 + 
-                R1234)*(1 - sigma1 + sigma2 + sigma3 + sigma4) - 
+                R1234)*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) - 
       eta_wr*Wt*rho*(sigma1 + sigma2 + sigma3 + sigma4)
     
     dR1 = - lambda*R1 + beta*X*R1*c1 - r_t*(1-rho)*(sigma2 + sigma3 + sigma4)*R1 - r_r*sigma1*R1 - eta_rr*R1*rho*sigma2 -
-      eta_rr*R1*rho*sigma3 - eta_rr*R1*rho*sigma4 - eta_rw*R1*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_wr*rho*Wt*sigma1
+      eta_rr*R1*rho*sigma3 - eta_rr*R1*rho*sigma4 - eta_rw*R1*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_wr*rho*Wt*sigma1
     
     dR2 = - lambda*R2 + beta*X*R2*c2 - r_t*(1-rho)*(sigma1 + sigma3 + sigma4)*R2 - r_r*sigma2*R2 - eta_rr*R2*rho*sigma1 -
-      eta_rr*R2*rho*sigma3 - eta_rr*R2*rho*sigma4 - eta_rw*R2*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_wr*rho*Wt*sigma2
+      eta_rr*R2*rho*sigma3 - eta_rr*R2*rho*sigma4 - eta_rw*R2*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_wr*rho*Wt*sigma2
     
     dR3 = - lambda*R3 + beta*X*R3*c3 - r_t*(1-rho)*(sigma1 + sigma2 + sigma4)*R3 - r_r*sigma3*R3 - eta_rr*R3*rho*sigma1 -
-      eta_rr*R3*rho*sigma2 - eta_rr*R3*rho*sigma4 - eta_rw*R3*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_wr*rho*Wt*sigma3
+      eta_rr*R3*rho*sigma2 - eta_rr*R3*rho*sigma4 - eta_rw*R3*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_wr*rho*Wt*sigma3
     
     dR4 = - lambda*R4 + beta*X*R4*c4 - r_t*(1-rho)*(sigma1 + sigma2 + sigma3)*R4 - r_r*sigma4*R4 - eta_rr*R4*rho*(sigma1 + sigma2 + sigma3) - 
-      eta_rw*R4*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_wr*rho*Wt*sigma4
+      eta_rw*R4*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_wr*rho*Wt*sigma4
     
     
     dR12 = - lambda*R12 + beta*X*R12*c12 - r_t*(1-rho)*(sigma3 + sigma4)*R12 - r_rr*(sigma1 + sigma2)*R12 - eta_rrr*R12*rho*(sigma3) - eta_rrr*R12*rho*sigma4 -
-      eta_rw*R12*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_rr*R1*rho*sigma2 + eta_rr*R2*rho*sigma1 
+      eta_rw*R12*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_rr*R1*rho*sigma2 + eta_rr*R2*rho*sigma1 
     
     dR13 = - lambda*R13 + beta*X*R13*c13 - r_t*(1-rho)*(sigma2 + sigma4)*R13 - r_rr*(sigma1 + sigma3)*R13 - eta_rrr*R13*rho*(sigma2) - eta_rrr*R13*rho*sigma4 -
-      eta_rw*R13*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_rr*R1*rho*sigma3 + eta_rr*R3*rho*sigma1 
+      eta_rw*R13*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_rr*R1*rho*sigma3 + eta_rr*R3*rho*sigma1 
     
     dR14 = - lambda*R14 + beta*X*R14*c14 - r_t*(1-rho)*(sigma2 + sigma3)*R14 - r_rr*(sigma1 + sigma4)*R14 - eta_rrr*R14*rho*(sigma2) - eta_rrr*R14*rho*sigma3 -
-      eta_rw*R14*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_rr*R1*rho*sigma4 + eta_rr*R4*rho*sigma1 
+      eta_rw*R14*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_rr*R1*rho*sigma4 + eta_rr*R4*rho*sigma1 
     
     dR23 = - lambda*R23 + beta*X*R23*c23 - r_t*(1-rho)*(sigma1 + sigma4)*R23 - r_rr*(sigma2 + sigma3)*R23 - eta_rrr*R23*rho*(sigma1) - eta_rrr*R23*rho*sigma4 -
-      eta_rw*R23*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_rr*R2*rho*sigma3 + eta_rr*R3*rho*sigma2
+      eta_rw*R23*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_rr*R2*rho*sigma3 + eta_rr*R3*rho*sigma2
     
     dR24 = - lambda*R24 + beta*X*R24*c24 - r_t*(1-rho)*(sigma1 + sigma3)*R24 - r_rr*(sigma2 + sigma4)*R24 - eta_rrr*R24*rho*(sigma1) - eta_rrr*R24*rho*sigma3 -
-      eta_rw*R24*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_rr*R2*rho*sigma4 + eta_rr*R4*rho*sigma2 
+      eta_rw*R24*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_rr*R2*rho*sigma4 + eta_rr*R4*rho*sigma2 
     
     dR34 = - lambda*R34 + beta*X*R34*c34 - r_t*(1-rho)*(sigma1 + sigma2)*R34 - r_rr*(sigma3 + sigma4)*R34 - eta_rrr*R34*rho*(sigma1) - eta_rrr*R34*rho*sigma2 -
-      eta_rw*R34*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_rr*R3*rho*sigma4 + eta_rr*R4*rho*sigma3 
+      eta_rw*R34*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_rr*R3*rho*sigma4 + eta_rr*R4*rho*sigma3 
     
     
     dR123 = - lambda*R123 + beta*X*R123*c123 - r_t*(1-rho)*R123*(sigma4) - r_rrr*(sigma1 + sigma2 + sigma3)*R123 - 
-      eta_rw*R123*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_rrr*rho*(sigma3*R12) + eta_rrr*rho*sigma2*R13 + eta_rrr*rho*sigma1*R23 - 
+      eta_rw*R123*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_rrr*rho*(sigma3*R12) + eta_rrr*rho*sigma2*R13 + eta_rrr*rho*sigma1*R23 - 
       eta_rrrr*rho*R123*(sigma4)
     
     dR124 = - lambda*R124 + beta*X*R124*c124 - r_t*(1-rho)*R124*(sigma3) - r_rrr*(sigma1 + sigma2 + sigma4)*R124 - 
-      eta_rw*R124*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_rrr*rho*(sigma4*R12) + eta_rrr*rho*sigma2*R14 + eta_rrr*rho*sigma1*R24 - 
+      eta_rw*R124*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_rrr*rho*(sigma4*R12) + eta_rrr*rho*sigma2*R14 + eta_rrr*rho*sigma1*R24 - 
       eta_rrrr*rho*R124*(sigma3)
     
     dR134 = - lambda*R134 + beta*X*R134*c134 - r_t*(1-rho)*R134*(sigma2) - r_rrr*(sigma1 + sigma3 + sigma4)*R134 - 
-      eta_rw*R134*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_rrr*rho*(sigma4*R13) + eta_rrr*rho*sigma1*R34 + eta_rrr*rho*sigma3*R14 - 
+      eta_rw*R134*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_rrr*rho*(sigma4*R13) + eta_rrr*rho*sigma1*R34 + eta_rrr*rho*sigma3*R14 - 
       eta_rrrr*rho*R134*(sigma2)
     
     dR234 = - lambda*R234 + beta*X*R234*c234 - r_t*(1-rho)*R234*(sigma1) - r_rrr*(sigma2 + sigma3 + sigma4)*R234 - 
-      eta_rw*R234*(1 - sigma1 + sigma2 + sigma3 + sigma4) + eta_rrr*rho*(sigma4*R23) + eta_rrr*rho*sigma2*R34 + eta_rrr*rho*sigma3*R24 - 
+      eta_rw*R234*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + eta_rrr*rho*(sigma4*R23) + eta_rrr*rho*sigma2*R34 + eta_rrr*rho*sigma3*R24 - 
       eta_rrrr*rho*R234*(sigma1)
     
-    
-    dR1234 = - lambda*R1234 + beta*X*R1234*c1234 - r_rrrr*(sigma1 + sigma2 + sigma3 + sigma4)*R1234 - eta_rw*R1234*(1 - sigma1 + sigma2 + sigma3 + sigma4) + 
+    dR1234 = - lambda*R1234 + beta*X*R1234*c1234 - r_rrrr*(sigma1 + sigma2 + sigma3 + sigma4)*R1234 - eta_rw*R1234*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + 
       eta_rrrr*rho*(R123*(sigma4) + R124*(sigma3) + R134*(sigma2) + R234*(sigma1))
     
     return(list(c(dX,dWt,
@@ -158,7 +157,6 @@ amr <- function(t, y, parms) {
                   dR1234)))
   })
 }
-
 
 # Function to Remove NAs and Round Data -----------------------------------
 

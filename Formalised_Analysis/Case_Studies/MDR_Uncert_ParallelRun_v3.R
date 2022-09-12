@@ -157,6 +157,27 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func){
   return(list(out_run, parms))
 }
 
+# Single Tax Function -----------------------------------------------------
+
+single_tax <- function(res_order, tax, parms, init, func, agg_func) {
+  
+  #First Run
+  parms[["base_tax"]] <- tax
+  
+  run_1rd <- agg_func(remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms))))
+  values_1rd <- tail(run_1rd, 1)[4:6]
+  
+  res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
+                     names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
+                     names(values_1rd)[which.min(values_1rd)])[res_order]
+  
+  parms[["eff_tax"]][as.numeric(substr(res_order_vec, 2, 2)), c(1:6)] <- as.numeric(parms[["base_tax"]])
+  
+  #Real Model Run 
+  run_real <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, 10000), parms = parms)))
+  return(run_real)
+}
+
 # Aggregated Function -----------------------------------------------------
 
 agg_func <- function(data) {
@@ -332,6 +353,13 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   run <- run_base[run_base[,1] > parms_base[["t_n"]],]
   run_base_agg <- run_base_agg[run_base_agg[,1] > parms_base[["t_n"]],]
   
+  #Identifying the order of the resistances
+  res_order_vec <- c(names(values[4:6])[which.max(values[4:6])],
+                     names(values[4:6])[setdiff(1:3, c(which.min(values[4:6]), which.max(values[4:6])))],
+                     names(values[4:6])[which.min(values[4:6])])
+  
+  print(res_order_vec)
+  #Storing info for the integrals 
   base_tot_inf <- signif(sum(run[3:10]), 5)
   base_int_res <- signif(sum(rowMeans(run_base_agg[4:6]), 5))
   
@@ -347,7 +375,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
       out <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, hmax = 1)))
     }
     if(i >= 2 & i <= 4) {
-      parms[["eff_tax"]][i-1,]   <- parms[["base_tax"]]
+      parms[["eff_tax"]][as.numeric(substr(res_order_vec[i-1], 2, 2)), c(1:6)] <- parms[["base_tax"]]
       out <- remNA_func(data.frame(ode(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, hmax = 1)))
     }
     if(i >= 5 & i <= 10) {
@@ -389,9 +417,9 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   }
   
   output <- c(store_vec_inf, store_vec_res, store_vec_shan, parms_base[c(1:27)])
-  names(output) <- c("flat_inf", "single1_inf", "single2_inf", "single3_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", 
-                     "flat_res", "single1_res", "single2_res", "single3_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res",
-                     "flat_shan", "single1_shan", "single2_shan", "single3_shan", "diff1_shan", "diff2_shan", "diff3_shan", "diff4_shan", "diff5_shan", "diff6_shan",
+  names(output) <- c("flat_inf", "singleHR_inf", "singleMR_inf", "singleLR_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", 
+                     "flat_res", "singleHR_res", "singleMR_res", "singleLR_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res",
+                     "flat_shan", "singleHR_shan", "singleMR_shan", "singleLR_shan", "diff1_shan", "diff2_shan", "diff3_shan", "diff4_shan", "diff5_shan", "diff6_shan",
                      names(parms_base[c(1:27)]))
   
   return(output)

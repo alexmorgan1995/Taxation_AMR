@@ -4,7 +4,6 @@ library("rbenchmark")
 rm(list=ls())
 
 # ODEs --------------------------------------------------------------------
-
 amr <- function(t, y, parms) {
   with(as.list(c(y, parms)), {
     
@@ -50,36 +49,43 @@ amr <- function(t, y, parms) {
     sigma2 <- ifelse(sigma2 > 0, sigma2, 0)
     sigma3 <- ifelse(sigma3 > 0, sigma3, 0)
     
+    if((sigma1 + sigma2 + sigma3) > 1) {
+      sigma1 <- sigma1/(sigma1 + sigma2 + sigma3)
+      sigma2 <- sigma2/(sigma1 + sigma2 + sigma3)
+      sigma3 <- sigma3/(sigma1 + sigma2 + sigma3)
+    }
+    
     dX = lambda - lambda*X - beta*X*(Wt + R1*c1 + R2*c2 + R3*c3 + R12*c12 + R13*c13 + R23*c23 + R123*c123) +
-      r_wt*Wt*(1 - sigma1 + sigma2 + sigma3) + r_r*R1*sigma1 + r_r*R2*sigma2 + r_r*R3*sigma3 +
+      r_wt*Wt*(1 - (sigma1 + sigma2 + sigma3)) + r_r*R1*sigma1 + r_r*R2*sigma2 + r_r*R3*sigma3 +
       r_rr*R12*(sigma1 + sigma2) + r_rr*R13*(sigma1 + sigma3) + r_rr*R23*(sigma2 + sigma3) + 
       r_rrr*R123*(sigma1 + sigma2 + sigma3) + r_t*(1-rho)*(Wt*(sigma1 + sigma2 + sigma3) + R1*(sigma2 + sigma3) + 
                                                              R2*(sigma1 + sigma3) + R3*(sigma1 + sigma2) + 
                                                              R12*sigma3 + R13*sigma2 + R23*sigma1)
     
-    dWt = - lambda*Wt + beta*X*Wt - r_wt*Wt*(1 - sigma1 + sigma2 + sigma3) - r_t*Wt*(1-rho)*(sigma1 + sigma2 + sigma3) +
-      eta_rw*(R1 + R2 + R3 + R12 + R13 + R23 + R123)*(1 - sigma1 + sigma2 + sigma3) - 
+    dWt = - lambda*Wt + beta*X*Wt - r_wt*Wt*(1 - (sigma1 + sigma2 + sigma3)) - r_t*Wt*(1-rho)*(sigma1 + sigma2 + sigma3) +
+      eta_rw*(R1 + R2 + R3 + R12 + R13 + R23 + R123)*(1 - (sigma1 + sigma2 + sigma3)) - 
       eta_wr*Wt*rho*(sigma1 + sigma2 + sigma3)
     
     dR1 = - lambda*R1 + beta*X*R1*c1 - r_t*(1-rho)*(sigma2 + sigma3)*R1 - r_r*sigma1*R1 - eta_rr*R1*rho*sigma2 -
-      eta_rr*R1*rho*sigma3 - eta_rw*R1*(1 - sigma1 + sigma2 + sigma3) + eta_wr*rho*Wt*sigma1
+      eta_rr*R1*rho*sigma3 - eta_rw*R1*(1 - (sigma1 + sigma2 + sigma3)) + eta_wr*rho*Wt*sigma1
     
     dR2 = - lambda*R2 + beta*X*R2*c2 - r_t*(1-rho)*(sigma1 + sigma3)*R2 - r_r*sigma2*R2 - eta_rr*R2*rho*sigma1 -
-      eta_rr*R2*rho*sigma3 - eta_rw*R2*(1 - sigma1 + sigma2 + sigma3) + eta_wr*rho*Wt*sigma2
+      eta_rr*R2*rho*sigma3 - eta_rw*R2*(1 - (sigma1 + sigma2 + sigma3)) + eta_wr*rho*Wt*sigma2
     
     dR3 = - lambda*R3 + beta*X*R3*c3 - r_t*(1-rho)*(sigma1 + sigma2)*R3 - r_r*sigma3*R3 - eta_rr*R3*rho*sigma1 -
-      eta_rr*R3*rho*sigma2 - eta_rw*R3*(1 - sigma1 + sigma2 + sigma3) + eta_wr*rho*Wt*sigma3
+      eta_rr*R3*rho*sigma2 - eta_rw*R3*(1 - (sigma1 + sigma2 + sigma3)) + eta_wr*rho*Wt*sigma3
+    
     
     dR12 = - lambda*R12 + beta*X*R12*c12 - r_t*(1-rho)*sigma3*R12 - r_rr*(sigma1 + sigma2)*R12 - eta_rrr*R12*rho*sigma3 -
-      eta_rw*R12*(1 - sigma1 + sigma2 + sigma3) + eta_rr*R1*rho*sigma2 + eta_rr*R2*rho*sigma1 
+      eta_rw*R12*(1 - (sigma1 + sigma2 + sigma3)) + eta_rr*R1*rho*sigma2 + eta_rr*R2*rho*sigma1 
     
     dR13 = - lambda*R13 + beta*X*R13*c13 - r_t*(1-rho)*sigma2*R13 - r_rr*(sigma1 + sigma3)*R13 - eta_rrr*R13*rho*sigma2 -
-      eta_rw*R13*(1 - sigma1 + sigma2 + sigma3) + eta_rr*R1*rho*sigma3 + eta_rr*R3*rho*sigma1 
+      eta_rw*R13*(1 - (sigma1 + sigma2 + sigma3)) + eta_rr*R1*rho*sigma3 + eta_rr*R3*rho*sigma1 
     
     dR23 = - lambda*R23 + beta*X*R23*c23 - r_t*(1-rho)*sigma1*R23 - r_rr*(sigma2 + sigma3)*R23 - eta_rrr*R23*rho*sigma1 -
-      eta_rw*R23*(1 - sigma1 + sigma2 + sigma3) + eta_rr*R2*rho*sigma3 + eta_rr*R3*rho*sigma2 
+      eta_rw*R23*(1 - (sigma1 + sigma2 + sigma3)) + eta_rr*R2*rho*sigma3 + eta_rr*R3*rho*sigma2 
     
-    dR123 = - lambda*R123 + beta*X*R123*c123 - r_rrr*(sigma1 + sigma2 + sigma3)*R123 - eta_rw*R123*(1 - sigma1 + sigma2 + sigma3) + 
+    dR123 = - lambda*R123 + beta*X*R123*c123 - r_rrr*(sigma1 + sigma2 + sigma3)*R123 - eta_rw*R123*(1 - (sigma1 + sigma2 + sigma3)) + 
       eta_rrr*rho*(sigma3*R12 + sigma2*R13 + sigma1*R23)
     
     return(list(c(dX,dWt,
@@ -88,6 +94,7 @@ amr <- function(t, y, parms) {
                   dR123)))
   })
 }
+
 
 # Function to Remove NAs and Round Data -----------------------------------
 
@@ -178,36 +185,42 @@ usage_fun <- function(parms){
 multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func){
   
   parms["time_between"] <- time_between
-
-  #First Run
-  run_1rd <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms)))
   
-  values_1rd <- agg_func(tail(run_1rd, 1))[4:6]
-  parms[["eff_tax"]][1,] <- as.numeric(parms[["base_tax"]]*(values_1rd[1]/values_1rd[2]))
-  parms[["eff_tax"]][2,] <- as.numeric(parms[["base_tax"]]*(values_1rd[2]/values_1rd[2]))
-  parms[["eff_tax"]][3,] <- as.numeric(parms[["base_tax"]]*(values_1rd[3]/values_1rd[2]))
+  #First Run
+  run_1rd <- agg_func(remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms))))
+  
+  values_1rd <- tail(run_1rd, 1)[4:6]
+  
+  low_char_1rd <- names(values_1rd)[which.min(values_1rd)]
+  high_char_1rd <- names(values_1rd)[which.max(values_1rd)]
+  med_char_1rd <- names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))]
+  
+  parms[["eff_tax"]][as.numeric(substr(low_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[low_char_1rd]/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(med_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd]/values_1rd[med_char_1rd])))
   parms[["eff_tax"]][parms[["eff_tax"]] < 0] <- 0
-
+  
   if(int_gen > 1) {
-
+    
     for(i in 1:(int_gen-1)) {
-      run <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*i)), parms = parms)))
-      values <- agg_func(tail(run, 1))[4:6]
+      run <- agg_func(remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*i)), parms = parms))))
+      values <- tail(run, 1)[4:6]
       
       if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
         parms[["eff_tax"]][,i] <- 0
       } else {
- 
+        
         low_char <- names(values)[which.min(values)]
         high_char <- names(values)[which.max(values)]
         med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
         
-        parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i+1):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[2])))
-        parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i+1):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[2])))
-        parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i+1):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[2])))
+        parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i+1):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))
+        parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i+1):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))
+        parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i+1):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))
         parms[["eff_tax"]][parms[["eff_tax"]] < 0] <- 0
       }
     }
+    
   }
   
   out_run <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, 10000), parms = parms, hmax = 1)))
@@ -226,12 +239,12 @@ parms = list(lambda = 1/365*(2),
              r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, 
              r_t = 1/7, eta_wr = 0.3, eta_rw = 0.04, 
              eta_rr = 0.01, eta_rrr = 0.01,  
-             c1 = 0.95, c2 = 0.925, c3 = 0.85,
-             c12 = 0.85, c13 = 0.825, c23 = 0.75,
+             c1 = 0.945, c2 = 0.925, c3 = 0.85,
+             c12 = 0.845, c13 = 0.825, c23 = 0.75,
              c123 = 0.7,
-             PED = matrix(c(-1, 0.5, 0.5, 
-                            0.5, -1, 0.5,
-                            0.5, 0.5, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0, 0, 
+                            0, -1, 0,
+                            0, 0, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
@@ -239,11 +252,26 @@ parms = list(lambda = 1/365*(2),
                               nrow = 3, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
 
+# Single Taxation Function ------------------------------------------------
 
+single_tax <- function(res_order, tax, parms, init, func, agg_func) {
+  
+  #First Run
+  parms[["base_tax"]] <- tax
 
-diff_test_run <- agg_func(multi_int_fun(2, 365*3, parms, init, amr, agg_func)[[1]])
-diff_test_run <- melt(diff_test_run, id.vars = "time", measure.vars = colnames(diff_test_run)[4:6])
-ggplot(diff_test_run, aes(time, value, color = variable)) + geom_line() + theme_bw()
+  run_1rd <- agg_func(remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms))))
+  values_1rd <- tail(run_1rd, 1)[4:6]
+
+  res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
+                     names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
+                     names(values_1rd)[which.min(values_1rd)])[res_order]
+
+  parms[["eff_tax"]][as.numeric(substr(res_order_vec, 2, 2)), c(1:6)] <- as.numeric(parms[["base_tax"]])
+
+  #Real Model Run 
+  run_real <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, 10000), parms = parms)))
+  return(run_real)
+}
 
 # Testing the Outcome Measure ---------------------------------------------
 
@@ -278,10 +306,10 @@ testrun_flat <- list(remNA_func(data.frame(ode(y = init, func = amr, times = seq
 
 #Single Tax 
 single_list <- list()
+
 for(i in 1:3) {
   parms1 <- parms
-  parms1[["eff_tax"]][i,] <- 0.5
-  single_list[[i]] <- data.frame(remNA_func(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)),
+  single_list[[i]] <- data.frame(single_tax(i, 0.5, parms1, init, amr, agg_func),
                                  "scen" = paste0("single_", "eff_tax", i))
 }
 
@@ -329,4 +357,3 @@ ggarrange(p_data[[1]], "", "",
                      "B", "", "",
                      "C", "", "",
                      "", "", ""), hjust = -.1,  nrow = 4, ncol = 3, common.legend = T, legend = "bottom")
-

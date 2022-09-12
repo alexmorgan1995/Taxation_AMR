@@ -6,7 +6,7 @@ setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/F
 
 # Import in Dataset -------------------------------------------------------
 
-win_import <- readRDS("MDR_run_v3_pess.RDS")
+win_import <- readRDS("MDR_run_LHS.RDS")
 
 for(i in seq_along(win_import)) {
   win_import[[i]] <- as(win_import[[i]], class(win_import[[i]][[1]]))
@@ -63,12 +63,12 @@ box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable)) +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Increase in Infections", x = "") + 
   scale_x_discrete(labels = c("Single Tax (HR)","Diff Tax (1 Rd)", "Diff Tax (2 Rds)", "Diff Tax (3 Rds)", "Diff Tax (4 Rds)", "Diff Tax (5 Rds)", "Diff Tax (6 Rds)")) +
   scale_fill_manual(values=c("darkgrey", magma(8)[-c(1:2)])) + 
-  geom_signif(comparisons = list(c("single1_inf", "diff1_inf"),
-                                 c("single1_inf", "diff2_inf"),
-                                 c("single1_inf", "diff3_inf"),
-                                 c("single1_inf", "diff4_inf"),
-                                 c("single1_inf", "diff5_inf"),
-                                 c("single1_inf", "diff6_inf")),    
+  geom_signif(comparisons = list(c("singleHR_inf", "diff1_inf"),
+                                 c("singleHR_inf", "diff2_inf"),
+                                 c("singleHR_inf", "diff3_inf"),
+                                 c("singleHR_inf", "diff4_inf"),
+                                 c("singleHR_inf", "diff5_inf"),
+                                 c("singleHR_inf", "diff6_inf")),    
               map_signif_level=TRUE,    
               test = wilcox.test,
               
@@ -78,7 +78,7 @@ box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable)) +
 
 #Resistance
 
-inc_res <- win_res[,c(2,5:10)]
+inc_res <- win_res[,c(4,5:10)]
 inc_res <- inc_res[apply(inc_res, 1, function(x) all(is.finite(x))), ]
 keep <- Reduce(`&`, lapply(inc_res, function(x) x >= quantile(x, .01) 
                            & x <= quantile(x, .99)))
@@ -104,17 +104,17 @@ box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable)) +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Decrease in Resistance", x = "") + 
   scale_x_discrete(labels = c("Single Tax (HR)","Diff Tax (1 Rd)", "Diff Tax (2 Rds)", "Diff Tax (3 Rds)", "Diff Tax (4 Rds)", "Diff Tax (5 Rds)", "Diff Tax (6 Rds)")) +
   scale_fill_manual(values=c("darkgrey",magma(8)[-c(1:2)])) + 
-  geom_signif(comparisons = list(c("single1_res", "diff1_res"),
-                                 c("single1_res", "diff2_res"),
-                                 c("single1_res", "diff3_res"),
-                                 c("single1_res", "diff4_res"),
-                                 c("single1_res", "diff5_res"),
-                                 c("single1_res", "diff6_res")),    
+  geom_signif(comparisons = list(c("singleLR_res", "diff1_res"),
+                                 c("singleLR_res", "diff2_res"),
+                                 c("singleLR_res", "diff3_res"),
+                                 c("singleLR_res", "diff4_res"),
+                                 c("singleLR_res", "diff5_res"),
+                                 c("singleLR_res", "diff6_res")),    
               map_signif_level=TRUE,    
               test = wilcox.test,
               tip_length = 0.02,
               vjust = 0.5,
-              y_position = c(0.7, 0.775, 0.85, 0.925, 1, 1.75)) + coord_cartesian(ylim=c(-0.05, 1.5))
+              y_position = c(0.7, 0.775, 0.85, 0.925, 1, 1.075)) + coord_cartesian(ylim=c(-0.05, 1.5))
 
 #Shannon's
 
