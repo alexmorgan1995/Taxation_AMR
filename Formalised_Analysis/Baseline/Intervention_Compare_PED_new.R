@@ -310,8 +310,7 @@ opt_crit = data.frame("Flat_All" = integral(list_scen[[1]], 3000, 0.5),
 
 rownames(opt_crit) <- c("Tot_Inf", "AvgRes", "Avg_Anti")
 
-rescale_data <- data.frame(t(apply(opt_crit[1:2,], MARGIN = 1, FUN = function(X) (X - min(X))/diff(range(X)))))
-rescale_data["Avg_Anti",] <- unlist(c("Flat_All" = NA, (opt_crit[3,2:10] - min(opt_crit[3,2:10]))/diff(range(opt_crit[3,2:10]))))
+rescale_data <- data.frame(t(apply(opt_crit[1:3,], MARGIN = 1, FUN = function(X) (X - min(X))/diff(range(X)))))
 
 # Absolute Plotting Matrix ------------------------------------------------
 
