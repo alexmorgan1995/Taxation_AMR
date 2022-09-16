@@ -229,23 +229,23 @@ agg_func <- function(data) {
 usage_fun <- function(parms){
   usage = data.frame("time" = seq(0,7000),
                      "PopUsage1" = c(sapply(1:6, function(x) 
-                       rep(parms[["sigma1"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,1]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,1]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,1]))), 365*3)),
-                       parms[["sigma1"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,1]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,1]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,1]))), 
+                       rep(parms[["sigma1"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,1]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,1]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,1]) + (parms[["eff_tax"]][4,x]*parms[["PED"]][4,1]))), 365*3)),
+                       parms[["sigma1"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,1]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,1]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,1]) + (parms[["eff_tax"]][4,6]*parms[["PED"]][4,1]))), 
                                                7001-365*3*6)),
                      
                      "PopUsage2" = c(sapply(1:6, function(x) 
-                       rep(parms[["sigma2"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,2]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,2]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,2]))), 365*3)),
-                       parms[["sigma2"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,2]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,2]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,2]))), 
+                       rep(parms[["sigma2"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,2]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,2]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,2]) + (parms[["eff_tax"]][4,x]*parms[["PED"]][4,2]))), 365*3)),
+                       parms[["sigma2"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,2]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,2]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,2]) + (parms[["eff_tax"]][4,6]*parms[["PED"]][4,2]))), 
                                                7001-365*3*6)),
                      
                      "PopUsage3" = c(sapply(1:6, function(x) 
-                       rep(parms[["sigma3"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,3]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,3]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,3]))), 365*3)),
-                       parms[["sigma3"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,3]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,3]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,3]))), 
+                       rep(parms[["sigma3"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,3]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,3]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,3]) + (parms[["eff_tax"]][4,x]*parms[["PED"]][4,3]))), 365*3)),
+                       parms[["sigma3"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,3]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,3]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,3]) + (parms[["eff_tax"]][4,6]*parms[["PED"]][4,3]))), 
                                                7001-365*3*6)),
                      
                      "PopUsage4" = c(sapply(1:6, function(x) 
-                       rep(parms[["sigma4"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,4]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,4]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,4]))), 365*3)),
-                       parms[["sigma3"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,4]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,4]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,4]))), 
+                       rep(parms[["sigma4"]] * (1 + ((parms[["eff_tax"]][1,x]*parms[["PED"]][1,4]) + (parms[["eff_tax"]][2,x]*parms[["PED"]][2,4]) + (parms[["eff_tax"]][3,x]*parms[["PED"]][3,4]) + (parms[["eff_tax"]][4,x]*parms[["PED"]][4,4]))), 365*3)),
+                       parms[["sigma4"]] * rep((1 + ((parms[["eff_tax"]][1,6]*parms[["PED"]][1,4]) + (parms[["eff_tax"]][2,6]*parms[["PED"]][2,4]) + (parms[["eff_tax"]][3,6]*parms[["PED"]][3,4]) + (parms[["eff_tax"]][4,6]*parms[["PED"]][4,4]))), 
                                                7001-365*3*6)))
   
   usage[usage < 0] <- 0
@@ -318,7 +318,7 @@ init <- c(X = 0.99, Wt = 1-0.99,
           R1234 = 0)
 
 parms = list(lambda = 1/365*(2), 
-             beta = 5, sigma1 = 0.1, sigma2 = 0.1, sigma3 = 0.1, sigma4 = 0.1,
+             beta = 5, sigma1 = 0.2, sigma2 = 0.2, sigma3 = 0.2, sigma4 = 0.2,
              r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, r_rrrr = 1/7, 
              r_t = 1/6, eta_wr = 0.3, eta_rw = 0.04, 
              eta_rr = 0.01, eta_rrr = 0.01, eta_rrrr = 0.01,  
@@ -408,8 +408,10 @@ melt_data <- list()
 #Melt each one
 for(i in 1:length(list_scen)) {
   data_agg <- agg_func(list_scen[[i]]) 
-  colnames(data_agg)[4:7] <- c("High Res (HR)", "Medium Res 1 (MR)", "Medium Res 2 (MR)", "Low Res (LR)") 
-  melt_data[[i]] <- data.frame(melt(data_agg, id.vars = "time", measure.vars = colnames(data_agg)[4:7]),
+  data_agg$avgres <- rowMeans(data_agg[4:7])
+  print(tail(data_agg$avgres,1))
+  colnames(data_agg)[4:8] <- c("High Res (HR)", "Medium Res 1 (MR)", "Medium Res 2 (MR)", "Low Res (LR)", "AverageRes") 
+  melt_data[[i]] <- data.frame(melt(data_agg, id.vars = "time", measure.vars = colnames(data_agg)[4:8]),
                                "scen" = c("flat", "single1", "single2", "single3", "single4",
                                           "diff1", "diff2", "diff3", "diff4", "diff5", "diff6")[i])
 }
