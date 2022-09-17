@@ -180,6 +180,46 @@ usage_fun <- function(parms){
   return(usage)
 }
 
+
+# Flat Tax Model ----------------------------------------------------------
+
+single_tax <- function(res_order, tax, parms, init, func, agg_func) {
+  
+  #First Run
+  parms[["base_tax"]] <- tax
+  
+  run_1rd <- agg_func(remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms))))
+  values_1rd <- tail(run_1rd, 1)[4:6]
+  
+  parms[["eff_tax"]][as.numeric(substr(res_order_vec, 2, 2)), c(1:6)] <- as.numeric(parms[["base_tax"]])
+  
+  #Real Model Run 
+  run_real <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, 10000), parms = parms)))
+  return(run_real)
+}
+
+
+# Single Taxation Function ------------------------------------------------
+
+single_tax <- function(res_order, tax, parms, init, func, agg_func) {
+  
+  #First Run
+  parms[["base_tax"]] <- tax
+  
+  run_1rd <- agg_func(remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms))))
+  values_1rd <- tail(run_1rd, 1)[4:6]
+  
+  res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
+                     names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
+                     names(values_1rd)[which.min(values_1rd)])[res_order]
+  
+  parms[["eff_tax"]][as.numeric(substr(res_order_vec, 2, 2)), c(1:6)] <- as.numeric(parms[["base_tax"]])
+  
+  #Real Model Run 
+  run_real <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, 10000), parms = parms)))
+  return(run_real)
+}
+
 # Dual Model --------------------------------------------------------------
 
 multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func){
@@ -251,27 +291,6 @@ parms = list(lambda = 1/365*(2),
                                 0, 0, 0, 0, 0, 0), 
                               nrow = 3, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
-
-# Single Taxation Function ------------------------------------------------
-
-single_tax <- function(res_order, tax, parms, init, func, agg_func) {
-  
-  #First Run
-  parms[["base_tax"]] <- tax
-
-  run_1rd <- agg_func(remNA_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms))))
-  values_1rd <- tail(run_1rd, 1)[4:6]
-
-  res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
-                     names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
-                     names(values_1rd)[which.min(values_1rd)])[res_order]
-
-  parms[["eff_tax"]][as.numeric(substr(res_order_vec, 2, 2)), c(1:6)] <- as.numeric(parms[["base_tax"]])
-
-  #Real Model Run 
-  run_real <- remNA_func(data.frame(ode(y = init, func = func, times = seq(0, 10000), parms = parms)))
-  return(run_real)
-}
 
 # Testing the Outcome Measure ---------------------------------------------
 
