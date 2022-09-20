@@ -202,9 +202,12 @@ integral <- function(data, t_n, thresh){
   prop_vec <- under_50 / sum(under_50)
   prop_vec <- prop_vec[prop_vec != 0]
   
+  prop_vec_avganti <- sum(under_50)/7000
+  
   #Output the Optimisation Criteria 
   out_vec <- signif(c(sum(data_temp[3:18]),
                       sum(rowMeans(data_temp[19:22])),
+                      prop_vec_avganti,
                       -sum(sapply(1:length(prop_vec), function(x) prop_vec[x]*log(prop_vec[x])))), 5)
   
   return(out_vec)
@@ -386,54 +389,148 @@ single_list <- list()
 for(i in 1:4) {
   parms1 <- parms
   parms1[["eff_tax"]][i,] <- 0.5
-  single_list[[i]] <- data.frame(remNA_func(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)),
-                                 "scen" = paste0("single_", "eff_tax", i))
+  single_list[[i]] <- data.frame(remNA_func(ode(y = init, func = amr, times = seq(0, 10000), parms = parms1)))
 }
 
 #Diff Tax
 diff_tax_list <- list()
 for(i in 1:6) {
   dat <- multi_int_fun(i, 365*3, parms, init, amr, agg_func)[[1]]
-  diff_tax_list[[i]] <- data.frame(dat,
-                                   "scen" = paste0("diff", i))
+  diff_tax_list[[i]] <- data.frame(dat)
+                                  
 }
 
-# Plotting the Scenarios --------------------------------------------------
+# Obtain the Integrals ----------------------------------------------------
 
-#Create a combined list of all the scenarios
 list_scen <- unlist(list(testrun_flat, single_list, diff_tax_list), recursive = FALSE)
 
-melt_data <- list()
+opt_crit = data.frame("Flat_All" = integral(list_scen[[1]], 3000, 0.5), 
+                      "Single_1" = integral(list_scen[[2]], 3000, 0.5),
+                      "Single_2" = integral(list_scen[[3]], 3000, 0.5),
+                      "Single_3" = integral(list_scen[[4]], 3000, 0.5),
+                      "Single_4" = integral(list_scen[[5]], 3000, 0.5),
+                      "Diff_1" = integral(list_scen[[6]], 3000, 0.5),
+                      "Diff_2" = integral(list_scen[[7]], 3000, 0.5),
+                      "Diff_3" = integral(list_scen[[8]], 3000, 0.5),
+                      "Diff_4" = integral(list_scen[[9]], 3000, 0.5),
+                      "Diff_5" = integral(list_scen[[10]], 3000, 0.5),
+                      "Diff_6" = integral(list_scen[[11]], 3000, 0.5))
 
-#Melt each one
-for(i in 1:length(list_scen)) {
-  data_agg <- agg_func(list_scen[[i]]) 
-  data_agg$avgres <- rowMeans(data_agg[4:7])
-  print(tail(data_agg$avgres,1))
-  colnames(data_agg)[4:8] <- c("High Res (HR)", "Medium Res 1 (MR)", "Medium Res 2 (MR)", "Low Res (LR)", "AverageRes") 
-  melt_data[[i]] <- data.frame(melt(data_agg, id.vars = "time", measure.vars = colnames(data_agg)[4:8]),
-                               "scen" = c("flat", "single1", "single2", "single3", "single4",
-                                          "diff1", "diff2", "diff3", "diff4", "diff5", "diff6")[i])
+rownames(opt_crit) <- c("Tot_Inf", "AvgRes","Avg_Anti","Shannons")
+
+rescale_data <- data.frame(t(apply(opt_crit[c(1:3),], MARGIN = 1, FUN = function(X) (X - min(X))/diff(range(X)))))
+rescale_data["Shannon",] <- unlist(c("Flat_All" = NA, (opt_crit[4,2:11] - min(opt_crit[4,2:11]))/diff(range(opt_crit[4,2:11]))))
+
+# Absolute Plotting Matrix ------------------------------------------------
+
+#All of the plots
+
+OG_melt <- melt(as.matrix(opt_crit), measure.vars = colnames(opt_crit))
+rescale_melt <- melt(as.matrix(rescale_data), measure.vars = colnames(rescale_data))
+
+OG_melt$rescale <- rescale_melt[,3]
+
+ggplot(OG_melt, aes(Var2, Var1)) + theme_bw() +
+  geom_tile(aes(fill = rescale)) + 
+  facet_grid(Var1 ~ ., scales = "free_y") +
+  geom_text(aes(label=value), color = "black") + 
+  scale_fill_distiller(palette ="Blues", direction = 1) +
+  scale_x_discrete(name = "Intervention", expand = c(0, 0))  +   
+  scale_y_discrete(name = "Outcome Measure", expand = c(0, 0)) + 
+  theme(strip.background = element_blank(), axis.text=element_text(size=11),
+        strip.text = element_blank(), legend.position="none")
+
+# Creating Relative Integrals ---------------------------------------------
+
+diff_tax_list <- list()
+
+for(i in 1:6) {
+  diff_tax_list[[i]] <- multi_int_fun(i, 365*3, parms, init, amr, agg_func)[[2]]
 }
 
-p_data <- list()
+#Find The Resistance Lost 
+#Baseline
 
-#Plotting Loop
-for(i in 1:length(melt_data)) {
-  data <- melt_data[[i]]
-  p_data[[i]] <- ggplot(data, aes(time, value, color = variable)) + geom_line() + theme_bw() + theme(legend.position = "bottom") +
-    labs(x = "Time", y = "Prevalence", title = c("Flat Tax",
-                                                 "Single Tax (HR)","Single Tax (MR1)", "Single Tax (MR2)", "Single Tax (LR)",
-                                                 "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)",
-                                                 "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)")[i], color = "")
+base <- data.frame(ode(y = init, func = amr, times = seq(0, 10000), parms = parms))
+base_totinf <- integral(base, 3000, 0.5)[1]
+base_avgres_int <- integral(base, 3000, 0.5)[2]
+
+#Lost Resistance Function 
+#Supply a dataframe with time and the effective tax over time for class 1, 2 and 3.
+#I need to extract the 1-6 data with the 
+
+#Change in Usage From Baseline - Only for differential taxation models 
+
+#Now I need to do this for all 6 scenarios. 
+parms_flat <- parms; parms_flat[["eff_tax"]][,]  <- 0.5
+
+#Create Parameter sets for the different single intervention scenarios
+
+end_vals <- tail(agg_func(base)[4:7], 1)
+
+res_order_vec <- c(names(end_vals)[which.max(end_vals)],
+                   names(end_vals)[setdiff(1:4, c(which.min(end_vals), which.max(end_vals)))][1],
+                   names(end_vals)[setdiff(1:4, c(which.min(end_vals), which.max(end_vals)))][2],
+                   names(end_vals)[which.min(end_vals)])
+
+parms_singleHR <- parms; parms_singleHR[["eff_tax"]][as.numeric(substr(res_order_vec[1], 2, 2)), c(1:6)] <- 0.5
+parms_singleMR1 <- parms; parms_singleMR1[["eff_tax"]][as.numeric(substr(res_order_vec[2], 2, 2)), c(1:6)] <- 0.5
+parms_singleMR2 <- parms; parms_singleMR2[["eff_tax"]][as.numeric(substr(res_order_vec[3], 2, 2)), c(1:6)] <- 0.5
+parms_singleLR <- parms; parms_singleLR[["eff_tax"]][as.numeric(substr(res_order_vec[4], 2, 2)), c(1:6)] <- 0.5
+
+parm_list <- list(parms_flat, parms_singleHR, parms_singleMR1, parms_singleMR2, parms_singleLR)
+
+over_parms <- append(parm_list, diff_tax_list)
+
+list_usage <- list()
+
+for(i in 1:11) {
+  list_usage[[i]] <- usage_fun(over_parms[[i]])
 }
 
-ggarrange(p_data[[1]], "", "",  "",
-          p_data[[2]], p_data[[3]],p_data[[4]], p_data[[5]], 
-          p_data[[6]], p_data[[7]], p_data[[8]], p_data[[9]],
-          p_data[[10]], p_data[[11]],  "",  "",
-          labels = c("A", "", "", "",
-                     "B", "", "", "",
-                     "C", "", "", "",
-                     "", "", "",""), hjust = -.1,  nrow = 4, ncol = 4, common.legend = T, legend = "bottom")
+# Relative Reduction Integral Comparison --------------------------------------------
 
+reduc_usage_vec <- sapply(1:length(list_usage), function(x) sum(list_usage[[x]][,6]))
+rel_AvgRes <- base_avgres_int - opt_crit[2,]
+rel_totinf <- opt_crit[1,] - base_totinf
+
+comp_totinf <- rel_totinf/reduc_usage_vec
+comp_res <- rel_AvgRes/reduc_usage_vec
+
+data.frame.rel <- rbind(comp_totinf, comp_res); rownames(data.frame.rel) <- c("Total Infections", "Average Resistance")
+data.frame.rel["Available Antibiotics",] <- opt_crit["Avg_Anti",]
+data.frame.rel["Shannon",] <- opt_crit["Shannons",]
+
+rescale_data_rel <- data.frame(t(apply(data.frame.rel, MARGIN = 1, FUN = function(X) (X - min(X))/diff(range(X)))))
+rescale_data_rel["Available Antibiotics",] <- rescale_data["Avg_Anti",]
+rescale_data_rel["Shannon",] <- rescale_data["Shannon",]
+
+OG_melt_rel <- melt(as.matrix(data.frame.rel), measure.vars = colnames(data.frame.rel))
+OG_melt_rel$Var2 <- factor(rep(c("Flat Tax", "Single Tax (HR)", "Single Tax (MR1)", "Single Tax (MR2)", "Single Tax (LR)",
+                                 "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)", "Diff Tax (4 Rd)",
+                                 "Diff Tax (5 Rd)","Diff Tax (6 Rd)"), each = 4))
+
+OG_melt_rel$Var2  <- factor(OG_melt_rel$Var2 , levels = unique(OG_melt_rel$Var2))
+
+rescale_melt_rel <- melt(as.matrix(rescale_data_rel), measure.vars = colnames(rescale_data_rel))
+
+rescale_melt_rel$Var2 <- factor(rep(c("Flat Tax", "Single Tax (HR)", "Single Tax (MR1)", "Single Tax (MR2)", "Single Tax (LR)",
+                                      "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)", "Diff Tax (4 Rd)",
+                                      "Diff Tax (5 Rd)","Diff Tax (6 Rd)"), each = 4))
+
+rescale_melt_rel$Var2  <- factor(rescale_melt_rel$Var2 , levels = unique(rescale_melt_rel$Var2))
+
+OG_melt_rel$rescale <- rescale_melt_rel[,3]
+
+OG_melt_rel$value <- round(OG_melt_rel$value, digits = 3)
+
+ggplot(OG_melt_rel, aes(Var2, Var1)) + theme_bw() +
+  geom_tile(aes(fill = rescale)) + 
+  facet_grid(Var1 ~ ., scales = "free_y") +
+  geom_text(aes(label=value), color = "black") + 
+  scale_fill_distiller(palette ="Blues", direction = 1) +
+  scale_x_discrete(name = "Intervention", expand = c(0, 0))  +   
+  scale_y_discrete(name = "Outcome Measure", expand = c(0, 0)) + 
+  theme(strip.background = element_blank(), axis.text=element_text(size=11),
+        strip.text = element_blank(), legend.position="none",
+        axis.text.x = element_text(angle = 45, hjust=1))
