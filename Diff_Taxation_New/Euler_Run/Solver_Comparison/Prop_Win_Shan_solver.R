@@ -2,14 +2,12 @@ library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); 
 
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Diff_Taxation_new/Model_Output")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Diff_Taxation_new/Euler_Run/Solver_Comparison/Model_Output")
 
 # Import in Dataset -------------------------------------------------------
 
-win_import <- readRDS("MDR_run.RDS")
-win_import <- readRDS("MDR_run_realPED.RDS")
-win_import <- readRDS("MDR_run_75.RDS")
-win_import <- readRDS("MDR_run_25.RDS")
+#win_import <- readRDS("MDR_run_lsode.RDS")
+win_import <- readRDS("MDR_run_ode23.RDS")
 
 for(i in seq_along(win_import)) {
   win_import[[i]] <- as(win_import[[i]], class(win_import[[i]][[1]]))

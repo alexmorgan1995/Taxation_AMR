@@ -6,10 +6,7 @@ setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/D
 
 # Import in Dataset -------------------------------------------------------
 
-win_import <- readRDS("MDR_run.RDS")
-win_import <- readRDS("MDR_run_realPED.RDS")
-win_import <- readRDS("MDR_run_75.RDS")
-win_import <- readRDS("MDR_run_25.RDS")
+win_import <- readRDS("MDR_run_two.RDS")
 
 for(i in seq_along(win_import)) {
   win_import[[i]] <- as(win_import[[i]], class(win_import[[i]][[1]]))
@@ -19,10 +16,10 @@ for(i in seq_along(win_import)) {
 
 #Infections
 #We want to minimise this - minimise the increase in total infections for each change in usage 
-win_inf <- (win_import[,1:10])
+win_inf <- win_import[,1:9]
 #win_inf <- (win_import_pess[,1:10])
 #win_inf <- (win_import_opt[,1:10])
-win_inf[is.na(win_inf)] <- 0
+
 win_inf_trans <- t(apply(win_inf, 1, function(x) {
   val = min(x)
   x[x != val] <- 0
@@ -31,18 +28,17 @@ win_inf_trans <- t(apply(win_inf, 1, function(x) {
 ))
 
 prop_win_inf <- data.frame("Infections" = colSums(win_inf_trans)/nrow(win_inf_trans),
-                           "Interventions" = as.factor(c("Flat Tax", "Single Tax (HR)", "Single Tax (MR)",
+                           "Interventions" = as.factor(c("Flat Tax", "Single Tax (HR)",
                                                          "Single Tax (LR)", 
                                                          "Diff Tax (1 Round)", "Diff Tax (2 Round)",
                                                          "Diff Tax (3 Round)", "Diff Tax (4 Round)", 
                                                          "Diff Tax (5 Round)", "Diff Tax (6 Round)")))
-
 prop_win_inf$Interventions <- factor(prop_win_inf$Interventions, levels = c(prop_win_inf$Interventions))
 
 # Altering Data Resistance ------------------------------------------------
 
-win_res <- (win_import[,11:20])
-win_res[is.na(win_res)] <- 0
+win_res <- win_import[,10:18]
+
 win_res_trans <- t(apply(win_res, 1, function(x) {
   val = max(x)
   x[x != val] <- 0
@@ -51,7 +47,7 @@ win_res_trans <- t(apply(win_res, 1, function(x) {
 ))
 
 prop_win_res <- data.frame("Resistance" = colSums(win_res_trans)/nrow(win_res_trans),
-                           "Interventions" = as.factor(c("Flat Tax", "Single Tax (HR)", "Single Tax (MR)",
+                           "Interventions" = as.factor(c("Flat Tax", "Single Tax (HR)",
                                                          "Single Tax (LR)", 
                                                          "Diff Tax (1 Round)", "Diff Tax (2 Round)",
                                                          "Diff Tax (3 Round)", "Diff Tax (4 Round)", 
@@ -61,7 +57,7 @@ prop_win_res$Interventions <- factor(prop_win_res$Interventions, levels = c(prop
 
 # Shannon's Index ---------------------------------------------------------
 
-win_shan <- round((win_import[,21:30]), 5)
+win_shan <- round((win_import[,19:27]), 5)
 
 win_shan[is.na(win_shan)] <- 0
 win_shan <- win_shan[rowSums(win_shan[, -1]) > 0, ]
@@ -75,7 +71,7 @@ win_shan_trans <- t(apply(win_shan, 1, function(x) {
 ))
 
 prop_win_shan <- data.frame("Shannon_Index" = colSums(win_shan_trans)/nrow(win_shan_trans),
-                            "Interventions" = as.factor(c("Flat Tax", "Single Tax (HR)", "Single Tax (MR)",
+                            "Interventions" = as.factor(c("Flat Tax", "Single Tax (HR)",
                                                           "Single Tax (LR)", 
                                                           "Diff Tax (1 Round)", "Diff Tax (2 Round)",
                                                           "Diff Tax (3 Round)", "Diff Tax (4 Round)", 
@@ -85,7 +81,7 @@ prop_win_shan$Interventions <- factor(prop_win_shan$Interventions, levels = c(pr
 
 # Average Number of Available Antibiotics ---------------------------------
 
-win_avganti <- round((win_import[,31:40]), 5)
+win_avganti <- round((win_import[,28:36]), 5)
 
 win_avganti[is.na(win_avganti)] <- 0
 win_avganti <- win_avganti[rowSums(win_avganti[, -1]) > 0, ]
@@ -99,7 +95,7 @@ win_avganti_trans <- t(apply(win_avganti, 1, function(x) {
 ))
 
 prop_win_avganti <- data.frame("Average_Anti" = colSums(win_avganti_trans)/nrow(win_avganti_trans),
-                           "Interventions" = as.factor(c("Flat Tax", "Single Tax (HR)", "Single Tax (MR)",
+                           "Interventions" = as.factor(c("Flat Tax", "Single Tax (HR)", 
                                                          "Single Tax (LR)", 
                                                          "Diff Tax (1 Round)", "Diff Tax (2 Round)",
                                                          "Diff Tax (3 Round)", "Diff Tax (4 Round)", 

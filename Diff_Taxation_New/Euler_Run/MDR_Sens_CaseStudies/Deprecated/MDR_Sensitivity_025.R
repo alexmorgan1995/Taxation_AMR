@@ -154,15 +154,13 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   parms[["eff_tax"]][as.numeric(substr(med_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd]/values_1rd[med_char_1rd])))
   parms[["eff_tax"]][parms[["eff_tax"]] < 0] <- 0
   
-  #First Round of Diff Taxation
-  
   parms[["int_round"]] <- 1
   
   if(int_gen > 1) {
-    #All Rounds Above 1
-    for(i in 2:int_gen) {
-      parms[["int_round"]] <- i-1
-      run <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*(i-1))), parms = parms)[[1]])
+    
+    for(i in 1:(int_gen-1)) {
+      parms[["int_round"]] <- int_gen
+      run <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*i)), parms = parms)[[1]])
       values <- tail(run, 1)[4:6]
       
       if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
@@ -173,12 +171,11 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
         high_char <- names(values)[which.max(values)]
         med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
         
-        parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))
-        parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))
-        parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))
+        parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i+1):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))
+        parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i+1):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))
+        parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i+1):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))
         parms[["eff_tax"]][parms[["eff_tax"]] < 0] <- 0
       }
-      parms[["int_round"]] <- i
     }
   }
   out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms)
@@ -536,7 +533,7 @@ test <- mclapply(1:1000,
                  high_parm = high_parm,
                  agg_func = agg_func,
                  ode_wrapper = ode_wrapper,
-                 thresh = 0.5,
+                 thresh = 0.25,
                  mc.cores = 10) 
 
 #Combine the Output into a "normal" looking dataframe
@@ -563,8 +560,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 }
  
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_25.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_25.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)

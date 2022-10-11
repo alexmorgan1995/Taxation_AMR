@@ -109,7 +109,7 @@ ode_wrapper <- function(times, y, parms, func) {
   parms[["sigma_mat"]] <- sigma_mat
   
   #Run the model 
-  out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
+  out <- data.frame(ode(y = init, func = func, times = times, parms = parms, method = "ode23"))
   n_data <- ncol(out)-1
   
   timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
@@ -128,7 +128,7 @@ ode_wrapper <- function(times, y, parms, func) {
 agg_func <- function(data) {
   agg_data <- data.frame("time" = data$time,
                          "Susc" = data$X,
-                         "WT" = data$Wt, 
+                         "WT" = data$Wt,  
                          "R1" = data$R1 + data$R12 + data$R13 + data$R123,
                          "R2" = data$R2 + data$R12 + data$R23 + data$R123,
                          "R3" = data$R3 + data$R13 + data$R23 + data$R123)
@@ -291,9 +291,9 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c1 = 0.945, c2 = 0.925, c3 = 0.85,
              c12 = 0.845, c13 = 0.825, c23 = 0.75,
              c123 = 0.7,
-             PED = matrix(c(-1, 0.4, 0.4, 
-                            0.4, -1, 0.4,
-                            0.4, 0.4, -1), #Be aware of this matrix
+             PED = matrix(c(-1.5, 0.75, 0.5, 
+                            0.25, -1.25, 0.75,
+                            0, 0.25, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
@@ -563,8 +563,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 }
  
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_ode23_realPED.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_ode23_realPED.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)

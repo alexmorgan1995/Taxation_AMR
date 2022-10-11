@@ -136,7 +136,6 @@ agg_func <- function(data) {
 }
 
 # Dual Model --------------------------------------------------------------
-
 multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, ode_wrapper){
   
   parms["time_between"] <- time_between
@@ -184,6 +183,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms)
   return(out_run)
 }
+
 
 # Single Taxation Function ------------------------------------------------
 
@@ -291,9 +291,9 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c1 = 0.945, c2 = 0.925, c3 = 0.85,
              c12 = 0.845, c13 = 0.825, c23 = 0.75,
              c123 = 0.7,
-             PED = matrix(c(-1, 0.4, 0.4, 
-                            0.4, -1, 0.4,
-                            0.4, 0.4, -1), #Be aware of this matrix
+             PED = matrix(c(-1.5, 0.75, 0.5, 
+                            0.25, -1, 0.75,
+                            0, 0.25, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
@@ -563,8 +563,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 }
  
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_realPED.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_realPED.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)

@@ -109,7 +109,7 @@ ode_wrapper <- function(times, y, parms, func) {
   parms[["sigma_mat"]] <- sigma_mat
   
   #Run the model 
-  out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
+  out <- data.frame(ode(y = init, func = func, times = times, parms = parms, method = "lsode"))
   n_data <- ncol(out)-1
   
   timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
@@ -563,8 +563,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 }
  
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_lsode.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_lsode.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)

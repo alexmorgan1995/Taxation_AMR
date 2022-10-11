@@ -5,37 +5,14 @@ rm(list=ls())
 
 # ODEs --------------------------------------------------------------------
 
-amr <- function(t, y, parms) {
+amr <- function(t, y, parms, sigma_use1, sigma_use2, sigma_use3) {
   with(as.list(c(y, parms)), {
     
-    #Set up the matrix for the Sigmas
+    #Specify the time-varying functions
     
-    sigma_use1 <- sigma_mat[1,1]; sigma_use2 <- sigma_mat[2,1]; sigma_use3 <- sigma_mat[3,1]  
-    
-    #For One Round
-    if(t > t_n & int_round > 0) { 
-      sigma_use1 <- sigma_mat[1,2]; sigma_use2 <- sigma_mat[2,2]; sigma_use3 <- sigma_mat[3,2]  
-    }
-    
-    if(t > (t_n + time_between) & int_round > 1) { 
-      sigma_use1 <- sigma_mat[1,3]; sigma_use2 <- sigma_mat[2,3]; sigma_use3 <- sigma_mat[3,3]  
-    }
-    
-    if(t > (t_n + time_between*2) & int_round > 2) { 
-      sigma_use1 <- sigma_mat[1,4]; sigma_use2 <- sigma_mat[2,4]; sigma_use3 <- sigma_mat[3,4]  
-    }
-    
-    if(t > (t_n + time_between*3) & int_round > 3) {
-      sigma_use1 <- sigma_mat[1,5]; sigma_use2 <- sigma_mat[2,5]; sigma_use3 <- sigma_mat[3,5]  
-    }
-    
-    if(t > (t_n + time_between*4) & int_round > 4) { 
-      sigma_use1 <- sigma_mat[1,6]; sigma_use2 <- sigma_mat[2,6]; sigma_use3 <- sigma_mat[3,6]  
-    }
-    
-    if(t > (t_n + time_between*5) & int_round > 5) {
-      sigma_use1 <- sigma_mat[1,7]; sigma_use2 <- sigma_mat[2,7]; sigma_use3 <- sigma_mat[3,7]  
-    }
+    sigma_use1 <- sigma_func1(t)
+    sigma_use2 <- sigma_func2(t)
+    sigma_use3 <- sigma_func3(t)
     
     #ODES Below
     
@@ -79,15 +56,32 @@ amr <- function(t, y, parms) {
   })
 }
 
-# ODE Function Wrapper ----------------------------------------------------
+# Extract Sigmas for the ApproxFun Function -------------------------------
 
-ode_wrapper <- function(times, y, parms, func) {
+approx_sigma <- function(sigma_mat){
+  
+  usage = data.frame("time" = seq(0,15000),
+                     "PopUsage1" = c(rep(sigma_mat[1,1], 3000),
+                                     rep(sigma_mat[1,2], 365*3), rep(sigma_mat[1,3], 365*3), rep(sigma_mat[1,4], 365*3),
+                                     rep(sigma_mat[1,5], 365*3), rep(sigma_mat[1,6], 365*3), rep(sigma_mat[1,7], 15001 - (3000 + (365*3)*5))),
+                     
+                     "PopUsage2" = c(rep(sigma_mat[2,1], 3000),
+                                     rep(sigma_mat[2,2], 365*3), rep(sigma_mat[2,3], 365*3), rep(sigma_mat[2,4], 365*3),
+                                     rep(sigma_mat[2,5], 365*3), rep(sigma_mat[2,6], 365*3), rep(sigma_mat[2,7], 15001 - (3000 + (365*3)*5))),
+                     
+                     "PopUsage3" = c(rep(sigma_mat[3,1], 3000),
+                                     rep(sigma_mat[3,2], 365*3), rep(sigma_mat[3,3], 365*3), rep(sigma_mat[3,4], 365*3),
+                                     rep(sigma_mat[3,5], 365*3), rep(sigma_mat[3,6], 365*3), rep(sigma_mat[3,7], 15001 - (3000 + (365*3)*5))))
+  return(usage)
+}
+
+# ODE Wrapper Function ----------------------------------------------------
+ode_wrapper <- function(times, y, parms, func, approx_sigma) {
   
   sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
                        rep(parms[["sigma2"]], 7),
                        rep(parms[["sigma3"]], 7)), 
                      nrow = 3, ncol = 7, byrow = T)
-  
   eff_tax <- parms[["eff_tax"]]; PED <- parms[["PED"]]
   
   if(parms[["int_round"]] > 0 ) {
@@ -100,6 +94,7 @@ ode_wrapper <- function(times, y, parms, func) {
       sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
                               stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
                               stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,3]) + (eff_tax[3,i]*PED[3,3]))))
+      
       sigma_mat[sigma_mat < 0] = 0
       
       if(colSums(sigma_mat)[i+1] > 1) {
@@ -110,18 +105,15 @@ ode_wrapper <- function(times, y, parms, func) {
   
   parms[["sigma_mat"]] <- sigma_mat
   
+  sigma_data <- approx_sigma(sigma_mat)
+  
+  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
+  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
+  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
+  
   #Run the model 
   out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
-  n_data <- ncol(out)-1
   
-  timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
-  
-  if(timing[1,1] != tail(times,1)) {
-    for(i in 1:n_data){
-      out[seq(timing[[1]]+2,tail(times,1)+1),i+1] <- timing[i,i+1]
-    }
-  }
-  out[out < 1e-10] <- 0
   return(list(out, parms))
 }
 
@@ -137,13 +129,36 @@ agg_func <- function(data) {
   return(agg_data)
 }
 
+# Single Taxation Function ------------------------------------------------
+
+single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper, approx_sigma) {
+  
+  #First Run
+  parms[["base_tax"]] <- tax
+  
+  run_1rd <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms, approx_sigma)[[1]])
+  values_1rd <- tail(run_1rd, 1)[4:6]
+  
+  res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
+                     names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
+                     names(values_1rd)[which.min(values_1rd)])[res_order]
+  
+  parms[["eff_tax"]][as.numeric(substr(res_order_vec, 2, 2)), c(1:6)] <- as.numeric(parms[["base_tax"]])
+  parms[["int_round"]] <- 1
+  
+  #Real Model Run 
+  run_real <- ode_wrapper(y = init, func = func, times = seq(0, 15000), parms = parms, approx_sigma)
+  return(run_real)
+}
+
 # Dual Model --------------------------------------------------------------
-multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, ode_wrapper){
+
+multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, ode_wrapper, approx_sigma){
   
   parms["time_between"] <- time_between
   
   #First Run
-  run_1rd <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms)[[1]])
+  run_1rd <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms, approx_sigma)[[1]])
   values_1rd <- tail(run_1rd, 1)[4:6]
   
   low_char_1rd <- names(values_1rd)[which.min(values_1rd)]
@@ -163,7 +178,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
     #All Rounds Above 1
     for(i in 2:int_gen) {
       parms[["int_round"]] <- i-1
-      run <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*(i-1))), parms = parms)[[1]])
+      run <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*(i-1))), parms = parms, approx_sigma)[[1]])
       values <- tail(run, 1)[4:6]
       
       if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
@@ -182,30 +197,8 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
       parms[["int_round"]] <- i
     }
   }
-  out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms)
+  out_run <- ode_wrapper(y = init, func = func, times = seq(0, 15000), parms = parms, approx_sigma)
   return(out_run)
-}
-
-# Single Taxation Function ------------------------------------------------
-
-single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper) {
-  
-  #First Run
-  parms[["base_tax"]] <- tax
-  
-  run_1rd <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms)[[1]])
-  values_1rd <- tail(run_1rd, 1)[4:6]
-  
-  res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
-                     names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
-                     names(values_1rd)[which.min(values_1rd)])[res_order]
-  
-  parms[["eff_tax"]][as.numeric(substr(res_order_vec, 2, 2)), c(1:6)] <- as.numeric(parms[["base_tax"]])
-  parms[["int_round"]] <- 1
-  
-  #Real Model Run 
-  run_real <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms)
-  return(run_real)
 }
 
 
@@ -234,7 +227,7 @@ integral <- function(data, t_n, thresh){
   prop_shan <- under_50 / sum(under_50)
   prop_shan <- prop_shan[prop_shan != 0]
   
-  prop_avganti <- sum(under_50) / 7000
+  prop_avganti <- sum(under_50) / 12000
   
   #Output the Optimisation Criteria 
   out_vec <- signif(c(sum(data_temp[3:10]),
@@ -246,31 +239,31 @@ integral <- function(data, t_n, thresh){
 }
 
 
-# Extract Usage -----------------------------------------------------------
+# Extract Usage for Integrals -----------------------------------------------------------
 
 usage_fun <- function(parms){
   
   #In case there is no intervention
   if(parms[["int_round"]] == 0) {
-    usage = data.frame("time" = seq(0,7000),
-                       "PopUsage1" = rep(parms[["sigma_mat"]][1,2], 7001),
+    usage = data.frame("time" = seq(0,12000),
+                       "PopUsage1" = rep(parms[["sigma_mat"]][1,2], 12001),
                        
-                       "PopUsage2" = rep(parms[["sigma_mat"]][2,2], 7001),
+                       "PopUsage2" = rep(parms[["sigma_mat"]][2,2], 12001),
                        
-                       "PopUsage3" = rep(parms[["sigma_mat"]][3,2], 7001))
+                       "PopUsage3" = rep(parms[["sigma_mat"]][3,2], 12001))
   }
  
   #Intervention
   if(parms[["int_round"]] > 0) {
-    usage = data.frame("time" = seq(0,7000),
+    usage = data.frame("time" = seq(0,12000),
                        "PopUsage1" = c(rep(parms[["sigma_mat"]][1,2] , 365*3), rep(parms[["sigma_mat"]][1,3] , 365*3), rep(parms[["sigma_mat"]][1,4] , 365*3),
-                                       rep(parms[["sigma_mat"]][1,5], 365*3), rep(parms[["sigma_mat"]][1,6] , 365*3), rep(parms[["sigma_mat"]][1,7] , (365*3)+(7001-(365*3)*6))),
+                                       rep(parms[["sigma_mat"]][1,5], 365*3), rep(parms[["sigma_mat"]][1,6] , 365*3), rep(parms[["sigma_mat"]][1,7] , (365*3)+(12001-(365*3)*6))),
                        
                        "PopUsage2" = c(rep(parms[["sigma_mat"]][2,2] , 365*3), rep(parms[["sigma_mat"]][2,3] , 365*3), rep(parms[["sigma_mat"]][2,4] , 365*3),
-                                       rep(parms[["sigma_mat"]][2,5], 365*3), rep(parms[["sigma_mat"]][2,6] , 365*3), rep(parms[["sigma_mat"]][2,7] , (365*3)+(7001-(365*3)*6))),
+                                       rep(parms[["sigma_mat"]][2,5], 365*3), rep(parms[["sigma_mat"]][2,6] , 365*3), rep(parms[["sigma_mat"]][2,7] , (365*3)+(12001-(365*3)*6))),
                        
                        "PopUsage3" = c(rep(parms[["sigma_mat"]][3,2] , 365*3), rep(parms[["sigma_mat"]][3,3] , 365*3), rep(parms[["sigma_mat"]][3,4] , 365*3),
-                                       rep(parms[["sigma_mat"]][3,5], 365*3), rep(parms[["sigma_mat"]][3,6] , 365*3), rep(parms[["sigma_mat"]][3,7] , (365*3)+(7001-(365*3)*6))))
+                                       rep(parms[["sigma_mat"]][3,5], 365*3), rep(parms[["sigma_mat"]][3,6] , 365*3), rep(parms[["sigma_mat"]][3,7] , (365*3)+(12001-(365*3)*6))))
   }
  
   usage$totusage = rowSums(usage[2:4])
@@ -301,30 +294,26 @@ parms = list(lambda = 1/365*(2), int_round = 1,
                                 0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0), 
                               nrow = 3, ncol = 6, byrow = T),
-             sigma_mat = matrix(c(0, 0, 0, 0, 0, 0, 0, 
-                                  0, 0, 0, 0, 0, 0, 0,
-                                  0, 0, 0, 0, 0, 0, 0), 
-                                nrow = 3, ncol = 7, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
 
 # Intervention Scenarios --------------------------------------------------
 
 #Flat Tax
 parms1 <- parms; parms1[["eff_tax"]][,] <- 0.5; parms1[["int_round"]] <- 1
-testrun_flat <- list(ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms1))
+testrun_flat <- list(ode_wrapper(y = init, func = amr, times = seq(0, 15000), parms = parms1, approx_sigma))
 
 #Single Tax 
 single_list <- list()
 
 for(i in 1:3) {
   parms1 <- parms
-  single_list[[i]] <- single_tax(i, 0.5, parms1, init, amr, agg_func, ode_wrapper)
+  single_list[[i]] <- single_tax(i, 0.5, parms1, init, amr, agg_func, ode_wrapper, approx_sigma)
 }
 
 #Diff Tax
 diff_tax_list <- list()
 for(i in 1:6) {
-  diff_tax_list[[i]] <- multi_int_fun(i, 365*3, parms, init, amr, agg_func, ode_wrapper)
+  diff_tax_list[[i]] <- multi_int_fun(i, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)
 }
 
 # Obtain the Integrals ----------------------------------------------------
@@ -366,7 +355,7 @@ ggplot(OG_melt, aes(Var2, Var1)) + theme_bw() +
 
 # Running the Baseline Model ----------------------------------------------
 
-base <- ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms)[[1]]
+base <- ode_wrapper(y = init, func = amr, times = seq(0, 15000), parms = parms, approx_sigma)[[1]]
 base_totinf <- integral(base, 3000, 0.5)[1]
 base_avgres_int <- integral(base, 3000, 0.5)[2]
 

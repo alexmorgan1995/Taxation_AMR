@@ -1,6 +1,4 @@
-library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); library("rootSolve"); library("viridis"); library("cowplot")
-library("rbenchmark")
-
+library("deSolve"); library("parallel")
 rm(list=ls())
 
 # ODEs --------------------------------------------------------------------
@@ -127,6 +125,8 @@ ode_wrapper <- function(times, y, parms, func) {
 
 # Function to Aggregate Resistance ----------------------------------------
 
+# Function to Aggregate Resistance ----------------------------------------
+
 agg_func <- function(data) {
   agg_data <- data.frame("time" = data$time,
                          "Susc" = data$X,
@@ -138,6 +138,7 @@ agg_func <- function(data) {
 }
 
 # Dual Model --------------------------------------------------------------
+
 multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, ode_wrapper){
   
   parms["time_between"] <- time_between
@@ -192,14 +193,14 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper)
   
   #First Run
   parms[["base_tax"]] <- tax
-
+  
   run_1rd <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms)[[1]])
   values_1rd <- tail(run_1rd, 1)[4:6]
-
+  
   res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
                      names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
                      names(values_1rd)[which.min(values_1rd)])[res_order]
-
+  
   parms[["eff_tax"]][as.numeric(substr(res_order_vec, 2, 2)), c(1:6)] <- as.numeric(parms[["base_tax"]])
   parms[["int_round"]] <- 1
   
@@ -208,102 +209,19 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper)
   return(run_real)
 }
 
-# Baseline Parms ----------------------------------------------------------
+
+# Test --------------------------------------------------------------------
 
 init <- c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
           R12 = 0, R13 = 0, R23 = 0,
           R123 = 0)
 
-parms = list(lambda = 1/365*(2), int_round = 1, 
-             beta = 5, sigma1 = 0.25, sigma2 = 0.25, sigma3 = 0.25,
-             r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, 
-             r_t = 1/7, eta_wr = 0.3, eta_rw = 0.04, 
-             eta_rr = 0.01, eta_rrr = 0.01,  
-             c1 = 0.945, c2 = 0.925, c3 = 0.85,
-             c12 = 0.845, c13 = 0.825, c23 = 0.75,
-             c123 = 0.7,
-             PED = matrix(c(-1, 0.4, 0.4, 
-                            0.4, -1, 0.4,
-                            0.4, 0.4, -1), #Be aware of this matrix
-                          nrow = 3, ncol = 3, byrow = T),
-             eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
-                                0, 0, 0, 0, 0, 0, 
-                                0, 0, 0, 0, 0, 0), 
-                              nrow = 3, ncol = 6, byrow = T),
-             sigma_mat = matrix(c(0, 0, 0, 0, 0, 0, 0, 
-                                  0, 0, 0, 0, 0, 0, 0,
-                                  0, 0, 0, 0, 0, 0, 0), 
-                                nrow = 3, ncol = 7, byrow = T),
-             t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
+parmy <- readRDS("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Formalised_Analysis/Model_Output/Comparison_Sens/MDR_parms_weird.RDS")
 
-# Baseline Model ----------------------------------------------------------
+parms_test <- multi_int_fun(6, 365*3, parmy, init, amr, agg_func, ode_wrapper)[[2]]
+testy <- multi_int_fun(6, 365*3, parmy, init, amr, agg_func, ode_wrapper)[[1]]
 
-parms1 <- parms
-testrun_flat <- ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms1)[[1]]
-test_run_agg <- agg_func(testrun_flat) 
 
-test_run_agg$AverageRes <- rowMeans(testrun_flat[,4:6])
-test_run_agg$TotInf <- rowSums(testrun_flat[,3:10])
-
-parms1 <- parms; parms1[["eff_tax"]][,] <- 0.5; parms1[["int_round"]] <- 1
-testrun_flat <- ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms1)[[1]]
-test_plot_flat <- melt(testrun_flat, id.vars = "time", measure.vars = colnames(testrun_flat)[4:6])
-ggplot(test_plot_flat, aes(time, value, color = variable)) + geom_line() + theme_bw()
-
-# Intervention Scenarios --------------------------------------------------
-
-#Flat Tax
-
-parms1 <- parms; parms1[["eff_tax"]][,] <- 0.5; parms1[["int_round"]] <- 1
-testrun_flat <- list(ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms1)[[1]])
-
-#Single Tax 
-single_list <- list()
-
-for(i in 1:3) {
-  parms1 <- parms
-  single_list[[i]] <- single_tax(i, 0.5, parms1, init, amr, agg_func, ode_wrapper)[[1]]
-}
-
-#Diff Tax
-diff_tax_list <- list()
-for(i in 1:6) {
-  diff_tax_list[[i]] <- multi_int_fun(i, 365*3, parms, init, amr, agg_func, ode_wrapper)[[1]]
-}
-
-# Plotting the Scenarios --------------------------------------------------
-
-#Create a combined list of all the scenarios
-list_scen <- unlist(list(testrun_flat, single_list, diff_tax_list), recursive = FALSE)
-
-melt_data <- list()
-
-#Melt each one
-for(i in 1:length(list_scen)) {
-  data_agg <- agg_func(list_scen[[i]]) 
-  colnames(data_agg)[4:6] <- c("High Res (HR)", "Medium Res (MR)", "Low Res (LR)") 
-  melt_data[[i]] <- data.frame(melt(data_agg, id.vars = "time", measure.vars = colnames(data_agg)[4:6]),
-                               "scen" = c("flat", "single1", "single2", "single3",
-                                          "diff1", "diff2", "diff3", "diff4", "diff5", "diff6")[i])
-}
-
-p_data <- list()
-
-#Plotting Loop
-for(i in 1:length(melt_data)) {
-  data <- melt_data[[i]]
-  p_data[[i]] <- ggplot(data, aes(time, value, color = variable)) + geom_line() + theme_bw() + theme(legend.position = "bottom") +
-    labs(x = "Time", y = "Prevalence", title = c("Flat Tax",
-                                                 "Single Tax (HR)","Single Tax (MR)","Single Tax (LR)",
-                                                 "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)",
-                                                 "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)")[i], color = "")
-}
-
-ggarrange(p_data[[1]], "", "",
-          p_data[[2]], p_data[[3]],p_data[[4]], 
-          p_data[[5]], p_data[[6]], p_data[[7]],
-          p_data[[8]], p_data[[9]], p_data[[10]],
-          labels = c("A", "", "",
-                     "B", "", "",
-                     "C", "", "",
-                     "", "", ""), hjust = -.1,  nrow = 4, ncol = 3, common.legend = T, legend = "bottom")
+agg_testy <- agg_func(testy)
+m_test <- melt(agg_testy, id.vars = "time", colnames(agg_testy)[4:6])
+ggplot(m_test, aes(time, value, color = variable)) + geom_line() + scale_y_continuous(limits = c(0,1)) + geom_vline(xintercept = seq(3000, 4500, by = 365*3))
