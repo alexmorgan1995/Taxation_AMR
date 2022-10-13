@@ -43,23 +43,23 @@ amr <- function(t, y, parms) {
                 R23*c23 + R24*c24 + R34*c34 + 
                 R123*c123 + R124*c124 + R134*c134 + R234*c234 +
                 R1234*c1234) +
-      r_wt*Wt*(1 - (sigma1 + sigma2 + sigma3 + sigma4)) + 
-      r_r*R1*sigma1 + r_r*R2*sigma2 + r_r*R3*sigma3 + r_r*R4*sigma4 +
-      r_rr*R12*(sigma1 + sigma2) + r_rr*R13*(sigma1 + sigma3) + r_rr*R23*(sigma2 + sigma3) + r_rr*R14*(sigma1 + sigma4) + 
-      r_rr*R24*(sigma2 + sigma4) + r_rr*R34*(sigma3 + sigma4) + 
-      r_rrr*R123*(sigma1 + sigma2 + sigma3) + r_rrr*R124*(sigma1 + sigma2 + sigma4) + 
-      r_rrr*R234*(sigma2 + sigma3 + sigma4) + r_rrr*R134*(sigma1 + sigma3 + sigma4) + 
-      r_rrrr*R1234*(sigma1 + sigma2 + sigma3 + sigma4) + 
-      r_t*(1-rho)*(Wt*(sigma1 + sigma2 + sigma3 + sigma4) + 
-                     R1*(sigma2 + sigma3 + sigma4) + 
-                     R2*(sigma1 + sigma3 + sigma4) + 
-                     R3*(sigma1 + sigma2 + sigma4) + 
-                     R4*(sigma1 + sigma2 + sigma3) + 
-                     R12*(sigma3 + sigma4) + R13*(sigma2 + sigma4) + 
-                     R14*(sigma2 + sigma3) + R23*(sigma1 + sigma4) +
-                     R24*(sigma1 + sigma3) + R34*(sigma1 + sigma2) +
-                     R123*(sigma4) + R124*(sigma3) + 
-                     R234*(sigma1) + R134*(sigma2))
+      r_wt*Wt*(1 - (sigma_use1 + sigma_use2 + sigma_use3 + sigma_use4)) + 
+      r_r*R1*sigma_use1 + r_r*R2*sigma_use2 + r_r*R3*sigma_use3 + r_r*R4*sigma_use4 +
+      r_rr*R12*(sigma_use1 + sigma_use2) + r_rr*R13*(sigma_use1 + sigma_use3) + r_rr*R23*(sigma_use2 + sigma_use3) + r_rr*R14*(sigma_use1 + sigma_use4) + 
+      r_rr*R24*(sigma_use2 + sigma_use4) + r_rr*R34*(sigma_use3 + sigma_use4) + 
+      r_rrr*R123*(sigma_use1 + sigma_use2 + sigma_use3) + r_rrr*R124*(sigma_use1 + sigma_use2 + sigma_use4) + 
+      r_rrr*R234*(sigma_use2 + sigma_use3 + sigma_use4) + r_rrr*R134*(sigma_use1 + sigma_use3 + sigma_use4) + 
+      r_rrrr*R1234*(sigma_use1 + sigma_use2 + sigma_use3 + sigma_use4) + 
+      r_t*(1-rho)*(Wt*(sigma_use1 + sigma_use2 + sigma_use3 + sigma_use4) + 
+                     R1*(sigma_use2 + sigma_use3 + sigma_use4) + 
+                     R2*(sigma_use1 + sigma_use3 + sigma_use4) + 
+                     R3*(sigma_use1 + sigma_use2 + sigma_use4) + 
+                     R4*(sigma_use1 + sigma_use2 + sigma_use3) + 
+                     R12*(sigma_use3 + sigma_use4) + R13*(sigma_use2 + sigma_use4) + 
+                     R14*(sigma_use2 + sigma_use3) + R23*(sigma_use1 + sigma_use4) +
+                     R24*(sigma_use1 + sigma_use3) + R34*(sigma_use1 + sigma_use2) +
+                     R123*(sigma_use4) + R124*(sigma_use3) + 
+                     R234*(sigma_use1) + R134*(sigma_use2))
     
     dWt = - lambda*Wt + beta*X*Wt - 
       r_wt*Wt*(1 - (sigma_use1 + sigma_use2 + sigma_use3 + sigma_use4)) - 
@@ -164,7 +164,7 @@ ode_wrapper <- function(times, y, parms, func) {
   parms[["sigma_mat"]] <- sigma_mat
   
   #Run the model 
-  out <- data.frame(ode(y = init, func = func, times = times, parms = parms, method = "ode23"))
+  out <- data.frame(ode(y = init, func = func, times = times, parms = parms, method = "ode23")) 
  
   return(list(out, parms))
 }
@@ -265,7 +265,6 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper)
 
 # Baseline Parms ----------------------------------------------------------
 
-
 init <- c(X = 0.99, Wt = 1-0.99, 
           R1 = 0, R2 = 0, R3 = 0, R4 = 0,
           R12 = 0, R13 = 0, R14 = 0, R23 = 0, R24 = 0, R34 = 0,
@@ -273,7 +272,7 @@ init <- c(X = 0.99, Wt = 1-0.99,
           R1234 = 0)
 
 parms = list(lambda = 1/365*(2), int_round = 1, 
-             beta = 5, sigma1 = 0.2, sigma2 = 0.2, sigma3 = 0.2, sigma4 = 0.2,
+             beta = 5, sigma1 = 0.1, sigma2 = 0.1, sigma3 = 0.1, sigma4 = 0.1,
              r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, r_rrrr = 1/7, 
              r_t = 1/6, eta_wr = 0.3, eta_rw = 0.04, 
              eta_rr = 0.01, eta_rrr = 0.01, eta_rrrr = 0.01,  
@@ -282,10 +281,10 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c23 = 0.75, c24 = 0.725, c34 = 0.7,
              c123 = 0.7, c124 = 0.65, c134 = 0.625, c234 = 0.6,
              c1234 = 0.6,
-             PED = matrix(c(-1, 0.5, 0.5, 0.5, 
-                            0.5, -1, 0.5, 0.5,
-                            0.5, 0.5, -1, 0.5,
-                            0.5, 0.5, 0.5, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0.25, 0.25, 0.25, 
+                            0.25, -1, 0.5, 0.25,
+                            0.25, 0.5, -1, 0.25,
+                            0.25, 0.25, 0.25, -1), #Be aware of this matrix
                           nrow = 4, ncol = 4, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
@@ -298,7 +297,6 @@ parms = list(lambda = 1/365*(2), int_round = 1,
                                   0, 0, 0, 0, 0, 0, 0), 
                                 nrow = 4, ncol = 7, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
-
 
 # Baseline Model ----------------------------------------------------------
 
@@ -323,7 +321,7 @@ testrun_flat <- list(ode_wrapper(y = init, func = amr, times = seq(0, 10000), pa
 
 #Single Tax 
 single_list <- list()
-
+§§
 for(i in 1:4) {
   parms1 <- parms
   single_list[[i]] <- single_tax(i, 0.5, parms1, init, amr, agg_func, ode_wrapper)[[1]]
@@ -335,7 +333,6 @@ diff_tax_list <- list()
 for(i in 1:6) {
   diff_tax_list[[i]] <- multi_int_fun(i, 365*3, parms, init, amr, agg_func, ode_wrapper)[[1]]
 }
-
 
 # Plotting the Scenarios --------------------------------------------------
 

@@ -9,50 +9,26 @@ amr <- function(t, y, parms) {
     
     #Set up the matrix for the Sigmas
     
-    sigma_use1 <- sigma_mat[1,1]; sigma_use2 <- sigma_mat[2,1]
-    
-    #For One Round
-    if(t > t_n & int_round > 0) { 
-      sigma_use1 <- sigma_mat[1,2]; sigma_use2 <- sigma_mat[2,2]
-    }
-    
-    if(t > (t_n + time_between) & int_round > 1) { 
-      sigma_use1 <- sigma_mat[1,3]; sigma_use2 <- sigma_mat[2,3]
-    }
-    
-    if(t > (t_n + time_between*2) & int_round > 2) { 
-      sigma_use1 <- sigma_mat[1,4]; sigma_use2 <- sigma_mat[2,4]
-    }
-    
-    if(t > (t_n + time_between*3) & int_round > 3) {
-      sigma_use1 <- sigma_mat[1,5]; sigma_use2 <- sigma_mat[2,5]
-    }
-    
-    if(t > (t_n + time_between*4) & int_round > 4) { 
-      sigma_use1 <- sigma_mat[1,6]; sigma_use2 <- sigma_mat[2,6]
-    }
-    
-    if(t > (t_n + time_between*5) & int_round > 5) {
-      sigma_use1 <- sigma_mat[1,7]; sigma_use2 <- sigma_mat[2,7]
-    }
+    sigma_use1 <- sigma_func1(t)
+    sigma_use2 <- sigma_func2(t)
     
     dX = lambda - lambda*X - beta*X*(Wt + R1*c1 + R2*c2 + R12*c12) +
-      r_wt*Wt*(1 - (sigma_use1 + sigma_use2)) + r_r*R1*sigma_use1 + r_r*R2*sigma_use2 + 
-      r_rr*R12*(sigma_use1 + sigma_use2) +
+      r_wt*Wt*(1 - (sigma_use1 + sigma_use2)) + r_r*R1*(1-sigma_use2) + r_r*R2*(1-sigma_use1) + 
+      r_rr*R12 +
       + r_t*(1-rho)*(Wt*(sigma_use1 + sigma_use2) + R1*(sigma_use2) + R2*(sigma_use1))
     
     dWt = - lambda*Wt + beta*X*Wt - r_wt*Wt*(1 - (sigma_use1 + sigma_use2)) - r_t*Wt*(1-rho)*(sigma_use1 + sigma_use2) +
       eta_rw*(R1 + R2 + R12)*(1 - (sigma_use1 + sigma_use2)) - 
       eta_wr*Wt*rho*(sigma_use1 + sigma_use2)
     
-    dR1 = - lambda*R1 + beta*X*R1*c1 - r_t*(1-rho)*(sigma_use2)*R1 - r_r*sigma_use1*R1 - eta_rr*R1*rho*sigma_use2 - 
+    dR1 = - lambda*R1 + beta*X*R1*c1 - r_t*(1-rho)*(sigma_use2)*R1 - r_r*(1-sigma_use2)*R1 - eta_rr*R1*rho*sigma_use2 - 
       eta_rw*R1*(1 - (sigma_use1 + sigma_use2)) + eta_wr*rho*Wt*sigma_use1
     
-    dR2 = - lambda*R2 + beta*X*R2*c2 - r_t*(1-rho)*(sigma_use1)*R2 - r_r*sigma_use2*R2 - eta_rr*R2*rho*sigma_use1 -
+    dR2 = - lambda*R2 + beta*X*R2*c2 - r_t*(1-rho)*(sigma_use1)*R2 - r_r*(1-sigma_use1)*R2 - eta_rr*R2*rho*sigma_use1 -
       eta_rw*R2*(1 - (sigma_use1 + sigma_use2)) + eta_wr*rho*Wt*sigma_use2
     
     
-    dR12 = - lambda*R12 + beta*X*R12*c12 - r_rr*(sigma_use1 + sigma_use2)*R12 -
+    dR12 = - lambda*R12 + beta*X*R12*c12 - r_rr*R12 -
       eta_rw*R12*(1 - (sigma_use1 + sigma_use2)) + eta_rr*R1*rho*sigma_use2 + eta_rr*R2*rho*sigma_use1 
     
     return(list(c(dX,dWt,
@@ -61,57 +37,26 @@ amr <- function(t, y, parms) {
   })
 }
 
-# ODE Wrapper -------------------------------------------------------------
 
+# Approx Sigma Function ---------------------------------------------------
 
-ode_wrapper <- function(times, y, parms, func) {
+approx_sigma <- function(sigma_mat){
   
-  sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
-                       rep(parms[["sigma2"]], 7),
-                       rep(parms[["sigma3"]], 7)), 
-                     nrow = 3, ncol = 7, byrow = T)
-  
-  eff_tax <- parms[["eff_tax"]]; PED <- parms[["PED"]]
-  
-  if(parms[["int_round"]] > 0 ) {
-    for(i in 1:parms[["int_round"]]) {
-      stor_sigma <- sigma_mat[,i]
-      
-      sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
-                              stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
-                              stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,3]) + (eff_tax[3,i]*PED[3,3]))))
-
-      sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0.01] <- 0.01
-      
-      if(colSums(sigma_mat)[i+1] > 1) {
-        sigma_mat[,(i+1):7] <- sigma_mat[,i+1]/(sum(sigma_mat[,i+1])+0.01)
-      }
-    }
-  }
-  
-  parms[["sigma_mat"]] <- sigma_mat
-  
-  #Run the model 
-  out <- data.frame(ode(y = init, func = func, times = times, parms = parms, method = "ode23"))
-  n_data <- ncol(out)-1
-  
-  timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
-  
-  if(timing[1,1] != tail(times,1)) {
-    for(i in 1:n_data){
-      out[seq(timing[[1]]+2,tail(times,1)+1),i+1] <- timing[i,i+1]
-    }
-  }
-  out[out < 1e-10] <- 0
-  return(list(out, parms))
+  usage = data.frame("time" = seq(0,10000),
+                     "PopUsage1" = c(rep(sigma_mat[1,1], 3000),
+                                     rep(sigma_mat[1,2], 365*3), rep(sigma_mat[1,3], 365*3), rep(sigma_mat[1,4], 365*3),
+                                     rep(sigma_mat[1,5], 365*3), rep(sigma_mat[1,6], 365*3), rep(sigma_mat[1,7], 10001 - (3000 + (365*3)*5))),
+                     
+                     "PopUsage2" = c(rep(sigma_mat[2,1], 3000),
+                                     rep(sigma_mat[2,2], 365*3), rep(sigma_mat[2,3], 365*3), rep(sigma_mat[2,4], 365*3),
+                                     rep(sigma_mat[2,5], 365*3), rep(sigma_mat[2,6], 365*3), rep(sigma_mat[2,7], 10001 - (3000 + (365*3)*5))))
+                     
+  return(usage)
 }
 
+# ODE Wrapper -------------------------------------------------------------
 
-
-
-
-
-ode_wrapper <- function(times, y, parms, func) {
+ode_wrapper <- function(times, y, parms, func, approx_sigma) {
   
   sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
                        rep(parms[["sigma2"]], 7)), 
@@ -125,6 +70,7 @@ ode_wrapper <- function(times, y, parms, func) {
       
       sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]))),
                               stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]))))
+      
       sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0.01] <- 0.01
       
       if(colSums(sigma_mat)[i+1] > 1) {
@@ -135,8 +81,13 @@ ode_wrapper <- function(times, y, parms, func) {
   
   parms[["sigma_mat"]] <- sigma_mat
   
+  sigma_data <- approx_sigma(sigma_mat)
+  
+  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
+  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
+
   #Run the model 
-  out <- data.frame(ode(y = init, func = func, times = times, parms = parms, method = "ode23"))
+  out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
   n_data <- ncol(out)-1
   
   timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
@@ -163,12 +114,12 @@ agg_func <- function(data) {
 
 # Dual Model --------------------------------------------------------------
 
-multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, ode_wrapper){
+multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, ode_wrapper, approx_sigma){
   
   parms["time_between"] <- time_between
   
   #First Run
-  run_1rd <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms)[[1]])
+  run_1rd <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms, approx_sigma)[[1]])
   values_1rd <- tail(run_1rd, 1)[4:5]
   
   low_char_1rd <- names(values_1rd)[which.min(values_1rd)]
@@ -177,7 +128,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   
   parms[["eff_tax"]][as.numeric(substr(low_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[low_char_1rd]/med_char_val)))
   parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/med_char_val)))
-
+  
   parms[["eff_tax"]][parms[["eff_tax"]] < 0.00001] <- 0
   
   #First Round of Diff Taxation
@@ -188,7 +139,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
     #All Rounds Above 1
     for(i in 2:int_gen) {
       parms[["int_round"]] <- i-1
-      run <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*(i-1))), parms = parms)[[1]])
+      run <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*(i-1))), parms = parms, approx_sigma)[[1]])
       values <- tail(run, 1)[4:5]
       
       if(values[1] == 0 & values[2] == 0) {
@@ -205,18 +156,18 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
       parms[["int_round"]] <- i
     }
   }
-  out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms)
+  out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma)
   return(out_run)
 }
 
 # Single Taxation Function ------------------------------------------------
 
-single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper) {
+single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper, approx_sigma) {
   
   #First Run
   parms[["base_tax"]] <- tax
   
-  run_1rd <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms)[[1]])
+  run_1rd <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms, approx_sigma)[[1]])
   values_1rd <- tail(run_1rd, 1)[4:5]
   
   res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
@@ -226,7 +177,7 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper)
   parms[["int_round"]] <- 1
   
   #Real Model Run 
-  run_real <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms)
+  run_real <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma)
   return(run_real)
 }
 
@@ -265,8 +216,8 @@ parms = list(lambda = 1/365*(2),
              eta_rr = 0.01, 
              c1 = 0.945, c2 = 0.925, 
              c12 = 0.845, 
-             PED = matrix(c(-1, 0.5,
-                            0.5, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0,
+                            0, -1), #Be aware of this matrix
                           nrow = 2, ncol = 2, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0), 
@@ -348,7 +299,7 @@ parm_data_comb <- data.frame(parm_data, t_n = 3000,int_round = 0,
 
 # Creating the Parallel Montonicity Function ------------------------------
 
-mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func, thresh, ode_wrapper) {
+mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func, thresh, ode_wrapper, approx_sigma) {
   
   parms_base = as.list(parms_frame[n,])
   parms_base = append(parms_base, parms["PED"])
@@ -356,7 +307,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   parms_base = append(parms_base, parms["sigma_mat"])
   
   #Run Baseline
-  run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base)[[1]]
+  run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, approx_sigma)[[1]]
   run_base_agg <- agg_func(run_base)
   values <- tail(run_base_agg, 1)
   
@@ -374,7 +325,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
         as.list(sample(sort(as.numeric(parms_base[c("c1", "c2", "c12")]), decreasing = T)[1:2]), size = 3, replace = F)
       parms_base["c123"] <- as.list(sort(as.numeric(parms_base[c("c1", "c2", "c12")]), decreasing = T)[3])
       
-      run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base)[[1]]
+      run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, approx_sigma)[[1]]
       run_base_agg <- agg_func(run_base)
       values <- tail(run_base_agg, 1)
     }
@@ -402,19 +353,19 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
     if(i == 1) {
       parms[["eff_tax"]][,] <- parms[["base_tax"]]
       parms[["int_round"]] <- 1
-      out_run <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms)
+      out_run <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, approx_sigma)
       out <- out_run[[1]]
       parms <- out_run[[2]]
     }
     if(i >= 2 & i <= 3) {
       parms[["eff_tax"]][as.numeric(substr(res_order_vec[i-1], 2, 2)), c(1:6)] <- parms[["base_tax"]]
       parms[["int_round"]] <- 1
-      out_run <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms)
+      out_run <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, approx_sigma)
       out <- out_run[[1]]
       parms <- out_run[[2]]
     }
     if(i >= 4 & i <= 9) {
-      diff <- multi_int_fun(i-3, 365*3, parms, init, amr_ode, agg_func, ode_wrapper)
+      diff <- multi_int_fun(i-3, 365*3, parms, init, amr_ode, agg_func, ode_wrapper, approx_sigma)
       out <- diff[[1]]
       parms <- diff[[2]]
     }
@@ -460,6 +411,20 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   return(output)
 }
 
+mono_func(1, 
+          parm_data_comb, 
+          init = c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, 
+                   R12 = 0), 
+          amr_ode = amr, 
+          usage_fun = usage_fun,
+          multi_int_fun = multi_int_fun,
+          low_parm = low_parm,
+          high_parm = high_parm,
+          agg_func = agg_func,
+          ode_wrapper = ode_wrapper, 
+          approx_sigma = approx_sigma,
+          thresh = 0.5)
+
 # Run the Model ----------------------------------------------------------
 
 start_time <- Sys.time()
@@ -476,6 +441,7 @@ test <- mclapply(1:1000,
                  high_parm = high_parm,
                  agg_func = agg_func,
                  ode_wrapper = ode_wrapper, 
+                 approx_sigma = approx_sigma,
                  thresh = 0.5,
                  mc.cores = 10) 
 
@@ -504,8 +470,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 
 #Save the output
 
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_ode23_two.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_ode23_two.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_two.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_two.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)
