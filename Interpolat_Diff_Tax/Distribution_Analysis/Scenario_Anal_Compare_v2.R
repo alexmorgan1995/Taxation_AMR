@@ -27,15 +27,18 @@ win_import_4class <- readRDS("MDR_run_four.RDS")
 win_import_4class$scen <- "Four Classes"
 colnames(win_import_4class)[grep("MR1", colnames(win_import_4class))] <- c("singleMR_inf",  "singleMR_res" , "singleMR_shan")
 
-
+win_import_realPED <- readRDS("MDR_run_interpol_realPED.RDS")
+win_import_realPED[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti")] <- NA
+win_import_realPED$scen <- "Real PED"
 
 
 win_import_base <- win_import_base[,colnames(win_import_4class)]
 win_import_25 <- win_import_25[,colnames(win_import_4class)]
 win_import_75 <- win_import_75[,colnames(win_import_4class)]
 win_import_2class <- win_import_2class[,colnames(win_import_4class)]
+win_import_realPED <- win_import_realPED[,colnames(win_import_4class)]
 
-comb_imp <- rbind(win_import_base, win_import_25, win_import_75, win_import_2class,win_import_4class)
+comb_imp <- rbind(win_import_base, win_import_25, win_import_75, win_import_realPED, win_import_2class, win_import_4class)
 
 # Altering Data Infections ------------------------------------------------
 
@@ -86,7 +89,7 @@ inf_plot <- ggplot(inf_frame, aes(Interventions, scen)) + theme_bw() +
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",
-                               barwidth = 15,
+                               barwidth = 10,
                                barheight = 1)) 
 
 # Altering Data Resistance ------------------------------------------------
@@ -137,12 +140,16 @@ res_plot <- ggplot(res_frame, aes(Interventions, scen)) + theme_bw() +
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",
-                               barwidth = 15,
+                               barwidth = 10,
                                barheight = 1)) 
 
 # Average Antibiotics Available -------------------------------------------
 
 win_avganti <- round((comb_imp[,34:44]), 5)
+win_avganti$scen <- comb_imp[, 45]
+win_avganti$rowsum <- rowSums(win_avganti[,-12], na.rm = T)
+win_avganti <- win_avganti[win_avganti$rowsum!=0,]; scen_remov <- win_avganti[,12]
+win_avganti <- win_avganti[,-c(12:13)]
 
 win_avganti_trans <- t(apply(win_avganti, 1, function(x) {
   val = max(x, na.rm = T)
@@ -151,7 +158,7 @@ win_avganti_trans <- t(apply(win_avganti, 1, function(x) {
   return(x)}
 ))
 
-win_avganti_trans <- data.frame(win_avganti_trans); win_avganti_trans$scen <- comb_imp[, 45]
+win_avganti_trans <- data.frame(win_avganti_trans); win_avganti_trans$scen <- scen_remov
 
 avganti_frame <- data.frame(matrix(NA, nrow = 0, ncol = 11))
 
@@ -184,13 +191,13 @@ avg_anti_plot <- ggplot(avganti_frame, aes(Interventions, scen)) + theme_bw() +
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",
-                               barwidth = 15,
+                               barwidth = 10,
                                barheight = 1)) 
 
 # Combination Plot --------------------------------------------------------
 
 
-ggarrange(inf_plot, res_plot,avg_anti_plot, ncol = 1, nrow = 3)
+ggarrange(res_plot, inf_plot,avg_anti_plot, ncol = 1, nrow = 3)
 
 c("Flat Tax", "Single Tax (HR)", "Single Tax (MR)","Single Tax (MR2)",
   "Single Tax (LR)", 

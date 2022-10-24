@@ -403,128 +403,20 @@ ode_function <- function(x, init, parms_base, outcome, intervention, integral,
   return(return_vec)
 }
 
-# Parameters for the eFAST ------------------------------------------------
+# Test Parms --------------------------------------------------------------
 
-factors <- c("lambda", "beta", "sigma1", "sigma2", "sigma3", "r_wt", "r_r", "r_rr", "r_rrr", "r_t",     
-             "eta_wr", "eta_rw", "eta_rr", "eta_rrr", "c1", "c2", "c3", "c12", "c13", "c23",     
-             "c123", "rho", "base_tax")
+parms <- data.frame(readRDS("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/parms.RDS"))
 
-parm_list <- list(list(min=1/3650*(2), max=1/36.5*(2)), 
-                  list(min=0.0001, max=5), #beta
-                  list(min=0, max= 1), #sigma1
-                  list(min=0, max = 1), #sigma2
-                  list(min=0, max = 1), #sigma3
-                  
-                  list(min=0.0001, max=0.5), #r_wt
-                  list(min=0.0001, max=0.5), #r_r
-                  list(min=0.0001, max = 0.5), #r_rr
-                  list(min=0.0001, max=0.5), #r_rrr
-                  list(min=0.0001, max=0.5), #r_t
-                  
-                  list(min=0.0001, max=1), #eta_wr
-                  list(min=0.0001, max=1), #eta_rw
-                  list(min=0.0001, max=1), #eta_rr
-                  list(min=0.0001, max=1), #eta_rrr
-                  
-                  list(min=0.5, max=1), #c1
-                  list(min=0.5, max=1), #c2
-                  list(min=0.5, max=1), #c3
-                  list(min=0.5, max=1), #c12
-                  list(min=0.5, max=1), #c13
-                  list(min=0.5, max=1), #c23
-                  list(min=0.5, max=1), #c123
-                  
-                  list(min=0.0001, max=1), #rho
-                  list(min=0.0001, max=1))
-
-init <- c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
-           R12 = 0, R13 = 0, R23 = 0,
-           R123 = 0)
-
-
-
-# Single ------------------------------------------------------------------
-
-start_time <- Sys.time()
-
-testres_single <- fast99(model = ode_function, factors = factors, n = 200, 
-                         q.arg = parm_list, #base_tax
-                         init = init,
-                         parms_base = parms_base,
-                         intervention = 1,
-                         outcome = 1,
-                         integral = integral,
-                         ode_wrapper = ode_wrapper,
-                         approx_sigma = approx_sigma,
-                         multi_int_fun = multi_int_fun, 
-                         usage_fun = usage_fun)
-saveRDS(testres_single, "/cluster/home/amorgan/Sensitivity/testres_single.RDS")
-
-testinf_single <- fast99(model = ode_function, factors = factors, n = 200, 
-                         q.arg = parm_list, #base_tax
-                         init = init,
-                         parms_base = parms_base,
-                         intervention = 1,
-                         outcome = 2,
-                         integral = integral,
-                         ode_wrapper = ode_wrapper,
-                         approx_sigma = approx_sigma,
-                         multi_int_fun = multi_int_fun, 
-                         usage_fun = usage_fun)
-saveRDS(testinf_single, "/cluster/home/amorgan/Sensitivity/testinf_single.RDS")
-
-testantib_single <- fast99(model = ode_function, factors = factors, n = 200, 
-                         q.arg = parm_list, #base_tax
-                         init = init,
-                         parms_base = parms_base,
-                         intervention = 1,
-                         outcome = 3,
-                         integral = integral,
-                         ode_wrapper = ode_wrapper,
-                         approx_sigma = approx_sigma,
-                         multi_int_fun = multi_int_fun, 
-                         usage_fun = usage_fun)
-saveRDS(testantib_single, "/cluster/home/amorgan/Sensitivity/testantib_single.RDS")
-
-# Antibiotic ------------------------------------------------------------------
-
-testres_diff <- fast99(model = ode_function, factors = factors, n = 200, 
-                         q.arg = parm_list, #base_tax
-                         init = init,
-                         parms_base = parms_base,
-                         intervention = 2,
-                         outcome = 1,
-                         integral = integral,
-                         ode_wrapper = ode_wrapper,
-                         approx_sigma = approx_sigma,
-                         multi_int_fun = multi_int_fun, 
-                         usage_fun = usage_fun)
-saveRDS(testres_diff, "/cluster/home/amorgan/Sensitivity/testres_diff.RDS")
-
-testinf_diff <- fast99(model = ode_function, factors = factors, n = 200, 
-                         q.arg = parm_list, #base_tax
-                         init = init,
-                         parms_base = parms_base,
-                         intervention = 2,
-                         outcome = 2,
-                         integral = integral,
-                         ode_wrapper = ode_wrapper,
-                         approx_sigma = approx_sigma,
-                         multi_int_fun = multi_int_fun, 
-                         usage_fun = usage_fun)
-saveRDS(testinf_diff, "/cluster/home/amorgan/Sensitivity/testinf_diff.RDS")
-
-testantib_diff <- fast99(model = ode_function, factors = factors, n = 200, 
-                           q.arg = parm_list, #base_tax
-                           init = init,
-                           parms_base = parms_base,
-                           intervention = 2,
-                           outcome = 3,
-                           integral = integral,
-                           ode_wrapper = ode_wrapper,
-                           approx_sigma = approx_sigma,
-                           multi_int_fun = multi_int_fun, 
-                           usage_fun = usage_fun)
-
-saveRDS(testantib_diff, "/cluster/home/amorgan/Sensitivity/testantib_diff.RDS")
+ode_function(x = parms, 
+             init = c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
+                       R12 = 0, R13 = 0, R23 = 0,
+                       R123 = 0), 
+             parms_base = parms_base, 
+             outcome = 1, 
+             intervention = 1, 
+             integral = integral, 
+             ode_wrapper = ode_wrapper, 
+             approx_sigma = approx_sigma, 
+             multi_int_fun = multi_int_fun, 
+             usage_fun = usage_fun)
 
