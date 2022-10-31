@@ -148,15 +148,21 @@ p_list <- list()
 for(i in 1:(length(post_dist)-1)) {
   p_list[[i]] <- local ({
     name_exp <- post_dist[,c(i,12)]
+    
     p <- ggplot(name_exp, aes(x= name_exp[,1], fill=gen)) + geom_density(alpha=.5) + 
       geom_vline(xintercept = maps_est[i], size = 1.2, col = "red") +
-      scale_x_continuous(expand = c(0, 0), name = colnames(post_dist)[-7][i]) + 
+      scale_x_continuous(expand = c(0, 0), name = colnames(post_dist)[-12][i]) + 
       scale_y_continuous(expand = c(0, 0)) +
       theme(legend.text=element_text(size=14),axis.text=element_text(size=14),
             axis.title.y=element_text(size=14),axis.title.x= element_text(size=14), plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm"))
     return(p)
   })
 }
+
+ggarrange( p_list[[1]],  p_list[[2]],  p_list[[3]], 
+           p_list[[4]],  p_list[[5]],  p_list[[6]], 
+           p_list[[7]],  p_list[[8]],  p_list[[9]],
+           p_list[[10]],  p_list[[11]], nrow = 4, ncol = 3, common.legend = T, legend = "bottom")
 
 
 # Parms -------------------------------------------------------------------

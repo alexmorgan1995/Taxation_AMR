@@ -411,9 +411,9 @@ factors <- c("lambda", "beta", "sigma1", "sigma2", "sigma3", "r_wt", "r_r", "r_r
 
 parm_list <- list(list(min=1/3650*(2), max=1/36.5*(2)), 
                   list(min=0.0001, max=5), #beta
-                  list(min=0, max= 1), #sigma1
-                  list(min=0, max = 1), #sigma2
-                  list(min=0, max = 1), #sigma3
+                  list(min=0.0001, max = 1), #sigma1
+                  list(min=0.0001, max = 1), #sigma2
+                  list(min=0.0001, max = 1), #sigma3
                   
                   list(min=0.0001, max=0.5), #r_wt
                   list(min=0.0001, max=0.5), #r_r

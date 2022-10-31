@@ -338,8 +338,6 @@ ode_function <- function(x, init, parms_base, outcome, intervention, integral,
       
     }
     
-    saveRDS(parms, "/cluster/home/amorgan/Sensitivity/parms.RDS")
-    
     parms <- as.list(parms)
     parms = append(parms, parms_base["PED"])
     parms = append(parms, parms_base["eff_tax"])
@@ -405,7 +403,7 @@ ode_function <- function(x, init, parms_base, outcome, intervention, integral,
 
 # Test Parms --------------------------------------------------------------
 
-parms <- data.frame(readRDS("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/parms.RDS"))
+parms <- data.frame(readRDS("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Sensitivity_Anal/parms.RDS"))
 
 ode_function(x = parms, 
              init = c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
@@ -413,10 +411,155 @@ ode_function(x = parms,
                        R123 = 0), 
              parms_base = parms_base, 
              outcome = 1, 
-             intervention = 1, 
+             intervention = 2, 
              integral = integral, 
              ode_wrapper = ode_wrapper, 
              approx_sigma = approx_sigma, 
              multi_int_fun = multi_int_fun, 
              usage_fun = usage_fun)
 
+
+
+parms <- as.list(parms)
+parms = append(parms, parms_base["PED"])
+parms = append(parms, parms_base["eff_tax"])
+
+parms_test <- multi_int_fun(5, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[2]]
+agg_test <- agg_func(multi_int_fun(2, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]])
+m_test <- melt(agg_test, id.vars = "time", measure.vars = colnames(agg_test)[4:6])
+ggplot(m_test, aes(time, value, color = variable)) + geom_line()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+parms <- data.frame(readRDS("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Sensitivity_Anal/parms.RDS"))
+parms["time_between"] <- 365*3
+parms = append(parms, parms_base["PED"])
+parms = append(parms, parms_base["eff_tax"])
+#First Run
+run_1rd <- agg_func(ode_wrapper(y = init, func = amr, times = seq(0, parms[["t_n"]]), parms = parms, approx_sigma)[[1]])
+values_1rd <- tail(run_1rd, 1)[4:6]
+
+low_char_1rd <- names(values_1rd)[which.min(values_1rd)]
+high_char_1rd <- names(values_1rd)[which.max(values_1rd)]
+med_char_1rd <- names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))]
+
+parms[["eff_tax"]][as.numeric(substr(low_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[low_char_1rd]/values_1rd[med_char_1rd])))
+parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/values_1rd[med_char_1rd])))
+parms[["eff_tax"]][as.numeric(substr(med_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd]/values_1rd[med_char_1rd])))
+parms[["eff_tax"]][parms[["eff_tax"]] < 0.00001] <- 0
+
+#First Round of Diff Taxation
+
+parms[["int_round"]] <- 1
+
+
+parms[["int_round"]] <- 2-1
+run <- agg_func(ode_wrapper(y = init, func = amr, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*(2-1))), parms = parms, approx_sigma)[[1]])
+values <- tail(run, 1)[4:6]
+
+if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
+  parms[["eff_tax"]][,i] <- 0
+} else {
+  
+  low_char <- names(values)[which.min(values)]
+  high_char <- names(values)[which.max(values)]
+  med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
+  
+  parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((2):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((2):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((2):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][parms[["eff_tax"]] < 0.00001] <- 0
+}
+
+parms[["int_round"]] <- 2
+
+
+
+
+
+
+
+parms[["int_round"]] <- 3-1
+run <- agg_func(ode_wrapper(y = init, func = amr, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*(3-1))), parms = parms, approx_sigma)[[1]])
+values <- tail(run, 1)[4:6]
+
+if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
+  parms[["eff_tax"]][,i] <- 0
+} else {
+  
+  low_char <- names(values)[which.min(values)]
+  high_char <- names(values)[which.max(values)]
+  med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
+  
+  parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((3):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((3):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((3):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][parms[["eff_tax"]] < 0.00001] <- 0
+}
+
+parms[["int_round"]] <- 3
+
+
+
+
+
+parms[["int_round"]] <- 4-1
+run <- agg_func(ode_wrapper(y = init, func = amr, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*(4-1))), parms = parms, approx_sigma)[[1]])
+values <- tail(run, 1)[4:6]
+
+if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
+  parms[["eff_tax"]][,i] <- 0
+} else {
+  
+  low_char <- names(values)[which.min(values)]
+  high_char <- names(values)[which.max(values)]
+  med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
+  
+  parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((4):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((4):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((4):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][parms[["eff_tax"]] < 0.00001] <- 0
+}
+
+parms[["int_round"]] <- 4
+
+
+
+parms[["int_round"]] <- 5-1
+run <- agg_func(ode_wrapper(y = init, func = amr, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*(5-1))), parms = parms, approx_sigma)[[1]])
+values <- tail(run, 1)[4:6]
+
+if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
+  parms[["eff_tax"]][,i] <- 0
+} else {
+  if(max(values) == min(values)) {
+    parms[["eff_tax"]][c(1:3), c((5):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[names(values)[which.min(values)]],1)/values_1rd[med_char_1rd])))
+    
+  } else {
+  
+  parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((5):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((5):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((5):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))
+  }
+  parms[["eff_tax"]][parms[["eff_tax"]] < 0.00001] <- 0
+}
+
+parms[["int_round"]] <- 5
+
+parms[["int_round"]] <- 6-1
+
+run <- ode_wrapper(y = init, func = amr, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*(6-1))), parms = parms, approx_sigma)[[2]]
+
+out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma)

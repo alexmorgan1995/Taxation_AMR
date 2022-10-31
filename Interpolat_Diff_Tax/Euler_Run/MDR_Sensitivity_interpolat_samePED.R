@@ -294,9 +294,9 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c1 = 0.945, c2 = 0.925, c3 = 0.85,
              c12 = 0.845, c13 = 0.825, c23 = 0.75,
              c123 = 0.7,
-             PED = matrix(c(-1, 0.6, 0.6, 
-                            0.6, -1, 0.6,
-                            0.6, 0.6, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0.5, 0.5, 
+                            0.5, -1, 0.5,
+                            0.5, 0.5, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
@@ -561,8 +561,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 }
  
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_interpol_biasPED.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_interpol_biasPED.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_interpol_samePED.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_interpol_samePED.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)

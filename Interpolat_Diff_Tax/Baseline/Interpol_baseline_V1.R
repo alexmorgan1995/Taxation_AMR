@@ -163,7 +163,6 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper,
 }
 
 # Dual Model --------------------------------------------------------------
-
 multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, ode_wrapper, approx_sigma){
   
   parms["time_between"] <- time_between
@@ -195,14 +194,18 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
       if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
         parms[["eff_tax"]][,i] <- 0
       } else {
-        
-        low_char <- names(values)[which.min(values)]
-        high_char <- names(values)[which.max(values)]
-        med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
-        
-        parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))
-        parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))
-        parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))
+        if(max(values) == min(values)) {
+          parms[["eff_tax"]][c(1:3), c(i:6)] <- as.numeric((parms[["base_tax"]]*(tail(run[names(values)[which.min(values)]],1)/values_1rd[med_char_1rd])))
+          
+        } else {
+          low_char <- names(values)[which.min(values)]
+          high_char <- names(values)[which.max(values)]
+          med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
+          
+          parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))
+          parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))
+          parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))
+        }
         parms[["eff_tax"]][parms[["eff_tax"]] < 0.00001] <- 0
       }
       parms[["int_round"]] <- i
@@ -255,6 +258,27 @@ parms = list(lambda = 1/365*(2), int_round = 1,
 
 parms = list(lambda = 1/365*(2), int_round = 1, 
              beta = maps_est["beta"], 
+             sigma1 = 0.26, sigma2 = 0.25, sigma3 = 0.24,
+             r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, 
+             r_t = 1/7, 
+             eta_wr = maps_est["eta_wr"], 
+             eta_rw = maps_est["eta_rw"], 
+             eta_rr = maps_est["eta_rr_rrr"], eta_rrr = maps_est["eta_rr_rrr"],  
+             c1 = 0.9, c2 = 0.9, c3 = 0.9,
+             c12 = 0.8, c13 = 0.8, c23 = 0.8,
+             c123 = 0.7,
+             PED = matrix(c(-1, 0.5, 0.5, 
+                            0.5, -1, 0.5,
+                            0.5, 0.5, -1), #Be aware of this matrix
+                          nrow = 3, ncol = 3, byrow = T),
+             eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0), 
+                              nrow = 3, ncol = 6, byrow = T),
+             t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
+
+parms = list(lambda = 1/365*(2), int_round = 1, 
+             beta = maps_est["beta"], 
              sigma1 = 0.25, sigma2 = 0.25, sigma3 = 0.25,
              r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, 
              r_t = 1/7, 
@@ -275,6 +299,11 @@ parms = list(lambda = 1/365*(2), int_round = 1,
                                 0, 0, 0, 0, 0, 0), 
                               nrow = 3, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
+
+
+
+
+
 
 # Baseline Model ----------------------------------------------------------
 
@@ -336,7 +365,9 @@ for(i in 1:length(melt_data)) {
     labs(x = "Time", y = "Prevalence", title = c("Flat Tax",
                                                  "Single Tax (HR)","Single Tax (MR)","Single Tax (LR)",
                                                  "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)",
-                                                 "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)")[i], color = "")
+                                                 "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)")[i], color = "") +
+    theme(legend.text = element_text(size=11), 
+          axis.text=element_text(size=10), axis.title =element_text(size=9), title =element_text(size=9, face="bold"))
 }
 
 ggarrange(p_data[[1]], "", "",
@@ -347,3 +378,19 @@ ggarrange(p_data[[1]], "", "",
                      "B", "", "",
                      "C", "", "",
                      "", "", ""), hjust = -.1,  nrow = 4, ncol = 3, common.legend = T, legend = "bottom")
+
+# Figure ------------------------------------------------------------------
+
+figure_run <- agg_func(multi_int_fun(6, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]])
+
+m_sigma <- melt(figure_run, id.vars = "time", measure.vars = colnames(figure_run)[4:6])
+
+ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
+  labs(x = "Time", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(limits = c(0,0.5), expand = c(0, 0)) + 
+  scale_x_continuous(limits = c(0,3000) , expand = c(0.04, 0.5)) +
+  theme(axis.text=element_text(size=11),axis.title =element_text(size=12))
+
+ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
+  labs(x = "Time", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.5), expand = c(0, 0)) + 
+  scale_x_continuous(limits = c(3001,3001 + 365*3) , expand = c(0, 0.5)) +
+  theme(axis.text=element_text(size=11), axis.title =element_text(size=12), axis.text.y = element_blank())

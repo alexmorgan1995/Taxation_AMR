@@ -42,53 +42,42 @@ win_avganti <- round((win_import[,31:40]), 3)
 #Infections
 
 inc_inf <- win_inf[,c(1:10)]
-#inc_inf <- inc_inf[apply(inc_inf, 1, function(x) all(is.finite(x))), ]
-#keep <- Reduce(`&`, lapply(inc_inf, function(x) x >= quantile(x, .01) 
-#                           & x <= quantile(x, .99)))
-#inc_inf <- inc_inf[keep,]
+inc_inf <- inc_inf[apply(inc_inf, 1, function(x) all(is.finite(x))), ]
+keep <- Reduce(`&`, lapply(inc_inf, function(x) x >= quantile(x, .025) 
+                           & x <= quantile(x, .975)))
+inc_inf <- inc_inf[keep,]
 
 m_inf <- melt(inc_inf, measure.vars = colnames(inc_inf))
 
-#ggplot(m_inf, aes(x=variable, y=value, fill = variable)) + 
-#  geom_violin() + theme_bw() + labs(y = "Relative Change from Single Tax (HR) Scenario", x = "") + 
-#  scale_x_discrete(labels = c("Single Tax (HR)","Diff Tax (1 Rd)", "Diff Tax (2 Rds)", "Diff Tax (3 Rds)", "Diff Tax (4 Rds)", "Diff Tax (5 Rds)", "Diff Tax (6 Rds)")) +
-#  scale_fill_manual(values=c("darkgrey",mako(7)[-7])) + 
-#  geom_boxplot(width=0.07, size = 0.4, color="white", outlier.shape = NA) + 
-#  geom_signif(comparisons = list(c("single1_inf", "diff1_inf"),
-#                                 c("single1_inf", "diff2_inf"),
-#                                 c("single1_inf", "diff3_inf"),
-#                                 c("single1_inf", "diff4_inf"),
-#                                 c("single1_inf", "diff5_inf"),
-#                                 c("single1_inf", "diff6_inf")),     
-#              test = wilcox.test,
-#              y_position = c(1.5, 1.6, 1.7, 1.8, 1.9, 2))
+box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable)) + coord_cartesian(ylim=c(-0.125, 0.175)) + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Increase in Infections", x = "") + 
+  theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
+        axis.title.y=element_text(size=12), axis.title.x= element_text(size=11), plot.margin = unit(c(0.35,1,0.35,1), "cm"),
+        legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  scale_x_discrete(labels= c("Flat Tax", "Single Tax (HR)", "Single Tax (MR)",
+                             "Single Tax (LR)", 
+                             "Diff Tax (1 Round)", "Diff Tax (2 Round)",
+                             "Diff Tax (3 Round)", "Diff Tax (4 Round)", 
+                             "Diff Tax (5 Round)", "Diff Tax (6 Round)"))
 
-box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable)) + coord_cartesian(ylim=c(-0.05, 0.2)) + 
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Increase in Infections", x = "") 
-
-kruskal.test(value ~ variable, data = m_inf)
+pairwise.wilcox.test(m_inf$value, m_inf$variable,
+                     p.adjust.method = "BH")
 
 #Resistance
 
 inc_res <- win_res[,c(1:10)]
 m_res <- melt(inc_res, measure.vars = colnames(inc_res))
 
-#ggplot(m_res, aes(x=variable, y=value, fill = variable)) + 
-#  geom_violin() + theme_bw() + labs(y = "Relative Change in Intervention Efficacy (Resistance)", x = "") + 
-#  scale_x_discrete(labels = c("Single Tax (HR)","Diff Tax (1 Rd)", "Diff Tax (2 Rds)", "Diff Tax (3 Rds)", "Diff Tax (4 Rds)", "Diff Tax (5 Rds)", "Diff Tax (6 Rds)")) + 
-#  scale_fill_manual(values=c("darkgrey",mako(7)[-7])) + 
-#  geom_boxplot(width=0.07, size = 0.4, color="white", outlier.shape = NA) + 
-#  geom_signif(comparisons = list(c("single1_inf", "diff1_inf"),
-#                                 c("single1_inf", "diff2_inf"),
-#                                 c("single1_inf", "diff3_inf"),
-#                                 c("single1_inf", "diff4_inf"),
-#                                 c("single1_inf", "diff5_inf"),
-#                                 c("single1_inf", "diff6_inf")),   
-#              map_signif_level=TRUE,
-#              y_position = c(1.5, 1.6, 1.7, 1.8, 1.9, 2))
-
-box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable)) + coord_cartesian(ylim=c(-0.05, 0.8)) + 
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Decrease in Resistance", x = "") 
+box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable)) + coord_cartesian(ylim=c(-0.5, 1.25)) + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Decrease in Resistance", x = "")  + 
+  theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
+        axis.title.y=element_text(size=12), axis.title.x= element_text(size=11), plot.margin = unit(c(0.35,1,0.35,1), "cm"),
+        legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  scale_x_discrete(labels= c("Flat Tax", "Single Tax (HR)", "Single Tax (MR)",
+                             "Single Tax (LR)", 
+                             "Diff Tax (1 Round)", "Diff Tax (2 Round)",
+                             "Diff Tax (3 Round)", "Diff Tax (4 Round)", 
+                             "Diff Tax (5 Round)", "Diff Tax (6 Round)"))
 
 kruskal.test(value ~ variable, data = m_inf)
 
@@ -98,9 +87,19 @@ inc_avganti <- win_avganti[,c(1:10)]
 m_avganti <- melt(inc_avganti, measure.vars = colnames(inc_avganti))
 
 box_avganti <-  ggplot(m_avganti, aes(x=variable, y=value, fill = variable)) +
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Average Antibiotic Available", x = "") 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Average Antibiotic Available", x = "") + 
+  theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
+        axis.title.y=element_text(size=11), axis.title.x= element_text(size=11), plot.margin = unit(c(0.35,1,0.35,1), "cm"),
+        legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  scale_x_discrete(labels= c("Flat Tax", "Single Tax (HR)", "Single Tax (MR)",
+                             "Single Tax (LR)", 
+                             "Diff Tax (1 Round)", "Diff Tax (2 Round)",
+                             "Diff Tax (3 Round)", "Diff Tax (4 Round)", 
+                             "Diff Tax (5 Round)", "Diff Tax (6 Round)"))
 
 kruskal.test(value ~ variable, data = m_avganti)
+
+
 
 #Shannon's
 
@@ -114,10 +113,8 @@ kruskal.test(value ~ variable, data = m_shan)
 
 # Combine the Plots Together ----------------------------------------------
 
-ggarrange(box_inf, box_res, 
-          box_avganti, box_shan, labels= c("A", "B", "C", "D"), nrow = 4, ncol = 1)
+ggarrange(box_res, box_inf, 
+          box_avganti, labels= c("A", "B", "C"), nrow = 3, ncol = 1)
 
-
-ggarrange(box_inf, box_res, labels= c("A", "B"), nrow = 2, ncol = 1)
 
 

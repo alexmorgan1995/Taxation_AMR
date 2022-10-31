@@ -6,8 +6,9 @@ setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/I
 
 # Import in Dataset -------------------------------------------------------
 
-
 win_import <- readRDS("MDR_run_interpol.RDS")
+win_import <- readRDS("MDR_run_interpol_samePED.RDS")
+win_import <- readRDS("MDR_run_interpol_biasPED.RDS")
 #win_import <- readRDS("MDR_run_interpol_25.RDS")
 #win_import <- readRDS("MDR_run_interpol_75.RDS")
 #win_import <- readRDS("MDR_run_interpol_realPED.RDS")
@@ -185,9 +186,9 @@ ggplot(melt_combdata, aes(Interventions, variable)) + theme_bw() +
 
 #For Infections and Resistance
 
-combdata_infres <- prop_win_res; combdata_infres$Infections <- prop_win_inf$Infections
+combdata_infres <- prop_win_res; combdata_infres$Infections <- prop_win_inf$Infections; combdata_infres$AvgAnti <- prop_win_avganti$Average_Anti
 
-melt_combdata_infres <- melt(combdata, id.vars = "Interventions", measure.vars = c("Resistance", "Infections"))
+melt_combdata_infres <- melt(combdata_infres, id.vars = "Interventions", measure.vars = c("Resistance", "Infections", "AvgAnti"))
 melt_combdata_infres$Interventions <- factor(melt_combdata_infres$Interventions, levels = c(prop_win_res$Interventions))
 melt_combdata_infres$value <- round(melt_combdata_infres$value, digits = 3)
 
@@ -212,9 +213,8 @@ ggplot(melt_combdata_infres, aes(Interventions, variable)) + theme_bw() +
 #For antibiotic availability related measures
 
 combdata_shanavg <- prop_win_shan
-combdata_shanavg$Average_Anti <- prop_win_avganti$Average_Anti
 
-melt_combdata_shanavg<- melt(combdata_shanavg, id.vars = "Interventions", measure.vars = c("Shannon_Index", "Average_Anti"))
+melt_combdata_shanavg<- melt(combdata_shanavg, id.vars = "Interventions", measure.vars = c("Shannon_Index"))
 melt_combdata_shanavg$Interventions <- factor(melt_combdata_shanavg$Interventions, levels = c(prop_win_res$Interventions))
 melt_combdata_shanavg$value <- round(melt_combdata_shanavg$value, digits = 3)
 
@@ -224,7 +224,7 @@ ggplot(melt_combdata_shanavg, aes(Interventions, variable)) + theme_bw() +
   geom_text(aes(label=value), color = "black") + 
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
-  scale_y_discrete(name = "Outcome Measure", expand = c(0, 0)) + 
+  scale_y_discrete(name = "", expand = c(0, 0)) + 
   guides(fill = guide_colorbar(title = "Probabilty that \nIntervention Wins",
                                label.position = "bottom",
                                title.position = "left", title.vjust = 1,
@@ -235,3 +235,4 @@ ggplot(melt_combdata_shanavg, aes(Interventions, variable)) + theme_bw() +
   theme(strip.background = element_blank(), axis.text=element_text(size=11),
         strip.text = element_blank(), legend.position="bottom",
         axis.text.x = element_text(angle = 45, hjust=1))
+
