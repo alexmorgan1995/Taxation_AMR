@@ -2,14 +2,12 @@ library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); 
 
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/New")
 
 # Import in Dataset -------------------------------------------------------
 
-win_import <- readRDS("MDR_run_interpol.RDS")
-win_import <- readRDS("MDR_run_interpol_samePED.RDS")
-win_import <- readRDS("MDR_run_interpol_biasPED.RDS")
-#win_import <- readRDS("MDR_run_interpol_25.RDS")
+win_import <- readRDS("MDR_run_interpol_v1.RDS")
+win_import <- readRDS("MDR_run_interpol_25.RDS")
 #win_import <- readRDS("MDR_run_interpol_75.RDS")
 #win_import <- readRDS("MDR_run_interpol_realPED.RDS")
 

@@ -62,18 +62,15 @@ approx_sigma <- function(sigma_mat){
   usage = data.frame("time" = seq(0,10000),
                      "PopUsage1" = c(rep(sigma_mat[1,1], 3000),
                                      rep(sigma_mat[1,2], 365*3), rep(sigma_mat[1,3], 365*3), rep(sigma_mat[1,4], 365*3),
-                                     rep(sigma_mat[1,5], 365*3), rep(sigma_mat[1,6], 365*3), rep(sigma_mat[1,7], 365*3),
-                                     rep(sigma_mat[1,8], 10001 - (3000 + (365*3)*6))),
+                                     rep(sigma_mat[1,5], 365*3), rep(sigma_mat[1,6], 365*3), rep(sigma_mat[1,7], 10001 - (3000 + (365*3)*5))),
                      
                      "PopUsage2" = c(rep(sigma_mat[2,1], 3000),
                                      rep(sigma_mat[2,2], 365*3), rep(sigma_mat[2,3], 365*3), rep(sigma_mat[2,4], 365*3),
-                                     rep(sigma_mat[2,5], 365*3), rep(sigma_mat[2,6], 365*3), rep(sigma_mat[2,7], 365*3),
-                                     rep(sigma_mat[2,8], 10001 - (3000 + (365*3)*6))),
+                                     rep(sigma_mat[2,5], 365*3), rep(sigma_mat[2,6], 365*3), rep(sigma_mat[2,7], 10001 - (3000 + (365*3)*5))),
                      
                      "PopUsage3" = c(rep(sigma_mat[3,1], 3000),
                                      rep(sigma_mat[3,2], 365*3), rep(sigma_mat[3,3], 365*3), rep(sigma_mat[3,4], 365*3),
-                                     rep(sigma_mat[3,5], 365*3), rep(sigma_mat[3,6], 365*3), rep(sigma_mat[3,7], 365*3),
-                                     rep(sigma_mat[3,8], 10001 - (3000 + (365*3)*6))))
+                                     rep(sigma_mat[3,5], 365*3), rep(sigma_mat[3,6], 365*3), rep(sigma_mat[3,7], 10001 - (3000 + (365*3)*5))))
   return(usage)
 }
 
@@ -81,25 +78,25 @@ approx_sigma <- function(sigma_mat){
 
 ode_wrapper <- function(times, y, parms, func, approx_sigma) {
   
-  sigma_mat = matrix(c(rep(parms[["sigma1"]], 8),
-                       rep(parms[["sigma2"]], 8),
-                       rep(parms[["sigma3"]], 8)), 
-                     nrow = 3, ncol = 8, byrow = T)
+  sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
+                       rep(parms[["sigma2"]], 7),
+                       rep(parms[["sigma3"]], 7)), 
+                     nrow = 3, ncol = 7, byrow = T)
   eff_tax <- parms[["eff_tax"]]; PED <- parms[["PED"]]
   
   if(parms[["int_round"]] > 0 ) {
     for(i in 1:parms[["int_round"]]) {
       stor_sigma <- sigma_mat[,i]
       
-      sigma_mat[,(i+1):8] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
+      sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
                               stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
                               stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,3]) + (eff_tax[3,i]*PED[3,3]))))
       
       
-      sigma_mat[,(i+1):8][sigma_mat[,(i+1)] < 0.01] <- 0.01
+      sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0.01] <- 0.01
       
       if(colSums(sigma_mat)[i+1] > 1) {
-        sigma_mat[,(i+1):8] <- sigma_mat[,i+1]/(sum(sigma_mat[,i+1])+0.01)
+        sigma_mat[,(i+1):7] <- sigma_mat[,i+1]/(sum(sigma_mat[,i+1])+0.01)
       }
     }
   }
@@ -155,11 +152,11 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper,
                      names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
                      names(values_1rd)[which.min(values_1rd)])[res_order]
   
-  parms[["eff_tax"]][as.numeric(substr(res_order_vec, 2, 2)), c(1:7)] <- as.numeric(parms[["base_tax"]])
+  parms[["eff_tax"]][as.numeric(substr(res_order_vec, 2, 2)), c(1:6)] <- as.numeric(parms[["base_tax"]])
   parms[["int_round"]] <- 1
   
   #Real Model Run 
-  run_real <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma, method )
+  run_real <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma)
   return(run_real)
 }
 
@@ -177,10 +174,11 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   high_char_1rd <- names(values_1rd)[which.max(values_1rd)]
   med_char_1rd <- names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))]
   
-  parms[["eff_tax"]][as.numeric(substr(low_char_1rd, 2, 2)), c(1:7)] <- as.numeric((parms[["base_tax"]]*(values_1rd[low_char_1rd]/values_1rd[med_char_1rd])))
-  parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:7)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/values_1rd[med_char_1rd])))
-  parms[["eff_tax"]][as.numeric(substr(med_char_1rd, 2, 2)), c(1:7)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd]/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(low_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[low_char_1rd]/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/values_1rd[med_char_1rd])))
+  parms[["eff_tax"]][as.numeric(substr(med_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd]/values_1rd[med_char_1rd])))
 
+  
   #First Round of Diff Taxation
   
   parms[["int_round"]] <- 1
@@ -199,14 +197,14 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
         low_char <- names(values)[which.min(values)]
         high_char <- names(values)[which.max(values)]
         med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
-
-        parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):7)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd]))))-
+        
+        parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd]))))-
                                                                                 (1+parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))/
                                                                                (1+parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))
-        parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):7)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd]))))-
+        parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd]))))-
                                                                                  (1+parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))/
                                                                                 (1+parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))
-        parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i):7)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd]))))-
+        parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd]))))-
                                                                                 (1+parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))/
                                                                                (1+parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))
       }
@@ -272,17 +270,13 @@ usage_fun <- function(parms){
   if(parms[["int_round"]] > 0) {
     usage = data.frame("time" = seq(0,7000),
                        "PopUsage1" = c(rep(parms[["sigma_mat"]][1,2] , 365*3), rep(parms[["sigma_mat"]][1,3] , 365*3), rep(parms[["sigma_mat"]][1,4] , 365*3),
-                                       rep(parms[["sigma_mat"]][1,5], 365*3), rep(parms[["sigma_mat"]][1,6] , 365*3), rep(parms[["sigma_mat"]][1,7] , 365*3),
-                                       rep(parms[["sigma_mat"]][1,8] , (365*3)+(7001-(365*3)*7))),
-                       
+                                       rep(parms[["sigma_mat"]][1,5], 365*3), rep(parms[["sigma_mat"]][1,6] , 365*3), rep(parms[["sigma_mat"]][1,7] , (365*3)+(7001-(365*3)*6))),
                        
                        "PopUsage2" = c(rep(parms[["sigma_mat"]][2,2] , 365*3), rep(parms[["sigma_mat"]][2,3] , 365*3), rep(parms[["sigma_mat"]][2,4] , 365*3),
-                                       rep(parms[["sigma_mat"]][2,5], 365*3), rep(parms[["sigma_mat"]][2,6] , 365*3), rep(parms[["sigma_mat"]][2,7] , 365*3),
-                                       rep(parms[["sigma_mat"]][2,8] , (365*3)+(7001-(365*3)*7))),
+                                       rep(parms[["sigma_mat"]][2,5], 365*3), rep(parms[["sigma_mat"]][2,6] , 365*3), rep(parms[["sigma_mat"]][2,7] , (365*3)+(7001-(365*3)*6))),
                        
                        "PopUsage3" = c(rep(parms[["sigma_mat"]][3,2] , 365*3), rep(parms[["sigma_mat"]][3,3] , 365*3), rep(parms[["sigma_mat"]][3,4] , 365*3),
-                                       rep(parms[["sigma_mat"]][3,5], 365*3), rep(parms[["sigma_mat"]][3,6] , 365*3), rep(parms[["sigma_mat"]][3,7] , 365*3),
-                                       rep(parms[["sigma_mat"]][3,8] , (365*3)+(7001-(365*3)*7))))
+                                       rep(parms[["sigma_mat"]][3,5], 365*3), rep(parms[["sigma_mat"]][3,6] , 365*3), rep(parms[["sigma_mat"]][3,7] , (365*3)+(7001-(365*3)*6))))
   }
   
   usage$totusage = rowSums(usage[2:4])
@@ -305,26 +299,15 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c1 = 0.945, c2 = 0.925, c3 = 0.85,
              c12 = 0.845, c13 = 0.825, c23 = 0.75,
              c123 = 0.7,
-             PED = matrix(c(-1, 0.4, 0.4, 
-                            0.4, -1, 0.4,
-                            0.4, 0.4, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0.6, 0.6, 
+                            0.6, -1, 0.6,
+                            0.6, 0.6, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
-             eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 0,
-                                0, 0, 0, 0, 0, 0, 0,
-                                0, 0, 0, 0, 0, 0, 0), 
-                              nrow = 3, ncol = 7, byrow = T),
+             eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0), 
+                              nrow = 3, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
-
-#parms_base = as.list(parm_data_comb[10,])
-#parms_base = append(parms_base, parms["PED"])
-#parms_base = append(parms_base, parms["eff_tax"])
-#test_parms <- multi_int_fun(6, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[2]]
-#testy <- agg_func(multi_int_fun(6, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]])
-#testy$avgres <- rowMeans(testy[4:6])
-#testy_m <- melt(testy, id.vars = "time", measure.vars = colnames(testy)[4:7])
-#ggplot(testy_m, aes(time, value, color = variable)) + geom_line()
-
-#sum(usage_fun(test_parms)[,6])
 
 # The Function ------------------------------------------------------------
 
@@ -472,7 +455,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   store_vec_shan <- c()
   store_vec_avganti <- c()
   
-  for(i in 1:11){
+  for(i in 1:10){
     parms = parms_base
     if(i == 1) {
       parms[["eff_tax"]][,] <- parms[["base_tax"]]
@@ -488,7 +471,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
       out <- out_run[[1]]
       parms <- out_run[[2]]
     }
-    if(i >= 5 & i <= 11) {
+    if(i >= 5 & i <= 10) {
       diff <- multi_int_fun(i-4, 365*3, parms, init, amr_ode, agg_func, ode_wrapper, approx_sigma)
       out <- diff[[1]]
       parms <- diff[[2]]
@@ -530,10 +513,10 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   }
   
   output <- c(store_vec_inf, store_vec_res, store_vec_shan, store_vec_avganti, parms_base[c(1:28)])
-  names(output) <- c("flat_inf", "singleHR_inf", "singleMR_inf", "singleLR_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", "diff7_inf", 
-                     "flat_res", "singleHR_res", "singleMR_res", "singleLR_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res","diff7_res", 
-                     "flat_shan", "singleHR_shan", "singleMR_shan", "singleLR_shan", "diff1_shan", "diff2_shan", "diff3_shan", "diff4_shan", "diff5_shan", "diff6_shan"," diff7_shan",
-                     "flat_avganti", "singleHR_avganti", "singleMR_avganti", "singleLR_avganti", "diff1_avganti", "diff2_avganti", "diff3_avganti", "diff4_avganti", "diff5_avganti", "diff6_avganti", "diff7_avganti",
+  names(output) <- c("flat_inf", "singleHR_inf", "singleMR_inf", "singleLR_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", 
+                     "flat_res", "singleHR_res", "singleMR_res", "singleLR_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res",
+                     "flat_shan", "singleHR_shan", "singleMR_shan", "singleLR_shan", "diff1_shan", "diff2_shan", "diff3_shan", "diff4_shan", "diff5_shan", "diff6_shan",
+                     "flat_avganti", "singleHR_avganti", "singleMR_avganti", "singleLR_avganti", "diff1_avganti", "diff2_avganti", "diff3_avganti", "diff4_avganti", "diff5_avganti", "diff6_avganti",
                      names(parms_base[c(1:28)]))
   return(output)
 }
@@ -542,7 +525,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
 
 start_time <- Sys.time()
 
-test <- mclapply(1:10, 
+test <- mclapply(1:1000, 
                  FUN = mono_func, 
                  parms_frame = parm_data_comb, 
                  init = c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
@@ -561,17 +544,17 @@ test <- mclapply(1:10,
 
 #Combine the Output into a "normal" looking dataframe
 comb_data <- data.frame(do.call(rbind, test))
-comb_data_new <- data.frame(matrix(NA, nrow = nrow(comb_data), ncol = 44))
+comb_data_new <- data.frame(matrix(NA, nrow = nrow(comb_data), ncol = 40))
 
 for(i in 1:nrow(comb_data)) {
-  comb_data_new[i,] <- unlist(comb_data[i,1:44])
+  comb_data_new[i,] <- unlist(comb_data[i,1:40])
 }
 
-colnames(comb_data_new) <- colnames(comb_data)[1:44]
+colnames(comb_data_new) <- colnames(comb_data)[1:40]
 
 #Update the Parameter Set 
 parm_data_comb_new <- parm_data_comb
-parm_data_comb_new[1:nrow(comb_data),1:26] <- comb_data[,45:70]
+parm_data_comb_new[1:nrow(comb_data),1:23] <- comb_data[,41:63]
 
 parm_list <- list()
 
@@ -581,10 +564,10 @@ for(i in 1:nrow(parm_data_comb_new)) {
   p_list <- append(p_list, parms["PED"])
   parm_list[[i]] <- p_list
 }
-
+ 
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_interpol_7rds.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_interpol_7rds.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_interpol_biasPED.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_interpol_biasPED.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)

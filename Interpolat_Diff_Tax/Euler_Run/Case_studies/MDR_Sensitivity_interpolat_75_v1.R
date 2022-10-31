@@ -156,7 +156,7 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper,
   parms[["int_round"]] <- 1
   
   #Real Model Run 
-  run_real <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma)
+  run_real <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma, method )
   return(run_real)
 }
 
@@ -177,7 +177,6 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   parms[["eff_tax"]][as.numeric(substr(low_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[low_char_1rd]/values_1rd[med_char_1rd])))
   parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/values_1rd[med_char_1rd])))
   parms[["eff_tax"]][as.numeric(substr(med_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd]/values_1rd[med_char_1rd])))
-  parms[["eff_tax"]][parms[["eff_tax"]] < 0.00001] <- 0
   
   #First Round of Diff Taxation
   
@@ -198,10 +197,15 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
         high_char <- names(values)[which.max(values)]
         med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
         
-        parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))
-        parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))
-        parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))
-        parms[["eff_tax"]][parms[["eff_tax"]] < 0.00001] <- 0
+        parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd]))))-
+                                                                                (1+parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))/
+                                                                               (1+parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))
+        parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd]))))-
+                                                                                 (1+parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))/
+                                                                                (1+parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))
+        parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd]))))-
+                                                                                (1+parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))/
+                                                                               (1+parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))
       }
       parms[["int_round"]] <- i
     }
@@ -209,6 +213,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma)
   return(out_run)
 }
+
 
 # Integral ----------------------------------------------------------------
 
@@ -294,9 +299,9 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c1 = 0.945, c2 = 0.925, c3 = 0.85,
              c12 = 0.845, c13 = 0.825, c23 = 0.75,
              c123 = 0.7,
-             PED = matrix(c(-1, 0.6, 0.6, 
-                            0.6, -1, 0.6,
-                            0.6, 0.6, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0.4, 0.4, 
+                            0.4, -1, 0.4,
+                            0.4, 0.4, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
@@ -534,7 +539,7 @@ test <- mclapply(1:1000,
                  agg_func = agg_func,
                  ode_wrapper = ode_wrapper,
                  approx_sigma = approx_sigma,
-                 thresh = 0.5,
+                 thresh = 0.75,
                  mc.cores = 10) 
 
 #Combine the Output into a "normal" looking dataframe
@@ -561,8 +566,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 }
  
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_interpol_biasPED.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_interpol_biasPED.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_interpol_75.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_interpol_75.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)
