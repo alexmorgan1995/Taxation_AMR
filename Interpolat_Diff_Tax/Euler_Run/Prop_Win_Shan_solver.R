@@ -7,9 +7,12 @@ setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/I
 # Import in Dataset -------------------------------------------------------
 
 win_import <- readRDS("MDR_run_interpol_v1.RDS")
-win_import <- readRDS("MDR_run_interpol_25.RDS")
+#win_import <- readRDS("MDR_run_interpol_25.RDS")
 #win_import <- readRDS("MDR_run_interpol_75.RDS")
 #win_import <- readRDS("MDR_run_interpol_realPED.RDS")
+
+win_import <- readRDS("MDR_run_interpol_effanti.RDS")
+#in_import <- readRDS("MDR_run_interpol_biasPED.RDS")
 
 for(i in seq_along(win_import)) {
   win_import[[i]] <- as(win_import[[i]], class(win_import[[i]][[1]]))
@@ -233,4 +236,5 @@ ggplot(melt_combdata_shanavg, aes(Interventions, variable)) + theme_bw() +
   theme(strip.background = element_blank(), axis.text=element_text(size=11),
         strip.text = element_blank(), legend.position="bottom",
         axis.text.x = element_text(angle = 45, hjust=1))
+
 

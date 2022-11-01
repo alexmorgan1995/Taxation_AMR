@@ -334,6 +334,8 @@ ggarrange(p_data[[1]], "", "",
 
 figure_run <- agg_func(multi_int_fun(6, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]])
 
+multi_int_fun(3, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[2]]
+
 m_sigma <- melt(figure_run, id.vars = "time", measure.vars = colnames(figure_run)[4:6])
 
 ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
@@ -345,3 +347,13 @@ ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minima
   labs(x = "Time", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.5), expand = c(0, 0)) + 
   scale_x_continuous(limits = c(3001,3001 + 365*3) , expand = c(0, 0.5)) +
   theme(axis.text=element_text(size=11), axis.title =element_text(size=12), axis.text.y = element_blank())
+
+ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
+  labs(x = "Time", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "Prevalence", limits = c(0,0.5), expand = c(0, 0)) + 
+  scale_x_continuous(limits = c(3001,3001 + 365*3) , expand = c(0, 0.5)) +
+  theme(axis.text=element_text(size=11), axis.title =element_text(size=12))
+
+ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
+  labs(x = "Time", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.5), expand = c(0, 0)) + 
+  scale_x_continuous(limits = c(3001 + 365*3, 3001 + (365*3)*2) , expand = c(0, 0.5)) +
+  theme(axis.text=element_text(size=11), axis.title =element_text(size=12))
