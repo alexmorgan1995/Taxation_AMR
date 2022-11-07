@@ -2,7 +2,7 @@ library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); 
 
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/New")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/New_V1")
 
 # Import in Dataset -------------------------------------------------------
 
@@ -50,7 +50,7 @@ inc_inf <- inc_inf[keep,]
 m_inf <- melt(inc_inf, measure.vars = colnames(inc_inf))
 
 box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable)) + coord_cartesian(ylim=c(-0.125, 0.175)) + 
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Increase in Infections", x = "") + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Increase in Infections (%)", x = "") + 
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_text(size=11), plot.margin = unit(c(0.35,1,0.35,1), "cm"),
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
@@ -69,7 +69,7 @@ inc_res <- win_res[,c(1:10)]
 m_res <- melt(inc_res, measure.vars = colnames(inc_res))
 
 box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable)) + coord_cartesian(ylim=c(-0.5, 1.25)) + 
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Decrease in Resistance", x = "")  + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Decrease in Resistance (%)", x = "")  + 
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_text(size=11), plot.margin = unit(c(0.35,1,0.35,1), "cm"),
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
