@@ -11,7 +11,7 @@ win_import <- readRDS("MDR_run_interpol_v1.RDS")
 #win_import <- readRDS("MDR_run_interpol_75.RDS")
 #win_import <- readRDS("MDR_run_interpol_realPED.RDS")
 
-win_import <- readRDS("MDR_run_interpol_effanti.RDS")
+#win_import <- readRDS("MDR_run_interpol_effanti.RDS")
 #in_import <- readRDS("MDR_run_interpol_biasPED.RDS")
 
 for(i in seq_along(win_import)) {

@@ -246,9 +246,9 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c12 = maps_est["c12"], c13 = maps_est["c13"], 
              c23 = maps_est["c23"],
              c123 = maps_est["c123"],
-             PED = matrix(c(-1, 0.4, 0.4, 
-                            0.4, -1, 0.4,
-                            0.4, 0.4, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0.25, 0.25, 
+                            0.25, -1, 0.25,
+                            0.25, 0.25, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
@@ -330,12 +330,54 @@ ggarrange(p_data[[1]], "", "",
                      "C", "", "",
                      "", "", ""), hjust = -.1,  nrow = 4, ncol = 3, common.legend = T, legend = "bottom")
 
+
+
+# Average Resistance and Total Infections ---------------------------------
+
+#Create a combined list of all the scenarios
+
+melt_data_infres <- list()
+
+#Melt each one
+for(i in 1:length(list_scen)) {
+  data_agg <- agg_func(list_scen[[i]]) 
+  data_agg$avgres <- rowMeans(data_agg[,4:6])
+  data_agg$totinf <- rowSums(list_scen[[i]][,3:10])
+  colnames(data_agg)[4:8] <- c("High Res (HR)", "Medium Res (MR)", "Low Res (LR)", "Average Resistance", "Total Infections") 
+  melt_data_infres[[i]] <- data.frame(melt(data_agg, id.vars = "time", measure.vars = colnames(data_agg)[7:8]),
+                               "scen" = c("flat", "single1", "single2", "single3",
+                                          "diff1", "diff2", "diff3", "diff4", "diff5", "diff6")[i])
+}
+
+p_data <- list()
+
+#Plotting Loop
+for(i in 1:length(melt_data)) {
+  data <- melt_data_infres[[i]]
+  p_data[[i]] <- ggplot(data, aes(time, value, color = variable)) + geom_line() + theme_bw() + theme(legend.position = "bottom") +
+    labs(x = "Time", y = "Prevalence", title = c("Flat Tax",
+                                                 "Single Tax (HR)","Single Tax (MR)","Single Tax (LR)",
+                                                 "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)",
+                                                 "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)")[i], color = "") +
+    theme(legend.text = element_text(size=11), 
+          axis.text=element_text(size=10), axis.title =element_text(size=9), title =element_text(size=9, face="bold"))
+}
+
+ggarrange(p_data[[1]], "", "",
+          p_data[[2]], p_data[[3]],p_data[[4]], 
+          p_data[[5]], p_data[[6]], p_data[[7]],
+          p_data[[8]], p_data[[9]], p_data[[10]],
+          labels = c("A", "", "",
+                     "B", "", "",
+                     "C", "", "",
+                     "", "", ""), hjust = -.1,  nrow = 4, ncol = 3, common.legend = T, legend = "bottom")
+
+
+
+
 # Figure ------------------------------------------------------------------
 
 figure_run <- agg_func(multi_int_fun(6, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]])
-
-multi_int_fun(3, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[2]]
-
 m_sigma <- melt(figure_run, id.vars = "time", measure.vars = colnames(figure_run)[4:6])
 
 ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
@@ -357,3 +399,77 @@ ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minima
   labs(x = "Time", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.5), expand = c(0, 0)) + 
   scale_x_continuous(limits = c(3001 + 365*3, 3001 + (365*3)*2) , expand = c(0, 0.5)) +
   theme(axis.text=element_text(size=11), axis.title =element_text(size=12))
+
+multi_int_fun(6, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[2]]
+
+
+
+#Plots for change in usage 
+
+# Plots for the change in usage -------------------------------------------
+
+#Flat Tax
+
+parms1 <- parms; parms1[["eff_tax"]][,] <- 0.5; parms1[["int_round"]] <- 1
+usage_flat <- approx_sigma(ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms1, approx_sigma)[[2]][["sigma_mat"]])
+usage_flat$usagesum <- rowSums(usage_flat[,-1])
+usage_flat_list <- list(usage_flat)
+
+#Single Tax 
+single_usage_list <- list()
+
+for(i in 1:3) {
+  parms1 <- parms
+  single_out <- approx_sigma(single_tax(i, 0.5, parms1, init, amr, agg_func, ode_wrapper, approx_sigma)[[2]][["sigma_mat"]])
+  single_out$usagesum <- rowSums(single_out[,-1]) 
+  single_usage_list[[i]] <- single_out
+}
+
+#Diff Tax
+diff_usage_list <- list()
+for(i in 1:6) {
+  diff_tax <- approx_sigma(multi_int_fun(i, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[2]][["sigma_mat"]])
+  diff_tax$usagesum <- rowSums(diff_tax[,-1]) 
+  diff_usage_list[[i]] <- diff_tax
+}
+
+#Plotting the usage 
+
+p_data_usage_list <- list()
+
+p_data_usage_list[[1]] <- ggplot(usage_flat_list[[1]], aes(time, usagesum)) + geom_line()  + theme_bw()  +
+  labs(x = "Time", y = "Prevalence", title = c("Flat Tax")) + scale_x_continuous(expand = c(0, 1)) +
+  scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+  theme(legend.text = element_text(size=11), axis.text=element_text(size=10), axis.title =element_text(size=9), title =element_text(size=9, face="bold"),
+        plot.margin =  unit(c(0.5,0.5,0.5,0.5), "cm"))
+
+for(i in 1:3) {
+  data <- single_usage_list[[i]]
+  p_data_usage_list[[i+1]]  <- ggplot(data, aes(time, usagesum)) + geom_line()  + theme_bw()  +
+    labs(x = "Time", y = "Prevalence", title = c("Single Tax (HR)","Single Tax (MR)","Single Tax (LR)")[i]) + 
+    scale_x_continuous(expand = c(0, 1)) + scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+    theme(legend.text = element_text(size=11), axis.text=element_text(size=10), axis.title =element_text(size=9), title =element_text(size=9, face="bold"),
+          plot.margin =  unit(c(0.5,0.5,0.5,0.5), "cm"))
+}
+
+for(i in 1:6) {
+  data <- diff_usage_list[[i]]
+  p_data_usage_list[[i+4]]  <- ggplot(data, aes(time, usagesum)) + geom_line()  + theme_bw()  +
+    labs(x = "Time", y = "Prevalence", title = c("Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)",
+                                                 "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)")[i]) + 
+    scale_x_continuous(expand = c(0, 1)) + scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+    theme(legend.text = element_text(size=11), axis.text=element_text(size=10), axis.title =element_text(size=9), title =element_text(size=9, face="bold"),
+          plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm"))
+}
+
+
+ggarrange(p_data_usage_list[[1]], "", "",
+          p_data_usage_list[[2]], p_data_usage_list[[3]], p_data_usage_list[[4]], 
+          p_data_usage_list[[5]], p_data_usage_list[[6]], p_data_usage_list[[7]],
+          p_data_usage_list[[8]], p_data_usage_list[[9]], p_data_usage_list[[10]],
+          labels = c("A", "", "",
+                     "B", "", "",
+                     "C", "", "",
+                     "", "", ""), hjust = -.1,  nrow = 4, ncol = 3, common.legend = T, legend = "bottom")
+
+

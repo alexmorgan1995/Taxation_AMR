@@ -2,11 +2,11 @@ library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); 
 
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/New")
 
 # Import in Dataset -------------------------------------------------------
 
-win_import_base <- readRDS("MDR_run_interpol.RDS")
+win_import_base <- readRDS("MDR_run_interpol_v1.RDS")
 win_import_base[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti")] <- NA
 win_import_base$scen <- "Baseline"
 
@@ -18,7 +18,7 @@ win_import_75 <- readRDS("MDR_run_interpol_75.RDS")
 win_import_75[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti")] <- NA
 win_import_75$scen <- "75% Threshold"
 
-win_import_2class <- readRDS("MDR_run_two.RDS")
+win_import_2class <- readRDS("MDR_run_two_v1.RDS")
 win_import_2class[c("singleMR_inf",  "singleMR_res", "singleMR_shan", "singleMR_avganti",
                     "singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti")] <- NA
 win_import_2class$scen <- "Two Classes"
