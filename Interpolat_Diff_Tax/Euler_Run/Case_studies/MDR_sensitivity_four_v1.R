@@ -517,7 +517,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
                      names(values[4:7])[which.min(values[4:7])])
   
   base_tot_inf <- signif(sum(run[3:18]), 5)
-  base_int_res <- signif(sum(rowMeans(run_base_agg[4:7]), 5))
+  base_int_res <- signif(sum(rowMeans(run_base_agg[4:7])), 5)
   
   #Need to calculate a different baseline for each scenario for antibiotic usage 
   

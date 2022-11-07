@@ -464,7 +464,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   
   #Storing info for the integrals 
   base_tot_inf <- signif(sum(run[3:10]), 5)
-  base_int_res <- signif(sum(rowMeans(run_base_agg[4:6]), 5))
+  base_int_res <- signif(sum(rowMeans(run_base_agg[4:6])), 5)
   
   #Need to calculate a different baseline for each scenario for antibiotic usage 
   store_vec_res <- c()

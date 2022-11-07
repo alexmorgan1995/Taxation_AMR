@@ -243,14 +243,13 @@ integral <- function(data, t_n, thresh){
   prop_avganti <- sum(under_50) / 7000
   
   #Output the Optimisation Criteria 
-  out_vec <- signif(c(sum(data_temp[3:10]),
-                      sum(rowMeans(data_temp[11:13])),
+  out_vec <- signif(c(mean(rowSums(data_temp[3:10])),
+                      mean(rowMeans(data_temp[11:13])),
                       prop_avganti,
                       -sum(sapply(1:length(prop_shan), function(x) prop_shan[x]*log(prop_shan[x])))), 5)
   
   return(out_vec)
 }
-
 
 # Extract Usage for Integrals -----------------------------------------------------------
 
@@ -446,8 +445,8 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
                      names(values[4:6])[which.min(values[4:6])])
   
   #Storing info for the integrals 
-  base_tot_inf <- signif(sum(run[3:10]), 5)
-  base_int_res <- signif(sum(rowMeans(run_base_agg[4:6]), 5))
+  base_tot_inf <- signif(mean(rowSums(run[3:10])), 5)
+  base_int_res <- signif(mean(rowMeans(run_base_agg[4:6])), 5)
   
   #Need to calculate a different baseline for each scenario for antibiotic usage 
   store_vec_res <- c()
@@ -480,10 +479,10 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
     data_temp <- out[out[,1] > parms[["t_n"]],]
     data_temp_agg <- agg_func(data_temp)
     
-    out_vec <- signif(c(sum(data_temp[3:10]),
-                        sum(rowMeans(data_temp_agg[4:6]))), 5)
-    
-    reduc_usage_vec <- sum(usage_fun(parms)[,6])
+    out_vec <- signif(c(mean(rowSums(data_temp[3:10])),
+                        mean(rowMeans(data_temp_agg[4:6]))), 5)
+
+    reduc_usage_vec <- mean(usage_fun(parms)[,6])
     
     #Aggregation
     out$aggR1 <- out$R1 + out$R12 + out$R13 + out$R123
@@ -566,8 +565,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 }
  
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_interpol_v1.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_interpol_v1.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_interpol_avgresinf.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_interpol_avgresinf.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)
