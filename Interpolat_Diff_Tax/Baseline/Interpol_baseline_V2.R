@@ -128,6 +128,114 @@ ode_wrapper <- function(times, y, parms, func, approx_sigma) {
   return(list(out, parms))
 }
 
+
+# Ban Function -----------------------------------------------------------
+
+ban_ode_wrapper <- function(times, y, parms, func, approx_sigma, ban) {
+  
+  sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
+                       rep(parms[["sigma2"]], 7),
+                       rep(parms[["sigma3"]], 7)), 
+                     nrow = 3, ncol = 7, byrow = T)
+  
+  if(ban >= 1 & ban <= 3)
+  
+  eff_tax <- parms[["eff_tax"]]; PED <- parms[["PED"]]
+  
+  if(parms[["int_round"]] > 0 ) {
+    for(i in 1:parms[["int_round"]]) {
+      stor_sigma <- sigma_mat[,i]
+      
+      sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
+                              stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
+                              stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,3]) + (eff_tax[3,i]*PED[3,3]))))
+      
+      
+      sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0] <- 0
+      
+      if(colSums(sigma_mat)[i+1] > 1) {
+        sigma_mat[,(i+1):7] <- sigma_mat[,i+1]/(sum(sigma_mat[,i+1])+0.01)
+      }
+    }
+  }
+  
+  parms[["sigma_mat"]] <- sigma_mat
+  
+  sigma_data <- approx_sigma(sigma_mat)
+  
+  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
+  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
+  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
+  
+  #Run the model 
+  out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
+  
+  n_data <- ncol(out)-1
+  
+  timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
+  
+  if(timing[1,1] != tail(times,1)) {
+    for(i in 1:n_data){
+      out[seq(timing[[1]]+2,tail(times,1)+1),i+1] <- timing[i,i+1]
+    }
+  }
+  out[out < 1e-10] <- 0
+  
+  return(list(out, parms))
+}
+
+# ODE Wrapper Function ----------------------------------------------------
+
+ode_wrapper <- function(times, y, parms, func, approx_sigma) {
+  
+  sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
+                       rep(parms[["sigma2"]], 7),
+                       rep(parms[["sigma3"]], 7)), 
+                     nrow = 3, ncol = 7, byrow = T)
+  eff_tax <- parms[["eff_tax"]]; PED <- parms[["PED"]]
+  
+  if(parms[["int_round"]] > 0 ) {
+    for(i in 1:parms[["int_round"]]) {
+      stor_sigma <- sigma_mat[,i]
+      
+      sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
+                              stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
+                              stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,3]) + (eff_tax[3,i]*PED[3,3]))))
+      
+      
+      sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0.01] <- 0.01
+      
+      if(colSums(sigma_mat)[i+1] > 1) {
+        sigma_mat[,(i+1):7] <- sigma_mat[,i+1]/(sum(sigma_mat[,i+1])+0.01)
+      }
+    }
+  }
+  
+  parms[["sigma_mat"]] <- sigma_mat
+  
+  sigma_data <- approx_sigma(sigma_mat)
+  
+  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
+  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
+  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
+  
+  #Run the model 
+  out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
+  
+  n_data <- ncol(out)-1
+  
+  timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
+  
+  if(timing[1,1] != tail(times,1)) {
+    for(i in 1:n_data){
+      out[seq(timing[[1]]+2,tail(times,1)+1),i+1] <- timing[i,i+1]
+    }
+  }
+  out[out < 1e-10] <- 0
+  
+  return(list(out, parms))
+}
+
 # Function to Aggregate Resistance ----------------------------------------
 
 agg_func <- function(data) {
@@ -246,9 +354,9 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c12 = maps_est["c12"], c13 = maps_est["c13"], 
              c23 = maps_est["c23"],
              c123 = maps_est["c123"],
-             PED = matrix(c(-1, 0.25, 0.25, 
-                            0.25, -1, 0.25,
-                            0.25, 0.25, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0.4, 0.4, 
+                            0.4, -1, 0.4,
+                            0.4, 0.4, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 

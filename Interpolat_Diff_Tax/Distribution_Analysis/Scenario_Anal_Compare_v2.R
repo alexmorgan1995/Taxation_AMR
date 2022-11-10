@@ -2,13 +2,17 @@ library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); 
 
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/New")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/New_V1")
 
 # Import in Dataset -------------------------------------------------------
 
 win_import_base <- readRDS("MDR_run_interpol_v1.RDS")
 win_import_base[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti")] <- NA
 win_import_base$scen <- "Baseline"
+
+win_import_biasPED <- readRDS("MDR_run_interpol_biasPED.RDS")
+win_import_biasPED[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti")] <- NA
+win_import_biasPED$scen <- "Biased PED"
 
 win_import_25 <- readRDS("MDR_run_interpol_25.RDS")
 win_import_25[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti")] <- NA
@@ -33,12 +37,13 @@ win_import_realPED$scen <- "Real PED"
 
 
 win_import_base <- win_import_base[,colnames(win_import_4class)]
+win_import_biasPED <- win_import_biasPED[,colnames(win_import_4class)]
 win_import_25 <- win_import_25[,colnames(win_import_4class)]
 win_import_75 <- win_import_75[,colnames(win_import_4class)]
 win_import_2class <- win_import_2class[,colnames(win_import_4class)]
 win_import_realPED <- win_import_realPED[,colnames(win_import_4class)]
 
-comb_imp <- rbind(win_import_base, win_import_25, win_import_75, win_import_realPED, win_import_2class, win_import_4class)
+comb_imp <- rbind(win_import_base,win_import_biasPED, win_import_25, win_import_75, win_import_realPED, win_import_2class, win_import_4class)
 
 # Altering Data Infections ------------------------------------------------
 
@@ -64,25 +69,28 @@ for(i in unique(win_inf_trans$scen)) {
   data <- win_inf_trans[win_inf_trans$scen == i,1:11]
   
   prop_win_inf <- data.frame("Infections" = colSums(data)/nrow(data),
-                             "Interventions" = as.factor(c("Flat", "Single (HR)", "Single (MR)","Single (MR2)",
-                                                           "Single (LR)", 
-                                                           "Diff (1 Rd)", "Diff (2 Rd)",
-                                                           "Diff (3 Rd)", "Diff (4 Rd)", 
-                                                           "Diff (5 Rd)", "Diff (6 Rd)")))
+                             "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR1)","ST (MR2)",
+                                                           "ST (LR)", 
+                                                           "DT (1Rd)", "DT (2Rd)",
+                                                           "DT (3Rd)", "DT (4Rd)", 
+                                                           "DT (5Rd)", "DT (6Rd)")))
   prop_win_inf$Interventions <- factor(prop_win_inf$Interventions, levels = c(prop_win_inf$Interventions))
   prop_win_inf$scen <- i
   inf_frame <- rbind(inf_frame, prop_win_inf)
 }
 
 inf_frame$scen <- factor(inf_frame$scen, levels = rev(unique(inf_frame$scen)))
+inf_frame$factor <- c(rep("Baseline", 11), rep("Other", 66))
+inf_frame$factor <- factor(inf_frame$factor, levels = unique(inf_frame$factor))
 
 inf_plot <- ggplot(inf_frame, aes(Interventions, scen)) + theme_bw() +
   geom_tile(aes(fill = Infections)) + scale_fill_distiller(palette ="Blues", direction = 1) +
+  facet_grid(factor~ ., scales  = "free_y", space = "free") +
   scale_x_discrete(name = "", expand = c(0, 0)) + ggtitle("Total Infections") +  
   theme(strip.background = element_blank(), axis.text=element_text(size=11),
         strip.text = element_blank(), legend.position="bottom",
         plot.title = element_text(face = "bold", size = 15),
-        axis.text.x = element_text(angle = 45, hjust=1)) + 
+        axis.text.x = element_text(angle = 0, hjust=0.5)) + 
   scale_y_discrete(name = "", expand = c(0, 0)) + 
   guides(fill = guide_colorbar(title = "Probability that Intervention Wins",
                                label.position = "bottom",
@@ -115,25 +123,29 @@ for(i in unique(win_res_trans$scen)) {
   data <- win_res_trans[win_res_trans$scen == i,1:11]
   
   prop_win_res <- data.frame("Resistance" = colSums(data)/nrow(data),
-                             "Interventions" = as.factor(c("Flat", "Single (HR)", "Single (MR)","Single (MR2)",
-                                                           "Single (LR)", 
-                                                           "Diff (1 Rd)", "Diff (2 Rd)",
-                                                           "Diff (3 Rd)", "Diff (4 Rd)", 
-                                                           "Diff (5 Rd)", "Diff (6 Rd)")))
+                             "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR1)","ST (MR2)",
+                                                           "ST (LR)", 
+                                                           "DT (1Rd)", "DT (2Rd)",
+                                                           "DT (3Rd)", "DT (4Rd)", 
+                                                           "DT (5Rd)", "DT (6Rd)")))
   prop_win_res$Interventions <- factor(prop_win_res$Interventions, levels = c(prop_win_res$Interventions))
   prop_win_res$scen <- i
   res_frame <- rbind(res_frame, prop_win_res)
 }
 
 res_frame$scen <- factor(res_frame$scen, levels = rev(unique(res_frame$scen)))
+res_frame$factor <- c(rep("Baseline", 11), rep("Other", 66))
+res_frame$factor <- factor(res_frame$factor, levels = unique(res_frame$factor))
+
 
 res_plot <- ggplot(res_frame, aes(Interventions, scen)) + theme_bw() +
   geom_tile(aes(fill = Resistance)) + scale_fill_distiller(palette ="Blues", direction = 1) +
+  facet_grid(factor~ ., scales  = "free_y", space = "free") +
   scale_x_discrete(name = "", expand = c(0, 0)) +  ggtitle("Average Resistance") +  
   theme(strip.background = element_blank(), axis.text=element_text(size=11),
         plot.title = element_text(face = "bold", size = 15),
         strip.text = element_blank(), legend.position="bottom",
-        axis.text.x =element_text(angle = 45, hjust=1)) + 
+        axis.text.x =element_text(angle = 0, hjust=0.5)) + 
   scale_y_discrete(name = "", expand = c(0, 0)) + 
   guides(fill = guide_colorbar(title = "Probability that Intervention Wins",
                                label.position = "bottom",
@@ -166,25 +178,28 @@ for(i in unique(win_avganti_trans$scen)) {
   data <- win_avganti_trans[win_avganti_trans$scen == i,1:11]
   
   prop_win_avganti <- data.frame("AverageAnti" = colSums(data)/nrow(data),
-                                 "Interventions" = as.factor(c("Flat", "Single (HR)", "Single (MR)","Single (MR2)",
-                                                               "Single (LR)", 
-                                                               "Diff (1 Rd)", "Diff (2 Rd)",
-                                                               "Diff (3 Rd)", "Diff (4 Rd)", 
-                                                               "Diff (5 Rd)", "Diff (6 Rd)")))
+                                 "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR1)","ST (MR2)",
+                                                               "ST (LR)", 
+                                                               "DT (1Rd)", "DT (2Rd)",
+                                                               "DT (3Rd)", "DT (4Rd)", 
+                                                               "DT (5Rd)", "DT (6Rd)")))
   prop_win_avganti$Interventions <- factor(prop_win_avganti$Interventions, levels = c(prop_win_avganti$Interventions))
   prop_win_avganti$scen <- i
   avganti_frame <- rbind(avganti_frame, prop_win_avganti)
 }
 
 avganti_frame$scen <- factor(avganti_frame$scen, levels = rev(unique(avganti_frame$scen)))
+avganti_frame$factor <- c(rep("Baseline", 11), rep("Other", 66))
+avganti_frame$factor <- factor(avganti_frame$factor, levels = unique(avganti_frame$factor))
 
 avg_anti_plot <- ggplot(avganti_frame, aes(Interventions, scen)) + theme_bw() +
   geom_tile(aes(fill = AverageAnti)) + scale_fill_distiller(palette ="Blues", direction = 1) +
+  facet_grid(factor~ ., scales  = "free_y", space = "free") +
   scale_x_discrete(name = "", expand = c(0, 0))  +  ggtitle("Average Antibiotics Available") +
   theme(strip.background = element_blank(), axis.text=element_text(size=11),
         strip.text = element_blank(), legend.position="bottom", 
         plot.title = element_text(face = "bold", size = 15),
-        axis.text.x = element_text(angle = 45, hjust=1)) + 
+        axis.text.x = element_text(angle = 0, hjust=0.5)) + 
   scale_y_discrete(name = "", expand = c(0, 0)) + 
   guides(fill = guide_colorbar(title = "Probability that Intervention Wins",
                                label.position = "bottom",
@@ -197,10 +212,8 @@ avg_anti_plot <- ggplot(avganti_frame, aes(Interventions, scen)) + theme_bw() +
 # Combination Plot --------------------------------------------------------
 
 
-ggarrange(res_plot, inf_plot,avg_anti_plot, ncol = 1, nrow = 3)
+test <- ggarrange(res_plot, inf_plot,avg_anti_plot, ncol = 1, nrow = 3)
 
-c("Flat Tax", "Single Tax (HR)", "Single Tax (MR)","Single Tax (MR2)",
-  "Single Tax (LR)", 
-  "Diff Tax (1 Round)", "Diff Tax (2 Round)",
-  "Diff Tax (3 Round)", "Diff Tax (4 Round)", 
-  "Diff Tax (5 Round)", "Diff Tax (6 Round)")
+ggsave(test, filename = "scen_compare.png", dpi = 300, width = 9.5, height = 12, units = "in",
+       path = "/Users/amorgan/Desktop")
+
