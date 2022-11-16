@@ -1,10 +1,12 @@
 library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); library("rootSolve"); library("viridis"); library("cowplot")
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/New_V1")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/New_v2")
 
 # Import in Dataset -------------------------------------------------------
 
-win_import <- readRDS("MDR_run_interpol_ban.RDS")
+win_import_change <- readRDS("MDR_run_interpol_ban_new.RDS"); win_import <- win_import_change
+win_import[win_import == -1000] <- NA
+
 
 for(i in seq_along(win_import)) {
   win_import[[i]] <- as(win_import[[i]], class(win_import[[i]][[1]]))
@@ -20,7 +22,6 @@ qqline(win_inf[,1], col = "steelblue", lwd = 2)
 
 #Resistance
 win_res <- (win_import[,14:26])
-plot(density(win_res[,1]))
 
 #Testing for Normality
 shapiro.test(win_res[,1]) #Data is significantly different from a normal distribution - it is non-normal
@@ -33,6 +34,79 @@ win_shan <- win_shan[rowSums(win_shan[, -1]) > 0, ]
 
 #Average Antibiotics
 win_avganti <- round((win_import[,40:52]), 3)
+
+# Resistance --------------------------------------------------------------
+
+inc_res <- win_res[,c(3:4, 10:13)]
+m_res <- melt(inc_res, measure.vars = colnames(inc_res))
+m_res$factors <- c(rep("Taxation", nrow(m_res)/2), rep("Ban", nrow(m_res)/2))
+m_res$factors <- factor(m_res$factors, levels = c("Taxation", "Ban"))
+
+win_res_trans <- t(apply(inc_res, 1, function(x) {
+  val = max(x, na.rm = T)
+  x[x != val] <- 0
+  x[x == val] <- 1
+  return(x)}
+))
+
+prop_vec <- data.frame("intervention" = unique(m_res$variable),
+                       "prop_inc" = NA,
+                       "95_quant" = NA)
+
+m_win_import_change <- melt(win_import_change, measure.vars = colnames(win_import_change))
+
+for(i in 1:6) {
+  prop_1000 <- win_import_change[,c(16, 17, 23, 24, 25, 26)[i]]
+  prop_vec[i,2] <- length(prop_1000[prop_1000 == -1000])/sum(!is.na(prop_1000))
+}
+
+p <- ggplot(m_res, aes(x=factor(variable), y=value)) + geom_boxplot() 
+prop_vec[,3] <- ggplot_build(p)$data[[1]]$ymax
+
+
+prop_win_res <- data.frame("Resistance" = colSums(win_res_trans, na.rm = T)/nrow(win_res_trans),
+                           "Interventions" = as.factor(c("Single Tax (MR)",
+                                                         "Single Tax (LR)", "Diff Tax (6rds)",
+                                                         "Ban (HR)", "Ban (MR)", "Ban (LR)")))
+
+prop_win_res$Interventions <- factor(prop_win_res$Interventions, levels = c(prop_win_res$Interventions))
+prop_win_res$factors <- c("Taxation","Taxation","Taxation", "Ban","Ban","Ban")
+prop_win_res$factors <- factor(prop_win_res$factors, levels = c("Taxation", "Ban"))
+
+#Win Heat Map
+win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
+  geom_tile(aes(fill = Resistance)) + 
+  facet_grid(. ~ factors, scales = "free") +
+  geom_text(aes(label=Resistance), color = "black") + 
+  scale_fill_distiller(palette ="Blues", direction = 1) +
+  scale_x_discrete(name = "", expand = c(0, 0))  +   
+  scale_y_discrete(name = "", expand = c(0, 0)) + 
+  guides(fill = guide_colorbar(title = "Probabilty that Intervention Wins",
+                               title.position = "left", title.vjust = 1,
+                               # draw border around the legend
+                               frame.colour = "black",
+                               barwidth = 15,
+                               barheight = 1)) + 
+  theme(strip.background = element_blank(), axis.text=element_text(size=11),
+        strip.text = element_blank(), legend.position="bottom",
+        axis.text.x = element_text(angle = 0, hjust=0.5), axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+        plot.margin = unit(c(0,1,0,1.75), "cm"))
+
+#Box Plot
+box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-1, 1.5)) + 
+  facet_grid(. ~ factors, scales = "free") +
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Decrease in Resistance (%)", x = "") + 
+  scale_alpha_manual(values=  prop_vec$prop_inc) +
+  theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
+        axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
+        legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+        strip.text.x = element_text(size = 11, colour = "black", face="bold")) + 
+  scale_x_discrete(labels= c("Single Tax (MR)",
+                             "Single Tax (LR)", "Diff Tax (6rds)",
+                             "Ban (HR)", "Ban (MR)", "Ban (LR)"))
+
+comb_res <- ggarrange(box_res, win_res_p, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
+
 
 # Absolute Differences ----------------------------------------------------
 
@@ -85,9 +159,10 @@ win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable)) + coord_cartesian(ylim=c(-0.25, 0.175)) + 
+box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.15, 0.225)) + 
   facet_grid(. ~ factors, scales = "free") +
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Increase in Infections (%)", x = "") + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Increase in Infections (%)", x = "") + 
+  scale_alpha_manual(values=  prop_vec$prop_inc) +
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank(),
@@ -97,63 +172,6 @@ box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable)) + coord_cart
                              "Ban (HR)", "Ban (MR)", "Ban (LR)"))
 
 comb_inf <- ggarrange(box_inf, win_inf_p, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
-
-# Resistance --------------------------------------------------------------
-
-inc_res <- win_res[,c(3:4, 10:13)]
-m_res <- melt(inc_res, measure.vars = colnames(inc_res))
-m_res$factors <- c(rep("Taxation", nrow(m_res)/2), rep("Ban", nrow(m_res)/2))
-m_res$factors <- factor(m_res$factors, levels = c("Taxation", "Ban"))
-
-inc_res[is.na(inc_res)] <- 0
-win_res_trans <- t(apply(inc_res, 1, function(x) {
-  val = max(x)
-  x[x != val] <- 0
-  x[x == val] <- 1
-  return(x)}
-))
-
-prop_win_res <- data.frame("Resistance" = colSums(win_res_trans)/nrow(win_res_trans),
-                           "Interventions" = as.factor(c("Single Tax (MR)",
-                                                         "Single Tax (LR)", "Diff Tax (6rds)",
-                                                         "Ban (HR)", "Ban (MR)", "Ban (LR)")))
-
-prop_win_res$Interventions <- factor(prop_win_res$Interventions, levels = c(prop_win_res$Interventions))
-prop_win_res$factors <- c("Taxation","Taxation","Taxation", "Ban","Ban","Ban")
-prop_win_res$factors <- factor(prop_win_res$factors, levels = c("Taxation", "Ban"))
-
-#Win Heat Map
-win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
-  geom_tile(aes(fill = Resistance)) + 
-  facet_grid(. ~ factors, scales = "free") +
-  geom_text(aes(label=Resistance), color = "black") + 
-  scale_fill_distiller(palette ="Blues", direction = 1) +
-  scale_x_discrete(name = "", expand = c(0, 0))  +   
-  scale_y_discrete(name = "", expand = c(0, 0)) + 
-  guides(fill = guide_colorbar(title = "Probabilty that Intervention Wins",
-                               title.position = "left", title.vjust = 1,
-                               # draw border around the legend
-                               frame.colour = "black",
-                               barwidth = 15,
-                               barheight = 1)) + 
-  theme(strip.background = element_blank(), axis.text=element_text(size=11),
-        strip.text = element_blank(), legend.position="bottom",
-        axis.text.x = element_text(angle = 0, hjust=0.5), axis.text.y = element_blank(), axis.ticks.y = element_blank(),
-        plot.margin = unit(c(0,1,0,1.75), "cm"))
-
-#Box Plot
-box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable)) + coord_cartesian(ylim=c(-0.75, 1.5)) + 
-  facet_grid(. ~ factors, scales = "free") +
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Decrease in Resistance (%)", x = "") + 
-  theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
-        axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
-        legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank(),
-        strip.text.x = element_text(size = 11, colour = "black", face="bold")) + 
-  scale_x_discrete(labels= c("Single Tax (MR)",
-                             "Single Tax (LR)", "Diff Tax (6rds)",
-                             "Ban (HR)", "Ban (MR)", "Ban (LR)"))
-
-comb_res <- ggarrange(box_res, win_res_p, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
 
 # Average Antibiontics Available ------------------------------------------
 
@@ -202,9 +220,10 @@ win_avganti_p <- ggplot(prop_win_avganti, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_avganti <- ggplot(m_avganti, aes(x=variable, y=value, fill = variable)) + coord_cartesian(ylim=c(-0.0001, 3)) + 
+box_avganti <- ggplot(m_avganti, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.0001, 3)) + 
   facet_grid(. ~ factors, scales = "free") +
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Average Antibiotics Available", x = "")  + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Average Antibiotics Available", x = "")  + 
+  scale_alpha_manual(values=  prop_vec$prop_inc) +
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,2), "cm"),
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank(),
@@ -263,9 +282,10 @@ win_shan_p <- ggplot(prop_win_shan, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_shan <- ggplot(m_shan, aes(x=variable, y=value, fill = variable)) + 
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Shannon's Index", x = "") + 
+box_shan <- ggplot(m_shan, aes(x=variable, y=value, fill = variable, alpha = variable)) + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Shannon's Index", x = "") + 
   facet_grid(. ~ factors, scales = "free") +
+  scale_alpha_manual(values=  prop_vec$prop_inc) +
   theme(legend.position= "right", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank(),

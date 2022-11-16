@@ -126,79 +126,6 @@ ode_wrapper <- function(times, y, parms, func, approx_sigma) {
   return(list(out, parms))
 }
 
-
-# Ban Function ------------------------------------------------------------
-
-ban_wrapper <- function(times, init, parms, func, approx_sigma, ban) {
-  
-  sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
-                       rep(parms[["sigma2"]], 7),
-                       rep(parms[["sigma3"]], 7)), 
-                     nrow = 3, ncol = 7, byrow = T)
-  ban_vec <- c(0,0,0)
-  PED <- parms[["PED"]]
-  
-  sigma_data <- approx_sigma(sigma_mat)
-  
-  
-  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
-  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
-  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
-  
-  #Run Baseline
-  run_1rd <- agg_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms)))
-  values_1rd <- tail(run_1rd, 1)[4:6]
-  
-  res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
-                     names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
-                     names(values_1rd)[which.min(values_1rd)])[ban]
-  
-  #Run the Tax Model
-  ban_vec <- c(0,0,0)
-  PED <- parms[["PED"]]
-  
-  if(ban >= 1 & ban <= 3) {
-    ban_vec[as.numeric(substr(res_order_vec, 2, 2))] <- 1
-    sigma_mat[,2:7] = c(sigma_mat[1,1]*(1 + ((ban_vec[1]*PED[1,1]) + (ban_vec[2]*PED[2,1]) + (ban_vec[3]*PED[3,1]))),
-                        sigma_mat[2,1]*(1 + ((ban_vec[1]*PED[1,2]) + (ban_vec[2]*PED[2,2]) + (ban_vec[3]*PED[3,2]))),
-                        sigma_mat[3,1]*(1 + ((ban_vec[1]*PED[1,3]) + (ban_vec[2]*PED[2,3]) + (ban_vec[3]*PED[3,3]))))
-  }
-  
-  if(ban == "all") {
-    sigma_mat[,2:7] = c(0,0,0)
-  }
-  
-  for(i in 1:7) {
-    if(colSums(sigma_mat)[i] > 1) {
-      
-      sigma_mat[,i] <- sigma_mat[,i]/(sum(sigma_mat[,i])+0.01)
-    }   
-  }
-  
-  parms[["sigma_mat"]] <- sigma_mat; sigma_data <- approx_sigma(sigma_mat)
-  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
-  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
-  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
-  
-  #Run the model 
-  parms[["int_round"]] <- 1
-  out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
-  
-  n_data <- ncol(out)-1
-  
-  timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
-  
-  if(timing[1,1] != tail(times,1)) {
-    for(i in 1:n_data){
-      out[seq(timing[[1]]+2,tail(times,1)+1),i+1] <- timing[i,i+1]
-    }
-  }
-  
-  out[out < 1e-10] <- 0
-  
-  return(list(out, parms))
-}
-
 # Function to Aggregate Resistance ----------------------------------------
 
 agg_func <- function(data) {
@@ -250,6 +177,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   parms[["eff_tax"]][as.numeric(substr(low_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[low_char_1rd]/values_1rd[med_char_1rd])))
   parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/values_1rd[med_char_1rd])))
   parms[["eff_tax"]][as.numeric(substr(med_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd]/values_1rd[med_char_1rd])))
+
   
   #First Round of Diff Taxation
   
@@ -286,6 +214,43 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma)
   return(out_run)
 }
+
+# Integral ----------------------------------------------------------------
+
+integral <- function(data, t_n, thresh){
+  
+  #Aggregate the Data into Resistance Classes
+  data$aggR1 <- data$R1 + data$R12 + data$R13 + data$R123
+  data$aggR2 <- data$R2 + data$R12 + data$R23 + data$R123
+  data$aggR3 <- data$R3 + data$R13 + data$R23 + data$R123
+  
+  #Subset the Dataframe so that only results after the intervention start
+  data_temp <- data[data[,1] > t_n,]
+  
+  #Determine the X% Thresholds that you want to be under
+  thresholds <- unlist(data[t_n-1, 11:13]* thresh)
+  under_thresh <- sweep(data[data[,1] > t_n,][,11:13], 2, thresholds)
+  
+  #Calculate the number of days you are under said threshold
+  under_50 <- c(nrow(under_thresh[under_thresh$aggR1 < 0,]), 
+                nrow(under_thresh[under_thresh$aggR2 < 0,]), 
+                nrow(under_thresh[under_thresh$aggR3 < 0,]))
+  
+  #Find the Sum and make each value proportionate to one another 
+  prop_shan <- under_50 / sum(under_50)
+  prop_shan <- prop_shan[prop_shan != 0]
+  
+  prop_avganti <- sum(under_50) / 7000
+  
+  #Output the Optimisation Criteria 
+  out_vec <- signif(c(sum(data_temp[3:10]),
+                      sum(rowMeans(data_temp[11:13])),
+                      prop_avganti,
+                      -sum(sapply(1:length(prop_shan), function(x) prop_shan[x]*log(prop_shan[x])))), 5)
+  
+  return(out_vec)
+}
+
 
 # Extract Usage for Integrals -----------------------------------------------------------
 
@@ -334,9 +299,9 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c1 = 0.945, c2 = 0.925, c3 = 0.85,
              c12 = 0.845, c13 = 0.825, c23 = 0.75,
              c123 = 0.7,
-             PED = matrix(c(-1, 0.4, 0.4, 
-                            0.4, -1, 0.4,
-                            0.4, 0.4, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0.6, 0.6, 
+                            0.6, -1, 0.6,
+                            0.6, 0.6, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
@@ -434,7 +399,7 @@ parm_data_comb <- data.frame(parm_data, t_n = 3000, int_round = 0,
 
 # Creating the Parallel Montonicity Function ------------------------------
 
-mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func, thresh, ode_wrapper, approx_sigma, ban_wrapper) {
+mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func, thresh, ode_wrapper, approx_sigma) {
   
   parms_base = as.list(parms_frame[n,])
   parms_base = append(parms_base, parms["PED"])
@@ -490,7 +455,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   store_vec_shan <- c()
   store_vec_avganti <- c()
   
-  for(i in 1:13){
+  for(i in 1:10){
     parms = parms_base
     if(i == 1) {
       parms[["eff_tax"]][,] <- parms[["base_tax"]]
@@ -510,11 +475,6 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
       diff <- multi_int_fun(i-4, 365*3, parms, init, amr_ode, agg_func, ode_wrapper, approx_sigma)
       out <- diff[[1]]
       parms <- diff[[2]]
-    }
-    if(i >= 11 & i <= 13) {
-      ban <- ban_wrapper(times = seq(0, 10000), init, parms, amr_ode, approx_sigma, ban = i-10)
-      out <- ban[[1]]
-      parms <- ban[[2]]
     }
 
     data_temp <- out[out[,1] > parms[["t_n"]],]
@@ -545,24 +505,24 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
     prop_vec_shan <- under_50 / sum(under_50)
     prop_vec_shan <- prop_vec_shan[prop_vec_shan != 0]
     
-    
-    
     #Store Computation Vectors 
+    
     if((base_int_res - out_vec[2]) < 0 & reduc_usage_vec < 0) {
       store_vec_res[i] <- -1000
     } else {
       store_vec_res[i] <- (base_int_res - out_vec[2])/reduc_usage_vec
     }
+    
     store_vec_inf[i] <- (out_vec[1] - base_tot_inf)/reduc_usage_vec
     store_vec_shan[i] <- -sum(sapply(1:length(prop_vec_shan), function(x) prop_vec_shan[x]*log(prop_vec_shan[x])))
     store_vec_avganti[i] <- prop_vec
   }
   
   output <- c(store_vec_inf, store_vec_res, store_vec_shan, store_vec_avganti, parms_base[c(1:28)])
-  names(output) <- c("flat_inf", "singleHR_inf", "singleMR_inf", "singleLR_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", "banHR_inf", "banMR_inf", "banLR_inf", 
-                     "flat_res", "singleHR_res", "singleMR_res", "singleLR_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res", "banHR_res", "banMR_res", "banLR_res", 
-                     "flat_shan", "singleHR_shan", "singleMR_shan", "singleLR_shan", "diff1_shan", "diff2_shan", "diff3_shan", "diff4_shan", "diff5_shan", "diff6_shan", "banHR_shan", "banMR_shan", "banLR_shan", 
-                     "flat_avganti", "singleHR_avganti", "singleMR_avganti", "singleLR_avganti", "diff1_avganti", "diff2_avganti", "diff3_avganti", "diff4_avganti", "diff5_avganti", "diff6_avganti", "banHR_avganti", "banMR_avganti", "banLR_avganti", 
+  names(output) <- c("flat_inf", "singleHR_inf", "singleMR_inf", "singleLR_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", 
+                     "flat_res", "singleHR_res", "singleMR_res", "singleLR_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res",
+                     "flat_shan", "singleHR_shan", "singleMR_shan", "singleLR_shan", "diff1_shan", "diff2_shan", "diff3_shan", "diff4_shan", "diff5_shan", "diff6_shan",
+                     "flat_avganti", "singleHR_avganti", "singleMR_avganti", "singleLR_avganti", "diff1_avganti", "diff2_avganti", "diff3_avganti", "diff4_avganti", "diff5_avganti", "diff6_avganti",
                      names(parms_base[c(1:28)]))
   return(output)
 }
@@ -586,22 +546,21 @@ test <- mclapply(1:1000,
                  ode_wrapper = ode_wrapper,
                  approx_sigma = approx_sigma,
                  thresh = 0.5,
-                 mc.cores = 10,
-                 ban_wrapper = ban_wrapper) 
+                 mc.cores = 10) 
 
 #Combine the Output into a "normal" looking dataframe
 comb_data <- data.frame(do.call(rbind, test))
-comb_data_new <- data.frame(matrix(NA, nrow = nrow(comb_data), ncol = 52))
+comb_data_new <- data.frame(matrix(NA, nrow = nrow(comb_data), ncol = 40))
 
 for(i in 1:nrow(comb_data)) {
-  comb_data_new[i,] <- unlist(comb_data[i,1:52])
+  comb_data_new[i,] <- unlist(comb_data[i,1:40])
 }
 
-colnames(comb_data_new) <- colnames(comb_data)[1:52]
+colnames(comb_data_new) <- colnames(comb_data)[1:40]
 
 #Update the Parameter Set 
 parm_data_comb_new <- parm_data_comb
-parm_data_comb_new[1:nrow(comb_data),1:23] <- comb_data[,53:75]
+parm_data_comb_new[1:nrow(comb_data),1:23] <- comb_data[,41:63]
 
 parm_list <- list()
 
@@ -613,8 +572,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 }
  
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_interpol_ban_new.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_interpol_ban_new.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_parms_interpol_biasPED.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_interpol_biasPED.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)
