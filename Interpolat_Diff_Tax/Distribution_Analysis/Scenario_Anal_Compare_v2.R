@@ -2,11 +2,11 @@ library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); 
 
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/New_V1")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/New_v2")
 
 # Import in Dataset -------------------------------------------------------
 
-win_import_base <- readRDS("MDR_run_interpol_v1.RDS")
+win_import_base <- readRDS("MDR_run_interpol_new.RDS")
 win_import_base[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti")] <- NA
 win_import_base$scen <- "Baseline"
 
@@ -210,7 +210,6 @@ avg_anti_plot <- ggplot(avganti_frame, aes(Interventions, scen)) + theme_bw() +
                                barheight = 1)) 
 
 # Combination Plot --------------------------------------------------------
-
 
 test <- ggarrange(res_plot, inf_plot,avg_anti_plot, ncol = 1, nrow = 3)
 
