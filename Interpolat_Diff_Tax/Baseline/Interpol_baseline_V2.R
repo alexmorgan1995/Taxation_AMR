@@ -426,18 +426,23 @@ for(i in 1:length(melt_data)) {
                                                  "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)",
                                                  "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)")[i], color = "") +
     theme(legend.text = element_text(size=11), 
-          axis.text=element_text(size=10), axis.title =element_text(size=9), title =element_text(size=9, face="bold"))
+          axis.text=element_text(size=10), axis.title =element_text(size=10), 
+          plot.title=element_text(hjust = 0.5, vjust = -8, size= 10, face="bold"),
+          plot.margin = unit(c(0.1,0.25,0.1,0.25), "cm")) +
+    scale_y_continuous(limits = c(0, 0.65))
 }
 
-ggarrange(p_data[[1]], "", "",
-          p_data[[2]], p_data[[3]],p_data[[4]], 
-          p_data[[5]], p_data[[6]], p_data[[7]],
-          p_data[[8]], p_data[[9]], p_data[[10]],
-          labels = c("A", "", "",
-                     "B", "", "",
-                     "C", "", "",
-                     "", "", ""), hjust = -.1,  nrow = 4, ncol = 3, common.legend = T, legend = "bottom")
+plots <- ggarrange(p_data[[1]], "", "",
+                   p_data[[2]], p_data[[3]],p_data[[4]], 
+                   p_data[[5]], p_data[[6]], p_data[[7]],
+                   p_data[[8]], p_data[[9]], p_data[[10]],
+                   labels = c("A", "", "",
+                              "B", "", "",
+                              "C", "", "",
+                              "", "", ""), hjust = -.1,  nrow = 4, ncol = 3, common.legend = T, legend = "bottom")
 
+ggsave(plots, filename = "base_traj.png", bg = "white", dpi = 300, width = 8, height = 10, units = "in",
+       path = "/Users/amorgan/Desktop")
 
 
 # Average Resistance and Total Infections ---------------------------------
@@ -466,12 +471,15 @@ for(i in 1:length(melt_data)) {
     labs(x = "Time", y = "Prevalence", title = c("Flat Tax",
                                                  "Single Tax (HR)","Single Tax (MR)","Single Tax (LR)",
                                                  "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)",
-                                                 "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)")[i], color = "") +
+                                                 "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)")[i], color = "")  +
     theme(legend.text = element_text(size=11), 
-          axis.text=element_text(size=10), axis.title =element_text(size=9), title =element_text(size=9, face="bold"))
+          axis.text=element_text(size=10), axis.title =element_text(size=10), 
+          plot.title=element_text(hjust = 0.5, vjust = -8, size= 10, face="bold"),
+          plot.margin = unit(c(0.1,0.25,0.1,0.25), "cm")) +
+    scale_y_continuous(limits = c(0, 1.1))
 }
 
-ggarrange(p_data[[1]], "", "",
+avg_res <- ggarrange(p_data[[1]], "", "",
           p_data[[2]], p_data[[3]],p_data[[4]], 
           p_data[[5]], p_data[[6]], p_data[[7]],
           p_data[[8]], p_data[[9]], p_data[[10]],
@@ -481,6 +489,8 @@ ggarrange(p_data[[1]], "", "",
                      "", "", ""), hjust = -.1,  nrow = 4, ncol = 3, common.legend = T, legend = "bottom")
 
 
+ggsave(avg_res, filename = "avgres_traj.png", bg = "white", dpi = 300, width = 8, height = 10, units = "in",
+       path = "/Users/amorgan/Desktop")
 
 
 # Figure ------------------------------------------------------------------
@@ -507,9 +517,6 @@ ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minima
   labs(x = "Time", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.5), expand = c(0, 0)) + 
   scale_x_continuous(limits = c(3001 + 365*3, 3001 + (365*3)*2) , expand = c(0, 0.5)) +
   theme(axis.text=element_text(size=11), axis.title =element_text(size=12))
-
-multi_int_fun(6, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[2]]
-
 
 
 #Plots for change in usage 

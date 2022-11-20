@@ -33,7 +33,7 @@ colnames(win_import_4class)[grep("MR1", colnames(win_import_4class))] <- c("sing
 
 win_import_realPED <- readRDS("MDR_run_interpol_realPED.RDS")
 win_import_realPED[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti")] <- NA
-win_import_realPED$scen <- "Real PED"
+win_import_realPED$scen <- "Realistic PED"
 
 
 win_import_base <- win_import_base[,colnames(win_import_4class)]
@@ -43,7 +43,7 @@ win_import_75 <- win_import_75[,colnames(win_import_4class)]
 win_import_2class <- win_import_2class[,colnames(win_import_4class)]
 win_import_realPED <- win_import_realPED[,colnames(win_import_4class)]
 
-comb_imp <- rbind(win_import_base,win_import_biasPED, win_import_25, win_import_75, win_import_realPED, win_import_2class, win_import_4class)
+comb_imp <- rbind(win_import_base,win_import_realPED, win_import_biasPED, win_import_25, win_import_75, win_import_2class, win_import_4class)
 
 # Altering Data Infections ------------------------------------------------
 
@@ -216,3 +216,4 @@ test <- ggarrange(res_plot, inf_plot,avg_anti_plot, ncol = 1, nrow = 3)
 ggsave(test, filename = "scen_compare.png", dpi = 300, width = 9.5, height = 12, units = "in",
        path = "/Users/amorgan/Desktop")
 
+ 

@@ -72,12 +72,16 @@ prop_win_res <- data.frame("Resistance" = colSums(win_res_trans, na.rm = T)/nrow
 prop_win_res$Interventions <- factor(prop_win_res$Interventions, levels = c(prop_win_res$Interventions))
 prop_win_res$factors <- c("Taxation","Taxation","Taxation", "Ban","Ban","Ban")
 prop_win_res$factors <- factor(prop_win_res$factors, levels = c("Taxation", "Ban"))
+prop_win_res$Color <- "black" 
+prop_win_res[prop_win_res$Resistance == max(prop_win_res$Resistance),4] <- "white"
+prop_win_res$Resistance_Dum <- factor(prop_win_res$Resistance, levels = c(prop_win_res$Resistance))
 
 #Win Heat Map
 win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
   geom_tile(aes(fill = Resistance)) + 
   facet_grid(. ~ factors, scales = "free") +
-  geom_text(aes(label=Resistance), color = "black") + 
+  geom_text(aes(label=Resistance, color = Resistance_Dum)) + 
+  scale_colour_manual(values=prop_win_res$Color) +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
@@ -86,7 +90,7 @@ win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
                                # draw border around the legend
                                frame.colour = "black",
                                barwidth = 15,
-                               barheight = 1)) + 
+                               barheight = 1), color = "none") + 
   theme(strip.background = element_blank(), axis.text=element_text(size=11),
         strip.text = element_blank(), legend.position="bottom",
         axis.text.x = element_text(angle = 0, hjust=0.5), axis.text.y = element_blank(), axis.ticks.y = element_blank(),
@@ -138,12 +142,16 @@ prop_win_inf <- data.frame("Infections" = round(colSums(win_inf_trans)/nrow(win_
 prop_win_inf$Interventions <- factor(prop_win_inf$Interventions, levels = c(prop_win_inf$Interventions))
 prop_win_inf$factors <- c("Taxation","Taxation","Taxation", "Ban","Ban","Ban")
 prop_win_inf$factors <- factor(prop_win_inf$factors, levels = c("Taxation", "Ban"))
+prop_win_inf$Color <- "black" 
+prop_win_inf[prop_win_inf$Infections == max(prop_win_inf$Infections),4] <- "white"
+prop_win_inf$Infections_Dum <- factor(prop_win_inf$Infections, levels = c(prop_win_inf$Infections))
 
 #Win Heat Map
 win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
   geom_tile(aes(fill = Infections)) + 
   facet_grid(. ~ factors, scales = "free") +
-  geom_text(aes(label=Infections), color = "black") + 
+  geom_text(aes(label=Infections, color = Infections_Dum)) + 
+  scale_colour_manual(values=prop_win_inf$Color) +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
@@ -152,7 +160,7 @@ win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
                                # draw border around the legend
                                frame.colour = "black",
                                barwidth = 15,
-                               barheight = 1)) + 
+                               barheight = 1), color = "none") + 
   theme(strip.background = element_blank(), axis.text=element_text(size=11),
         strip.text = element_blank(), legend.position="bottom",
         axis.text.x = element_text(angle = 0, hjust=0.5), axis.text.y = element_blank(), axis.ticks.y = element_blank(),
@@ -199,12 +207,16 @@ prop_win_avganti <- data.frame("Average_Anti" = round(colSums(win_avganti_trans)
 prop_win_avganti$Interventions <- factor(prop_win_avganti$Interventions, levels = c(prop_win_avganti$Interventions))
 prop_win_avganti$factors <- c("Taxation","Taxation","Taxation", "Ban","Ban","Ban")
 prop_win_avganti$factors <- factor(prop_win_avganti$factors, levels = c("Taxation", "Ban"))
+prop_win_avganti$Color <- "black" 
+prop_win_avganti[prop_win_avganti$Average_Anti == max(prop_win_avganti$Average_Anti),4] <- "white"
+prop_win_avganti$Average_Anti_Dum <- factor(prop_win_avganti$Average_Anti, levels = c(prop_win_avganti$Average_Anti))
 
 #Win Heat Map
 win_avganti_p <- ggplot(prop_win_avganti, aes(Interventions, "")) + theme_bw() +
   geom_tile(aes(fill = Average_Anti)) + 
   facet_grid(. ~ factors, scales = "free") +
-  geom_text(aes(label = Average_Anti), color = "black") + 
+  geom_text(aes(label=Average_Anti, color = Average_Anti_Dum)) + 
+  scale_colour_manual(values=prop_win_avganti$Color) +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
@@ -213,7 +225,7 @@ win_avganti_p <- ggplot(prop_win_avganti, aes(Interventions, "")) + theme_bw() +
                                # draw border around the legend
                                frame.colour = "black",
                                barwidth = 15,
-                               barheight = 1)) + 
+                               barheight = 1), color = "none") + 
   theme(strip.background = element_blank(), axis.text=element_text(size=11),
         strip.text = element_blank(), legend.position="bottom",
         axis.text.x = element_text(angle = 0, hjust=0.5), axis.text.y = element_blank(), axis.ticks.y = element_blank(),
@@ -261,12 +273,17 @@ prop_win_shan <- data.frame("Shannon_Index" = round(colSums(win_shan_trans)/nrow
 prop_win_shan$Interventions <- factor(prop_win_shan$Interventions, levels = c(prop_win_shan$Interventions))
 prop_win_shan$factors <- c("Taxation","Taxation","Taxation", "Ban","Ban","Ban")
 prop_win_shan$factors <- factor(prop_win_shan$factors, levels = c("Taxation", "Ban"))
+prop_win_shan$Color <- "black" 
+prop_win_shan[prop_win_shan$Shannon_Index == max(prop_win_shan$Shannon_Index),4] <- "white"
+prop_win_shan$Shannon_Index_Dum <- as.factor(order(prop_win_shan$Shannon_Index))
+prop_win_shan$Shannon_Index_Dum <- factor(prop_win_shan$Shannon_Index_Dum, levels = c(prop_win_shan$Shannon_Index_Dum))
 
 #Win Heat Map
 win_shan_p <- ggplot(prop_win_shan, aes(Interventions, "")) + theme_bw() +
   geom_tile(aes(fill = Shannon_Index)) + 
   facet_grid(. ~ factors, scales = "free") +
-  geom_text(aes(label = Shannon_Index), color = "black") + 
+  geom_text(aes(label=Shannon_Index, color = Shannon_Index_Dum)) + 
+  scale_colour_manual(values=prop_win_shan$Color) +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
@@ -275,7 +292,7 @@ win_shan_p <- ggplot(prop_win_shan, aes(Interventions, "")) + theme_bw() +
                                # draw border around the legend
                                frame.colour = "black",
                                barwidth = 15,
-                               barheight = 1)) + 
+                               barheight = 1), color = "none") + 
   theme(strip.background = element_blank(), axis.text=element_text(size=11),
         strip.text = element_blank(), legend.position="bottom",
         axis.text.x = element_text(angle = 0, hjust=0.5), axis.text.y = element_blank(), axis.ticks.y = element_blank(),
@@ -305,5 +322,5 @@ test <- ggarrange(comb_res, comb_inf,
 ggsave(test, filename = "test.png", dpi = 300, width = 8.75, height = 12, units = "in",
        path = "/Users/amorgan/Desktop")
 
-ggsave(comb_shan, filename = "shan_testban.png", dpi = 300, width = 9, height = 4.5, units = "in",
+ggsave(comb_shan, filename = "shan_testban.png", dpi = 300, width = 9, height = 5, units = "in",
        path = "/Users/amorgan/Desktop")
