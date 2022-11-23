@@ -4,11 +4,7 @@ setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/I
 
 # Import in Dataset -------------------------------------------------------
 
-#win_import_change <- readRDS("MDR_run_interpol_new.RDS"); win_import <- win_import_change
-#win_import_change <- readRDS("MDR_run_interpol_biasPED.RDS"); win_import <- win_import_change
-#win_import_change <- readRDS("MDR_run_interpol_realPED.RDS"); win_import <- win_import_change
-#win_import_change <- readRDS("MDR_run_interpol_25.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_interpol_75.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_four.RDS"); win_import <- win_import_change
 
 win_import[win_import == -1000] <- NA
 
@@ -17,7 +13,7 @@ for(i in seq_along(win_import)) {
 }
 
 #Infections
-win_inf <- (win_import[,1:10])
+win_inf <- (win_import[,1:11])
 plot(density(win_inf[,1]))
 
 #Testing for Normality
@@ -25,25 +21,24 @@ shapiro.test(win_inf[,1]) #Data is significantly different from a normal distrib
 qqline(win_inf[,1], col = "steelblue", lwd = 2)
 
 #Resistance
-win_res <- (win_import[,11:20])
+win_res <- (win_import[,12:22])
 
 #Testing for Normality
 shapiro.test(win_res[,1]) #Data is significantly different from a normal distribution - it is non-normal
 qqline(win_res[,1], col = "steelblue", lwd = 2)
 
 #Shannon's
-win_shan <- round((win_import[,21:30]), 3)
+win_shan <- round((win_import[,23:33]), 3)
 win_shan[is.na(win_shan)] <- 0
 win_shan <- win_shan[rowSums(win_shan[, -1]) > 0, ]
 
 #Average Antibiotics
-win_avganti <- round((win_import[,31:40]), 3)
-
+win_avganti <- round((win_import[,34:44]), 3)
 
 # Resistance --------------------------------------------------------------
 
-win_res <- (win_import[,11:20])
-inc_res <- win_res[,c(1:10)]
+win_res <- (win_import[,12:22])
+inc_res <- win_res[,c(1:11)]
 m_res <- melt(inc_res, measure.vars = colnames(inc_res))
 
 prop_vec <- data.frame("intervention" = unique(m_res$variable),
@@ -52,8 +47,8 @@ prop_vec <- data.frame("intervention" = unique(m_res$variable),
 
 m_win_import_change <- melt(win_import_change, measure.vars = colnames(win_import_change))
 
-for(i in 1:10) {
-  prop_1000 <- win_import_change[,i+10]
+for(i in 1:11) {
+  prop_1000 <- win_import_change[,i+11]
   prop_vec[i,2] <- length(prop_1000[prop_1000 == -1000])/sum(!is.na(prop_1000))
   
 }
@@ -70,7 +65,7 @@ win_res_trans <- t(apply(win_res, 1, function(x) {
 ))
 
 prop_win_res <- data.frame("Resistance" = colSums(win_res_trans, na.rm = T)/nrow(win_res_trans),
-                           "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR)",
+                           "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR1)","ST (MR2)",
                                                          "ST (LR)", 
                                                          "DT (1Rd)", "DT (2Rd)",
                                                          "DT (3Rd)", "DT (4Rd)", 
@@ -101,13 +96,13 @@ win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-1, 1.3)) + 
+box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-1.5, 2)) + 
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Decrease in Resistance (%)", x = "") + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
-  scale_x_discrete(labels= c("FT", "ST (HR)", "ST (MR)",
+  scale_x_discrete(labels= c("FT", "ST (HR)", "ST (MR1)","ST (MR2)",
                              "ST (LR)", 
                              "DT (1Rd)", "DT (2Rd)",
                              "DT (3Rd)", "DT (4Rd)", 
@@ -119,7 +114,7 @@ comb_res <- ggarrange(box_res, win_res_p, ncol =1, nrow= 2, heights = c(1, 0.6),
 
 #Infections Distribution
 
-inc_inf <- win_inf[,c(1:10)]
+inc_inf <- win_inf[,c(1:11)]
 inc_inf <- inc_inf[apply(inc_inf, 1, function(x) all(is.finite(x))), ]
 keep <- Reduce(`&`, lapply(inc_inf, function(x) x >= quantile(x, .025) 
                            & x <= quantile(x, .975)))
@@ -137,7 +132,7 @@ win_inf_trans <- t(apply(win_inf, 1, function(x) {
 ))
 
 prop_win_inf <- data.frame("Infections" = colSums(win_inf_trans)/nrow(win_inf_trans),
-                           "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR)",
+                           "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR1)","ST (MR2)",
                                                          "ST (LR)", 
                                                          "DT (1Rd)", "DT (2Rd)",
                                                          "DT (3Rd)", "DT (4Rd)", 
@@ -173,7 +168,7 @@ box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = varia
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
-  scale_x_discrete(labels= c("FT", "ST (HR)", "ST (MR)",
+  scale_x_discrete(labels= c("FT", "ST (HR)", "ST (MR1)","ST (MR2)",
                              "ST (LR)", 
                              "DT (1Rd)", "DT (2Rd)",
                              "DT (3Rd)", "DT (4Rd)", 
@@ -183,7 +178,7 @@ comb_inf <- ggarrange(box_inf, win_inf_p, ncol =1, nrow= 2, heights = c(1, 0.6),
 
 # Average Antibiontics Available ------------------------------------------
 
-inc_avganti <- win_avganti[,c(1:10)]
+inc_avganti <- win_avganti[,c(1:11)]
 m_avganti <- melt(inc_avganti, measure.vars = colnames(inc_avganti))
 
 win_avganti[is.na(win_avganti)] <- 0
@@ -198,7 +193,7 @@ win_avganti_trans <- t(apply(win_avganti, 1, function(x) {
 ))
 
 prop_win_avganti <- data.frame("Average_Anti" = round(colSums(win_avganti_trans)/nrow(win_avganti_trans),3),
-                               "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR)",
+                               "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR1)","ST (MR2)",
                                                              "ST (LR)", 
                                                              "DT (1Rd)", "DT (2Rd)",
                                                              "DT (3Rd)", "DT (4Rd)", 
@@ -234,7 +229,7 @@ box_avganti <- ggplot(m_avganti, aes(x=variable, y=value, fill = variable, alpha
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,2), "cm"),
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
-  scale_x_discrete(labels= c("FT", "ST (HR)", "ST (MR)",
+  scale_x_discrete(labels= c("FT", "ST (HR)", "ST (MR1)","ST (MR2)",
                              "ST (LR)", 
                              "DT (1Rd)", "DT (2Rd)",
                              "DT (3Rd)", "DT (4Rd)", 
@@ -244,7 +239,7 @@ comb_avg_anti <- ggarrange(box_avganti, win_avganti_p, ncol =1, nrow= 2, heights
 
 # Shannon's ---------------------------------------------------------------
 
-diff_shan <- win_shan[,c(1:10)]
+diff_shan <- win_shan[,c(1:11)]
 m_shan <- melt(diff_shan, measure.vars = colnames(diff_shan))
 
 win_shan[is.na(win_shan)] <- 0
@@ -259,7 +254,7 @@ win_shan_trans <- t(apply(win_shan, 1, function(x) {
 ))
 
 prop_win_shan <- data.frame("Shannon_Index" = round(colSums(win_shan_trans)/nrow(win_shan_trans),3),
-                            "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR)",
+                            "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR1)","ST (MR2)",
                                                           "ST (LR)", 
                                                           "DT (1Rd)", "DT (2Rd)",
                                                           "DT (3Rd)", "DT (4Rd)", 
@@ -296,7 +291,7 @@ box_shan <- ggplot(m_shan, aes(x=variable, y=value, fill = variable, alpha = var
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
-  scale_x_discrete(labels= c("FT", "ST (HR)", "ST (MR)",
+  scale_x_discrete(labels= c("FT", "ST (HR)", "ST (MR1)","ST (MR2)",
                              "ST (LR)", 
                              "DT (1Rd)", "DT (2Rd)",
                              "DT (3Rd)", "DT (4Rd)", 
