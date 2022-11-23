@@ -318,29 +318,38 @@ plot_usageres <- list()
 for(i in 1:2){
   HR_run <- single_tax(c(1,3)[i], 0.5, parms, init, amr, agg_func, ode_wrapper, approx_sigma)
   HR_run_agg <- agg_func(HR_run[[1]])
-  HR_run_agg$avgres <- rowMeans(HR_run_agg[,4:6])
-  HR_run_agg$baseline <- base_data$avgres
+  HR_run_agg$Intervention <- rowMeans(HR_run_agg[,4:6])
+  HR_run_agg$Baseline <- base_data$avgres
   HR_run_agg_m <- melt(HR_run_agg, id.vars = "time", measure.vars = colnames(HR_run_agg[,7:8]))
   
   #Resistance Decreases
   
-  p_res_diff <- ggplot(HR_run_agg_m, aes(time, value, color = variable)) + geom_line() +
-    geom_ribbon(data = HR_run_agg, aes(x = time, ymin = avgres, ymax = baseline, fill = "red", alpha = 0.5), inherit.aes = F) + 
-    scale_y_continuous(limits = c(0,1))+ theme(legend.position = "none")
+  p_res_diff <- ggplot(HR_run_agg_m, aes(time, value, color = variable)) + geom_line(size = 1.1) +
+    geom_ribbon(data = HR_run_agg, aes(x = time, ymin = Baseline, ymax = Intervention, fill = "red", alpha = 0.5), inherit.aes = F) + 
+    theme(legend.position = "bottom") + 
+    scale_y_continuous(expand = c(0,0), limits = c(0, 0.5)) + scale_x_continuous(expand = c(0,0)) + 
+    theme(legend.position = "none",  plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"), plot.background = element_rect(fill = "White")) + guides(fill="none", alpha = "none") +
+    labs(x = "Time", y = "Average Resistance", title = c("Effective Taxation", "Intervention Failure")[i], color = "")
   
   #Usage Decreases 
   
   usage_changes <- approx_sigma(HR_run[[2]][["sigma_mat"]])
-  usage_changes$baseline <- HR_run[[2]][["sigma1"]] + HR_run[[2]][["sigma2"]] + HR_run[[2]][["sigma3"]]
-  usage_changes$totusage <- rowSums(usage_changes[2:4])
+  usage_changes$Intervention <- rowSums(usage_changes[2:4])
+  usage_changes$Baseline <- HR_run[[2]][["sigma1"]] + HR_run[[2]][["sigma2"]] + HR_run[[2]][["sigma3"]]
   
   melt_usage <- melt(usage_changes, id.vars = "time", measure.vars = colnames(usage_changes)[c(5,6)])
   
-  p_usage_diff <- ggplot(melt_usage, aes(time, value, color = variable)) + geom_line() +
-    geom_ribbon(data = usage_changes, aes(x = time, ymin = totusage, ymax = baseline, fill = "red", alpha = 0.5), inherit.aes = F) + 
-    scale_y_continuous(limits = c(0,1))+ theme(legend.position = "none")
+  p_usage_diff <- ggplot(melt_usage, aes(time, value, color = variable)) + geom_line(size = 1.1) + 
+    geom_ribbon(data = usage_changes, aes(x = time, ymin = Intervention, ymax = Baseline, fill = "red", alpha = 0.5), inherit.aes = F) + 
+    scale_y_continuous(expand = c(0,0), limits = c(0.5, 1)) + scale_x_continuous(expand = c(0,0)) + 
+    theme(legend.position = "bottom",  plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"), plot.background = element_rect(fill = "White")) + guides(fill="none", alpha = "none") +
+    labs(x = "Time", y = "Overall Antibiotic Usage", color = "") 
   
-  plot_usageres[[i]] <- ggarrange(p_res_diff, p_usage_diff, ncol = 1, nrow = 2)
+  plot_usageres[[i]] <- ggarrange(p_res_diff, p_usage_diff, ncol = 1, nrow = 2, common.legend = T, legend = "bottom")
 }
 
-ggarrange(plot_usageres[[1]], plot_usageres[[2]], ncol = 2, nrow = 1)
+
+alltogether <- ggarrange(plot_usageres[[1]], plot_usageres[[2]], ncol = 2, nrow = 1) + bgcolor("white")+ border("white")
+
+ggsave(alltogether, filename = "traj_usage.png", dpi = 300, width = 7, height = 6, units = "in",
+       path = "/Users/amorgan/Desktop")

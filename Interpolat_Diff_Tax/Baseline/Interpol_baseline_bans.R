@@ -76,20 +76,6 @@ approx_sigma <- function(sigma_mat){
   return(usage)
 }
 
-
-# Aggregation Function ----------------------------------------------------
-
-agg_func <- function(data) {
-  agg_data <- data.frame("time" = data$time,
-                         "Susc" = data$X,
-                         "WT" = data$Wt, 
-                         "R1" = data$R1 + data$R12 + data$R13 + data$R123,
-                         "R2" = data$R2 + data$R12 + data$R23 + data$R123,
-                         "R3" = data$R3 + data$R13 + data$R23 + data$R123)
-  return(agg_data)
-}
-
-
 # ODE Wrapper Function ----------------------------------------------------
 
 ode_wrapper <- function(times, y, parms, func, approx_sigma) {
@@ -98,6 +84,62 @@ ode_wrapper <- function(times, y, parms, func, approx_sigma) {
                        rep(parms[["sigma2"]], 7),
                        rep(parms[["sigma3"]], 7)), 
                      nrow = 3, ncol = 7, byrow = T)
+  eff_tax <- parms[["eff_tax"]]; PED <- parms[["PED"]]
+  
+  if(parms[["int_round"]] > 0 ) {
+    for(i in 1:parms[["int_round"]]) {
+      stor_sigma <- sigma_mat[,i]
+      
+      sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
+                              stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
+                              stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,3]) + (eff_tax[3,i]*PED[3,3]))))
+      
+      
+      sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0.01] <- 0.01
+      
+      if(colSums(sigma_mat)[i+1] > 1) {
+        sigma_mat[,(i+1):7] <- sigma_mat[,i+1]/(sum(sigma_mat[,i+1])+0.01)
+      }
+    }
+  }
+  
+  parms[["sigma_mat"]] <- sigma_mat
+  
+  sigma_data <- approx_sigma(sigma_mat)
+  
+  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
+  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
+  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
+  
+  #Run the model 
+  out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
+  
+  n_data <- ncol(out)-1
+  
+  timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
+  
+  if(timing[1,1] != tail(times,1)) {
+    for(i in 1:n_data){
+      out[seq(timing[[1]]+2,tail(times,1)+1),i+1] <- timing[i,i+1]
+    }
+  }
+  out[out < 1e-10] <- 0
+  
+  return(list(out, parms))
+}
+
+
+# Ban Function -----------------------------------------------------------
+
+ban_ode_wrapper <- function(times, y, parms, func, approx_sigma, ban) {
+  
+  sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
+                       rep(parms[["sigma2"]], 7),
+                       rep(parms[["sigma3"]], 7)), 
+                     nrow = 3, ncol = 7, byrow = T)
+  
+  if(ban >= 1 & ban <= 3)
+  
   eff_tax <- parms[["eff_tax"]]; PED <- parms[["PED"]]
   
   if(parms[["int_round"]] > 0 ) {
@@ -140,6 +182,92 @@ ode_wrapper <- function(times, y, parms, func, approx_sigma) {
   out[out < 1e-10] <- 0
   
   return(list(out, parms))
+}
+
+# ODE Wrapper Function ----------------------------------------------------
+
+ode_wrapper <- function(times, y, parms, func, approx_sigma) {
+  
+  sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
+                       rep(parms[["sigma2"]], 7),
+                       rep(parms[["sigma3"]], 7)), 
+                     nrow = 3, ncol = 7, byrow = T)
+  eff_tax <- parms[["eff_tax"]]; PED <- parms[["PED"]]
+  
+  if(parms[["int_round"]] > 0 ) {
+    for(i in 1:parms[["int_round"]]) {
+      stor_sigma <- sigma_mat[,i]
+      
+      sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
+                              stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
+                              stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,3]) + (eff_tax[3,i]*PED[3,3]))))
+      
+      
+      sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0.01] <- 0.01
+      
+      if(colSums(sigma_mat)[i+1] > 1) {
+        sigma_mat[,(i+1):7] <- sigma_mat[,i+1]/(sum(sigma_mat[,i+1])+0.01)
+      }
+    }
+  }
+  
+  parms[["sigma_mat"]] <- sigma_mat
+  
+  sigma_data <- approx_sigma(sigma_mat)
+  
+  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
+  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
+  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
+  
+  #Run the model 
+  out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
+  
+  n_data <- ncol(out)-1
+  
+  timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
+  
+  if(timing[1,1] != tail(times,1)) {
+    for(i in 1:n_data){
+      out[seq(timing[[1]]+2,tail(times,1)+1),i+1] <- timing[i,i+1]
+    }
+  }
+  out[out < 1e-10] <- 0
+  
+  return(list(out, parms))
+}
+
+# Function to Aggregate Resistance ----------------------------------------
+
+agg_func <- function(data) {
+  agg_data <- data.frame("time" = data$time,
+                         "Susc" = data$X,
+                         "WT" = data$Wt, 
+                         "R1" = data$R1 + data$R12 + data$R13 + data$R123,
+                         "R2" = data$R2 + data$R12 + data$R23 + data$R123,
+                         "R3" = data$R3 + data$R13 + data$R23 + data$R123)
+  return(agg_data)
+}
+
+# Single Taxation Function ------------------------------------------------
+
+single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper, approx_sigma) {
+  
+  #First Run
+  parms[["base_tax"]] <- tax
+  
+  run_1rd <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms, approx_sigma)[[1]])
+  values_1rd <- tail(run_1rd, 1)[4:6]
+  
+  res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
+                     names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
+                     names(values_1rd)[which.min(values_1rd)])[res_order]
+  
+  parms[["eff_tax"]][as.numeric(substr(res_order_vec, 2, 2)), c(1:6)] <- as.numeric(parms[["base_tax"]])
+  parms[["int_round"]] <- 1
+  
+  #Real Model Run 
+  run_real <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma)
+  return(run_real)
 }
 
 # Dual Model --------------------------------------------------------------
@@ -196,41 +324,6 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   return(out_run)
 }
 
-
-# Extract Usage for Integrals -----------------------------------------------------------
-
-usage_fun <- function(parms){
-  
-  #In case there is no intervention
-  if(parms[["int_round"]] == 0) {
-    usage = data.frame("time" = seq(0,7000),
-                       "PopUsage1" = rep(parms[["sigma_mat"]][1,2], 7001),
-                       
-                       "PopUsage2" = rep(parms[["sigma_mat"]][2,2], 7001),
-                       
-                       "PopUsage3" = rep(parms[["sigma_mat"]][3,2], 7001))
-  }
-  
-  #Intervention
-  if(parms[["int_round"]] > 0) {
-    usage = data.frame("time" = seq(0,7000),
-                       "PopUsage1" = c(rep(parms[["sigma_mat"]][1,2] , 365*3), rep(parms[["sigma_mat"]][1,3] , 365*3), rep(parms[["sigma_mat"]][1,4] , 365*3),
-                                       rep(parms[["sigma_mat"]][1,5], 365*3), rep(parms[["sigma_mat"]][1,6] , 365*3), rep(parms[["sigma_mat"]][1,7] , (365*3)+(7001-(365*3)*6))),
-                       
-                       "PopUsage2" = c(rep(parms[["sigma_mat"]][2,2] , 365*3), rep(parms[["sigma_mat"]][2,3] , 365*3), rep(parms[["sigma_mat"]][2,4] , 365*3),
-                                       rep(parms[["sigma_mat"]][2,5], 365*3), rep(parms[["sigma_mat"]][2,6] , 365*3), rep(parms[["sigma_mat"]][2,7] , (365*3)+(7001-(365*3)*6))),
-                       
-                       "PopUsage3" = c(rep(parms[["sigma_mat"]][3,2] , 365*3), rep(parms[["sigma_mat"]][3,3] , 365*3), rep(parms[["sigma_mat"]][3,4] , 365*3),
-                                       rep(parms[["sigma_mat"]][3,5], 365*3), rep(parms[["sigma_mat"]][3,6] , 365*3), rep(parms[["sigma_mat"]][3,7] , (365*3)+(7001-(365*3)*6))))
-  }
-  
-  usage$totusage = rowSums(usage[2:4])
-  usage$reduc_use = parms[["sigma1"]] + parms[["sigma2"]] + parms[["sigma3"]] - usage$totusage
-  
-  return(usage)
-}
-
-
 # Baseline Parms ----------------------------------------------------------
 
 post_dist_names <- grep("ABC_v1_",
@@ -261,9 +354,9 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c12 = maps_est["c12"], c13 = maps_est["c13"], 
              c23 = maps_est["c23"],
              c123 = maps_est["c123"],
-             PED = matrix(c(-1, 0, 0, 
-                            0, -1, 0,
-                            0, 0, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0.4, 0.4, 
+                            0.4, -1, 0.4,
+                            0.4, 0.4, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
@@ -271,41 +364,10 @@ parms = list(lambda = 1/365*(2), int_round = 1,
                               nrow = 3, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
 
-# Run the Baseline --------------------------------------------------------
+# Intervention Scenarios --------------------------------------------------
 
-#Run Baseline
-run_base <- ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms, approx_sigma)[[1]]
-run_base_agg <- agg_func(run_base)
-values <- tail(run_base_agg, 1)
-
-run <- run_base[run_base[,1] > parms[["t_n"]],]
-run_base_agg <- run_base_agg[run_base_agg[,1] > parms[["t_n"]],]
-
-#Storing info for the integrals 
-base_tot_inf <- signif(sum(run[3:10]), 5)
-base_int_res <- signif(sum(rowMeans(run_base_agg[4:6])), 5)
-
-# Testing -----------------------------------------------------------------
-
-usage_data <- data.frame("usage" = seq(0,1, by = 0.05), "resistance" = NA)
-  
-for(i in 1:length(seq(0,1, by = 0.05))) {
-  seq(0,1, by = 0.05)
-  print(i)
-  parms[["eff_tax"]][1:3, c(1:6)] <- seq(0,1, by = 0.05)[i]
-  parms[["int_round"]] <- 1
-  out_run <- ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms, approx_sigma)
-  out_agg <- agg_func(out_run[[1]])
-  
-  data_temp <- out_agg[out_agg[,1] > parms[["t_n"]],]
-  int_res <- signif(sum(rowMeans(data_temp[4:6])), 5)
-  
-  reduc_usage_vec <- sum(usage_fun(out_run[[2]])[,6])/7000
-  usage_data[i,1] <- reduc_usage_vec
-  usage_data[i,2] <- ((base_int_res - int_res)/7000)/reduc_usage_vec
-}
-
-
-ggplot(usage_data, aes(usage, resistance)) + geom_line()
-
+test <- agg_func(single_tax(2, 1, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]])
+test$avgres <- rowMeans(test[,4:6])
+m_test <- melt(test, id.vars = "time", measure.vars = colnames(test)[4:7])
+ggplot(m_test, aes(time, value, color = variable)) + geom_line() + scale_y_continuous(limits = c(0,1))
 
