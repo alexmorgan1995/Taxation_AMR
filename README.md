@@ -2,11 +2,11 @@
 
 Repo for the R code in "Quantifying the efficacy of taxation on antibiotics to control antimicrobial resistance in food animals using mathematical modelling". 
 
-Code is seperated based on the different sections of the study. 1) Baseline Trajectory Plots (), 2) Uncertainty Analysis Model Code (), 3) ABC-SMC Model Fit () and 4) Analysis of the Distribution of Uncertainty Analysis Runs (). There is also a number of R files related to extra analysis conducted. 
+Code is seperated based on the different sections of the study. 1) Baseline Trajectory Plots (`Baseline`), 2) Uncertainty Analysis Model Code (`Euler_Run`), 3) ABC-SMC Model Fit (`Model_Fit`) and 4) Analysis of the Distribution of Uncertainty Analysis Runs (`Distribution_Analysis`). There is also a number of R files related to any extra analysis conducted (`Extra_Anal`). 
 
 ## Baseline Trajectory Plots 
 
-Seperate trajectory plots were created for the Baseline Parameter Set, Model with Two Antibiotics and Model with Four Antibiotics. 
+Seperate trajectory plots were created for the Baseline Parameter Set, Model with Two Antibiotics and Model with Four Antibiotics. These can be found in the `Baseline` folder. 
 
 ## Uncertainty Analysis 
 
@@ -24,4 +24,4 @@ A seperate .R file was used to aggregate the information from the different unce
 
 ## Model Fit 
 
-The baseline model was fitted to ensure heterogeneity across the different antibiotic classes. The ABC-SMC files can be found in the `Model_Fit` folder and can be seperated into files for the analysis of the poserior dsitribution and running the algorithm. The Model_Output folder contains the 10 generations obtained from the ABC-SMC model run. 
+The baseline model was fitted to ensure heterogeneity across the different antibiotic classes. The ABC-SMC files can be found in the `Model_Fit` folder and can be seperated into files for the analysis of the posterior dsitribution and running the algorithm. The `Model_Output` folder contains the .csv files for 10 generations obtained from the ABC-SMC model run. 
