@@ -218,8 +218,8 @@ parms = list(lambda = 1/365*(2),
              eta_rr = 0.01, 
              c1 = 0.945, c2 = 0.925, 
              c12 = 0.845, 
-             PED = matrix(c(-1, 0,
-                            0, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0.4,
+                            0.4, -1), #Be aware of this matrix
                           nrow = 2, ncol = 2, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0), 

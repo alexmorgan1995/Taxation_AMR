@@ -346,10 +346,10 @@ high_parm <- c(1/36.5*(2), #lambda
                1/2, #r_rr
                1/2, #r_rrr
                1/2, #r_t
-               3, #eta_wr
-               0.4, #eta_rw
-               0.1, #eta_rr
-               0.1, #eta_rrr
+               7, #eta_wr
+               0.3, #eta_rw
+               1, #eta_rr
+               1, #eta_rrr
                1, #c1
                1, #c2
                1, #c3

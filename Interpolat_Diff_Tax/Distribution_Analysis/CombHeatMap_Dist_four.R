@@ -1,6 +1,6 @@
 library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); library("rootSolve"); library("viridis"); library("cowplot")
 rm(list = ls())
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/New_v2")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/Bans")
 
 # Import in Dataset -------------------------------------------------------
 
@@ -41,14 +41,14 @@ win_res <- (win_import[,12:22])
 inc_res <- win_res[,c(1:11)]
 m_res <- melt(inc_res, measure.vars = colnames(inc_res))
 
-prop_vec <- data.frame("intervention" = unique(m_res$variable),
+prop_vec <- data.frame("intervention" = colnames(win_import_change[16:30]),
                        "prop_inc" = NA,
                        "95_quant" = NA )
 
 m_win_import_change <- melt(win_import_change, measure.vars = colnames(win_import_change))
 
-for(i in 1:11) {
-  prop_1000 <- win_import_change[,i+11]
+for(i in 1:15) {
+  prop_1000 <- win_import_change[,i+15]
   prop_vec[i,2] <- length(prop_1000[prop_1000 == -1000])/sum(!is.na(prop_1000))
   
 }

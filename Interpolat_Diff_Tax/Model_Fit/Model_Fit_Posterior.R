@@ -2,7 +2,7 @@ library("deSolve"); library("ggplot2"); library("plotly"); library("reshape2"); 
 
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Model_Fit/Model_Output")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Model_Fit/Model_Output/New")
 
 # Model -------------------------------------------------------------------
 
@@ -132,8 +132,7 @@ ode_wrapper <- function(times, y, parms, func, approx_sigma) {
 # Examining Posteriors ----------------------------------------------------
 
 post_dist_names <- grep("ABC_v1_",
-                        list.files("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Model_Fit/Model_Output"), value = TRUE)
-
+                        list.files("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Model_Fit/Model_Output/New"), value = TRUE)
 
 post_dist <- lapply(post_dist_names, read.csv)
 
@@ -200,5 +199,3 @@ out <- agg_func(ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms =
 out_m <- melt(out, id.vars = "time", measure.vars = colnames(out)[4:6]) 
 
 ggplot(out_m, aes(time, value, color = variable)) + geom_line()
-
-

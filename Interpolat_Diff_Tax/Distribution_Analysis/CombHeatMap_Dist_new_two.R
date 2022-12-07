@@ -306,7 +306,6 @@ test <- ggarrange(comb_res, comb_inf,
                   comb_avg_anti, labels= c("A", "B", "C"), font.label=list(color="black",size=20) ,nrow = 3, ncol = 1, align="hv",
                   heights = c(0.1, 0.1, 0.1), common.legend = T)
 
-
 ggsave(test, filename = "test_full.png", dpi = 300, width = 9, height = 12, units = "in",
        path = "/Users/amorgan/Desktop")
 

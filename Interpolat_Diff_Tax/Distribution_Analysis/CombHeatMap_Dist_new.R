@@ -4,11 +4,11 @@ setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/I
 
 # Import in Dataset -------------------------------------------------------
 
-#win_import_change <- readRDS("MDR_run_interpol_new.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_interpol_new.RDS"); win_import <- win_import_change
 #win_import_change <- readRDS("MDR_run_interpol_biasPED.RDS"); win_import <- win_import_change
 #win_import_change <- readRDS("MDR_run_interpol_realPED.RDS"); win_import <- win_import_change
 #win_import_change <- readRDS("MDR_run_interpol_25.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_interpol_75.RDS"); win_import <- win_import_change
+#win_import_change <- readRDS("MDR_run_interpol_75.RDS"); win_import <- win_import_change
 
 win_import[win_import == -1000] <- NA
 
@@ -44,6 +44,7 @@ win_avganti <- round((win_import[,31:40]), 3)
 
 win_res <- (win_import[,11:20])
 inc_res <- win_res[,c(1:10)]
+
 m_res <- melt(inc_res, measure.vars = colnames(inc_res))
 
 prop_vec <- data.frame("intervention" = unique(m_res$variable),
@@ -55,7 +56,6 @@ m_win_import_change <- melt(win_import_change, measure.vars = colnames(win_impor
 for(i in 1:10) {
   prop_1000 <- win_import_change[,i+10]
   prop_vec[i,2] <- length(prop_1000[prop_1000 == -1000])/sum(!is.na(prop_1000))
-  
 }
 
 p <- ggplot(m_res, aes(x=factor(variable), y=value)) + geom_boxplot() 
@@ -101,9 +101,9 @@ win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-1, 1.3)) + 
+box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-1, 6)) + 
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Decrease in Resistance (%)", x = "") + 
-  scale_alpha_manual(values=  prop_vec$prop_inc) +
+  scale_alpha_manual(values=  prop_vec$prop_inc) + guides(fill="none") +
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank()) + 
@@ -111,7 +111,19 @@ box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = varia
                              "ST (LR)", 
                              "DT (1Rd)", "DT (2Rd)",
                              "DT (3Rd)", "DT (4Rd)", 
-                             "DT (5Rd)", "DT (6Rd)"))
+                             "DT (5Rd)", "DT (6Rd)")) +
+  geom_signif(comparisons = list(c("singleMR_res", "flat_res"),
+                                 c("singleMR_res", "singleHR_res"),
+                                 c("singleMR_res", "singleLR_res"),
+                                 c("singleMR_res", "diff1_res"),
+                                 c("singleMR_res", "diff2_res"),
+                                 c("singleMR_res", "diff3_res"),
+                                 c("singleMR_res", "diff4_res"),
+                                 c("singleMR_res", "diff5_res"),
+                                 c("singleMR_res", "diff6_res")), 
+              map_signif_level=TRUE, show.legend = F,
+              tip_length = 0,
+              y_position = c(-32.5, -32, -31.5, -31, -30.5, -30, -29.5, -29, -28.5))
 
 comb_res <- ggarrange(box_res, win_res_p, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
 
@@ -120,10 +132,7 @@ comb_res <- ggarrange(box_res, win_res_p, ncol =1, nrow= 2, heights = c(1, 0.6),
 #Infections Distribution
 
 inc_inf <- win_inf[,c(1:10)]
-inc_inf <- inc_inf[apply(inc_inf, 1, function(x) all(is.finite(x))), ]
-keep <- Reduce(`&`, lapply(inc_inf, function(x) x >= quantile(x, .025) 
-                           & x <= quantile(x, .975)))
-inc_inf <- inc_inf[keep,]
+
 m_inf <- melt(inc_inf, measure.vars = colnames(inc_inf))
 
 #Infections Wins
@@ -167,7 +176,7 @@ win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.125, 0.175)) + 
+box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = variable)) +  coord_cartesian(ylim=c(-0.125, 4)) + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Increase in Infections (%)", x = "") + 
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
@@ -177,7 +186,19 @@ box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = varia
                              "ST (LR)", 
                              "DT (1Rd)", "DT (2Rd)",
                              "DT (3Rd)", "DT (4Rd)", 
-                             "DT (5Rd)", "DT (6Rd)"))
+                             "DT (5Rd)", "DT (6Rd)")) +
+  geom_signif(comparisons = list(c("singleLR_inf", "flat_inf"),
+                                 c("singleLR_inf", "singleHR_inf"),
+                                 c("singleLR_inf", "singleMR_inf"),
+                                 c("singleLR_inf", "diff1_inf"),
+                                 c("singleLR_inf", "diff2_inf"),
+                                 c("singleLR_inf", "diff3_inf"),
+                                 c("singleLR_inf", "diff4_inf"),
+                                 c("singleLR_inf", "diff5_inf"),
+                                 c("singleLR_inf", "diff6_inf")), 
+              map_signif_level=TRUE, show.legend = F,
+              tip_length = 0,
+              y_position = c(-33.2, -32.8, -32.4, -32, -31.6, -31.2, -30.8, -30.4, -30))
 
 comb_inf <- ggarrange(box_inf, win_inf_p, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
 

@@ -270,6 +270,80 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper,
   return(run_real)
 }
 
+
+
+# Ban Function ------------------------------------------------------------
+
+ban_wrapper <- function(times, init, parms, func, approx_sigma, ban) {
+  
+  sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
+                       rep(parms[["sigma2"]], 7),
+                       rep(parms[["sigma3"]], 7)), 
+                     nrow = 3, ncol = 7, byrow = T)
+  ban_vec <- c(0,0,0)
+  PED <- parms[["PED"]]
+  
+  sigma_data <- approx_sigma(sigma_mat)
+  
+  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
+  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
+  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
+  
+  #Run Baseline
+  run_1rd <- agg_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms)))
+  values_1rd <- tail(run_1rd, 1)[4:6]
+  
+  res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
+                     names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
+                     names(values_1rd)[which.min(values_1rd)])[ban]
+  
+  #Run the Tax Model
+  ban_vec <- c(0,0,0)
+  PED <- parms[["PED"]]
+  
+  if(ban >= 1 & ban <= 3) {
+    ban_vec[as.numeric(substr(res_order_vec, 2, 2))] <- 1
+    sigma_mat[,2:7] = c(sigma_mat[1,1]*(1 + ((ban_vec[1]*PED[1,1]) + (ban_vec[2]*PED[2,1]) + (ban_vec[3]*PED[3,1]))),
+                        sigma_mat[2,1]*(1 + ((ban_vec[1]*PED[1,2]) + (ban_vec[2]*PED[2,2]) + (ban_vec[3]*PED[3,2]))),
+                        sigma_mat[3,1]*(1 + ((ban_vec[1]*PED[1,3]) + (ban_vec[2]*PED[2,3]) + (ban_vec[3]*PED[3,3]))))
+    sigma_mat[as.numeric(substr(res_order_vec, 2, 2)),2:7] <- 0
+  }
+  
+  if(ban == "all") {
+    sigma_mat[,2:7] = c(0,0,0)
+  }
+  
+  for(i in 1:7) {
+    if(colSums(sigma_mat)[i] > 1) {
+      
+      sigma_mat[,i] <- sigma_mat[,i]/(sum(sigma_mat[,i])+0.01)
+    }   
+  }
+  
+  parms[["sigma_mat"]] <- sigma_mat; sigma_data <- approx_sigma(sigma_mat)
+  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
+  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
+  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
+  
+  #Run the model 
+  parms[["int_round"]] <- 1
+  out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
+  
+  n_data <- ncol(out)-1
+  
+  timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
+  
+  if(timing[1,1] != tail(times,1)) {
+    for(i in 1:n_data){
+      out[seq(timing[[1]]+2,tail(times,1)+1),i+1] <- timing[i,i+1]
+    }
+  }
+  
+  out[out < 1e-10] <- 0
+  
+  return(list(out, parms))
+}
+
 # Dual Model --------------------------------------------------------------
 
 multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, ode_wrapper, approx_sigma){
@@ -364,10 +438,108 @@ parms = list(lambda = 1/365*(2), int_round = 1,
                               nrow = 3, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
 
+# Baseline Model ----------------------------------------------------------
+
+parms1 <- parms
+testrun_flat <- ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms1, approx_sigma)[[1]]
+test_run_agg <- agg_func(testrun_flat) 
+
+test_run_agg$AverageRes <- rowMeans(testrun_flat[,4:6])
+test_run_agg$TotInf <- rowSums(testrun_flat[,3:10])
+
+parms1 <- parms; parms1[["eff_tax"]][,] <- 0.5; parms1[["int_round"]] <- 1
+testrun_flat <- ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms1, approx_sigma)[[1]]
+test_plot_flat <- melt(testrun_flat, id.vars = "time", measure.vars = colnames(testrun_flat)[4:6])
+ggplot(test_plot_flat, aes(time, value, color = variable)) + geom_line() + theme_bw()
+
 # Intervention Scenarios --------------------------------------------------
 
-test <- agg_func(single_tax(2, 1, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]])
-test$avgres <- rowMeans(test[,4:6])
-m_test <- melt(test, id.vars = "time", measure.vars = colnames(test)[4:7])
-ggplot(m_test, aes(time, value, color = variable)) + geom_line() + scale_y_continuous(limits = c(0,1))
+#Flat Tax
 
+parms1 <- parms; parms1[["eff_tax"]][,] <- 0.5; parms1[["int_round"]] <- 1
+testrun_flat <- list(ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms1, approx_sigma)[[1]])
+
+#Single Tax 
+single_list <- list()
+
+for(i in 1:3) {
+  parms1 <- parms
+  single_list[[i]] <- single_tax(i, 0.5, parms1, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]]
+}
+
+#Diff Tax
+diff_tax_list <- list()
+for(i in 1:6) {
+  diff_tax_list[[i]] <- multi_int_fun(i, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]]
+}
+
+#Bans
+ban_list <- list()
+for(i in 1:3) {
+  ban_list[[i]] <- ban_wrapper(times = seq(0, 10000), init, parms, amr, approx_sigma, ban = i)[[1]]
+}
+
+# Plotting the Scenarios --------------------------------------------------
+
+#Create a combined list of all the scenarios
+list_scen <- unlist(list(testrun_flat, single_list, diff_tax_list, ban_list), recursive = FALSE)
+
+melt_data <- list()
+
+#Melt each one
+for(i in 1:length(list_scen)) {
+  data_agg <- agg_func(list_scen[[i]]) 
+  colnames(data_agg)[4:6] <- c("High Res (HR)", "Medium Res (MR)", "Low Res (LR)") 
+  melt_data[[i]] <- data.frame(melt(data_agg, id.vars = "time", measure.vars = colnames(data_agg)[4:6]),
+                               "scen" = c("flat", "single1", "single2", "single3",
+                                          "diff1", "diff2", "diff3", "diff4", "diff5", "diff6",
+                                          "ban1", "ban2", "ban3")[i])
+}
+
+p_data <- list()
+
+#Plotting Loop
+for(i in 1:length(melt_data)) {
+  data <- melt_data[[i]]
+  p_data[[i]] <- ggplot(data, aes(time, value, color = variable)) + geom_line() + theme_bw() + theme(legend.position = "bottom") +
+    labs(x = "Time", y = "Prevalence", title = c("Flat Tax",
+                                                 "Single Tax (HR)","Single Tax (MR)","Single Tax (LR)",
+                                                 "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)",
+                                                 "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)",
+                                                 "Ban (HR)", "Ban (MR)", "Ban (LR)")[i], color = "") +
+    scale_y_continuous(limits = c(0,0.65), expand = c(0,0)) + scale_x_continuous(expand = c(0,0)) +
+    theme(legend.text = element_text(size=10), 
+          axis.text=element_text(size=10), axis.title =element_text(size=10), title =element_text(size=10, face="bold"),
+          plot.title=element_text(hjust=0.05, vjust=-8, size = 10), plot.margin = unit(c(0.1,0.5,0.1,0.1), "cm"))
+}
+
+test <- ggarrange(p_data[[1]], "", "",
+                  p_data[[2]], p_data[[3]],p_data[[4]], 
+                  p_data[[5]], p_data[[6]], p_data[[7]],
+                  p_data[[8]], p_data[[9]], p_data[[10]],
+                  p_data[[11]], p_data[[12]], p_data[[13]],
+                  labels = c("A", "", "",
+                             "B", "", "",
+                             "C", "", "",
+                             "", "", "",
+                             "D", "", ""), hjust = -.1,  nrow = 5, ncol = 3, common.legend = T, legend = "bottom")+ 
+  bgcolor("white") + border("white")
+
+ggsave(test, filename = "traj_plots.png", dpi = 300, width = 9, height = 10, units = "in",
+       path = "/Users/amorgan/Desktop") 
+
+# Figure ------------------------------------------------------------------
+
+figure_run <- agg_func(multi_int_fun(6, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]])
+
+m_sigma <- melt(figure_run, id.vars = "time", measure.vars = colnames(figure_run)[4:6])
+
+ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
+  labs(x = "Time", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(limits = c(0,0.5), expand = c(0, 0)) + 
+  scale_x_continuous(limits = c(0,3000) , expand = c(0.04, 0.5)) +
+  theme(axis.text=element_text(size=11),axis.title =element_text(size=12))
+
+ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
+  labs(x = "Time", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.5), expand = c(0, 0)) + 
+  scale_x_continuous(limits = c(3001,3001 + 365*3) , expand = c(0, 0.5)) +
+  theme(axis.text=element_text(size=11), axis.title =element_text(size=12), axis.text.y = element_blank())
