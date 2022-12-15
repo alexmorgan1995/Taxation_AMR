@@ -1,7 +1,7 @@
 library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr")
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Model_Fit/Model_Output")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Model_Fit/Model_Output/New")
 
 # ODEs --------------------------------------------------------------------
 
@@ -400,8 +400,8 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
 
 # Baseline Parms ----------------------------------------------------------
 
-post_dist_names <- grep("ABC_v1_",
-                        list.files("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Model_Fit/Model_Output"), value = TRUE)
+post_dist_names <- grep("ABC_v3_",
+                        list.files("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Model_Fit/Model_Output/New"), value = TRUE)
 
 post_dist <- lapply(post_dist_names, read.csv)
 
@@ -428,9 +428,9 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c12 = maps_est["c12"], c13 = maps_est["c13"], 
              c23 = maps_est["c23"],
              c123 = maps_est["c123"],
-             PED = matrix(c(-1, 0.4, 0.4, 
-                            0.4, -1, 0.4,
-                            0.4, 0.4, -1), #Be aware of this matrix
+             PED = matrix(c(-1.5, 0.75, 0.5, 
+                            0.25, -1.25, 0.75,
+                            0, 0.25, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
@@ -443,12 +443,14 @@ parms = list(lambda = 1/365*(2), int_round = 1,
 parms1 <- parms
 testrun_flat <- ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms1, approx_sigma)[[1]]
 test_run_agg <- agg_func(testrun_flat) 
+test_run_agg <- melt(test_run_agg, id.vars = "time", measure.vars = colnames(test_run_agg)[4:6])
+ggplot(test_run_agg, aes(time, value, color = variable)) + geom_line() + theme_bw()
 
 test_run_agg$AverageRes <- rowMeans(testrun_flat[,4:6])
 test_run_agg$TotInf <- rowSums(testrun_flat[,3:10])
 
 parms1 <- parms; parms1[["eff_tax"]][,] <- 0.5; parms1[["int_round"]] <- 1
-testrun_flat <- ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms1, approx_sigma)[[1]]
+testrun_flat <- agg_func(ode_wrapper(y = init, func = amr, times = seq(0, 10000), parms = parms1, approx_sigma)[[1]])
 test_plot_flat <- melt(testrun_flat, id.vars = "time", measure.vars = colnames(testrun_flat)[4:6])
 ggplot(test_plot_flat, aes(time, value, color = variable)) + geom_line() + theme_bw()
 
@@ -527,7 +529,7 @@ test <- ggarrange(p_data[[1]], "", "",
                              "D", "", ""), hjust = -.1,  nrow = 5, ncol = 3, common.legend = T, legend = "bottom")+ 
   bgcolor("white") + border("white")
 
-ggsave(test, filename = "traj_plots.png", dpi = 300, width = 9, height = 10, units = "in",
+ggsave(test, filename = "traj_plots1.png", dpi = 300, width = 9, height = 10, units = "in",
        path = "/Users/amorgan/Desktop") 
 
 # Figure ------------------------------------------------------------------

@@ -1,12 +1,15 @@
 library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); library("rootSolve"); library("viridis"); library("cowplot")
-
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/Bans")
+rm(list=ls())
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/Bans/New")
 
 # Import in Dataset -------------------------------------------------------
 
-win_import_change <- readRDS("MDR_run_ban_newparm.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_ban_bias_PED.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_ban_realPED.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_ban_realPED_Base.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_ban_realPED_75.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_ban_realPED_25.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_ban_highComp.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_ban_lowComp.RDS"); win_import <- win_import_change
+
 win_import[win_import == -1000] <- NA
 
 
@@ -104,7 +107,7 @@ win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-3.5, 3)) + 
+box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-1.75, 1.5)) + 
   facet_grid(. ~ factors, scales = "free", space = "free") +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Resistance (%)", x = "") + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
@@ -185,7 +188,7 @@ win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.25, 0.3)) + 
+box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.3, 0.4)) + 
   facet_grid(. ~ factors, scales = "free", space = "free") +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Infections (%)", x = "") + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
@@ -258,12 +261,6 @@ win_avganti_p <- ggplot(prop_win_avganti, aes(Interventions, "")) + theme_bw() +
 
 #Box Plot
 
-m_avganti$variable <- c(rep(c("FT", "ST (HR)", "ST (MR)",
-                              "ST (LR)", 
-                              "DT (1Rd)", "DT (2Rd)",
-                              "DT (3Rd)", "DT (4Rd)", 
-                              "DT (5Rd)", "DT (6Rd)",
-                              "Ban (HR)", "Ban (MR)", "Ban (LR)"), each=1000))
 
 box_avganti <- ggplot(m_avganti, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.0001, 3)) +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") +
@@ -287,9 +284,9 @@ ggsave(test, filename = "test_v1.png", dpi = 300, width = 11, height = 13, units
 
 box_avganti <- box_avganti + theme(axis.text.x = element_text(size=12)) 
 
-test1 <- ggarrange(box_res, box_inf, 
-                   box_avganti, labels= c("A", "B", "C"), font.label=list(color="black",size=20) ,nrow = 3, ncol = 1, align="v",
-                   heights = c(0.1, 0.1, 0.1), common.legend = T)
+#test1 <- ggarrange(box_res, box_inf, 
+#                   box_avganti, labels= c("A", "B", "C"), font.label=list(color="black",size=20) ,nrow = 3, ncol = 1, align="v",
+#                   heights = c(0.1, 0.1, 0.1), common.legend = T)
 
-ggsave(test, filename = "dist_compare.png", dpi = 300, width = 11, height = 13, units = "in",
-       path = "/Users/amorgan/Desktop")
+#ggsave(test, filename = "dist_compare.png", dpi = 300, width = 11, height = 13, units = "in",
+#       path = "/Users/amorgan/Desktop")

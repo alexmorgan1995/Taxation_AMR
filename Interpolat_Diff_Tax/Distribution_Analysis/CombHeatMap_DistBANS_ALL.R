@@ -64,7 +64,7 @@ p <- ggplot(m_res, aes(x=factor(variable), y=value)) + geom_boxplot()
 prop_vec[,3] <- ggplot_build(p)$data[[1]]$ymax
 
 
-prop_win_res <- data.frame("Resistance" = colSums(win_res_trans, na.rm = T)/nrow(win_res_trans),
+prop_win_res <- data.frame("Resistance" = colSums(win_res_trans, na.rm = T)/nrow(win_res_trans)*100,
                            "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR)",
                                                          "ST (LR)", 
                                                          "DT (1Rd)", "DT (2Rd)",
@@ -142,7 +142,7 @@ win_inf_trans <- t(apply(inc_inf, 1, function(x) {
   return(x)}
 ))
 
-prop_win_inf <- data.frame("Infections" = round(colSums(win_inf_trans)/nrow(win_inf_trans),3),
+prop_win_inf <- data.frame("Infections" = round(colSums(win_inf_trans)/nrow(win_inf_trans),3)*100,
                            "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR)",
                                                          "ST (LR)", 
                                                          "DT (1Rd)", "DT (2Rd)",
@@ -212,7 +212,7 @@ win_avganti_trans <- t(apply(inc_avganti, 1, function(x) {
   return(x)}
 ))
 
-prop_win_avganti <- data.frame("Average_Anti" = round(colSums(win_avganti_trans)/nrow(win_avganti_trans),3),
+prop_win_avganti <- data.frame("Average_Anti" = round(colSums(win_avganti_trans)/nrow(win_avganti_trans),3)*100,
                                "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR)",
                                                                "ST (LR)", 
                                                                "DT (1Rd)", "DT (2Rd)",
@@ -279,7 +279,7 @@ win_avganti_trans <- t(apply(inc_avganti_onlytax, 1, function(x) {
   return(x)}
 ))
 
-prop_win_avganti <- data.frame("Average_Anti" = round(colSums(win_avganti_trans)/nrow(win_avganti_trans),3),
+prop_win_avganti <- data.frame("Average_Anti" = round(colSums(win_avganti_trans)/nrow(win_avganti_trans),3)*100,
                                "Interventions" = as.factor(c("FT", "ST (HR)", "ST (MR)",
                                                              "ST (LR)", 
                                                              "DT (1Rd)", "DT (2Rd)",
@@ -320,7 +320,6 @@ box_avganti_onlytax <- ggplot(m_avganti, aes(x=variable, y=value, fill = variabl
 
 comb_avg_anti_tax <- ggarrange(box_avganti_onlytax,win_avganti_p_onlytax, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
 
-
 # Combine the Plots Together ----------------------------------------------
 
 test <- ggarrange(comb_res, comb_inf, 
@@ -328,4 +327,4 @@ test <- ggarrange(comb_res, comb_inf,
           heights = c(0.1, 0.1, 0.1), common.legend = T)
 
 ggsave(test, filename = "test_v1.png", dpi = 300, width = 11, height = 13, units = "in",
-       path = "/Users/amorgan/Desktop")
+       path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures")

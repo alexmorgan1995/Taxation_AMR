@@ -131,7 +131,7 @@ ode_wrapper <- function(times, y, parms, func, approx_sigma) {
 
 # Examining Posteriors ----------------------------------------------------
 
-post_dist_names <- grep("ABC_v1_",
+post_dist_names <- grep("ABC_v3_",
                         list.files("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Model_Fit/Model_Output/New"), value = TRUE)
 
 
@@ -183,7 +183,8 @@ init <- c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
           R12 = 0, R13 = 0, R23 = 0,
           R123 = 0)
 
-test <- c(post_dist[post_dist$gen == "gen_10",][784,])
+test <- colMeans(post_dist[post_dist$gen == tail(unique(post_dist$gen),1),][,1:11])
+
 #test <- maps_est[,2]
 #names(test) <- maps_est[,1]
 
