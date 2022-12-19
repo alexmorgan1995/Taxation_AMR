@@ -1,0 +1,45 @@
+﻿Name,Class,Active Ingredient,Solution or Tablet,Rx/OTC,Size (mL),mg/mL,mg/Purchase,Scale to get to Kg,Price ($),Price per Kilo ($),Average Price ($),Total Sales (kg),Total Revenue for 2021 ($)
+Noromycin,Tetracyclines,Oxytetracycline,Solution,Rx,500,300,150000,6.666666667,94.99,633.2666667,,,
+Liquamycin,Tetracyclines,Oxytetracycline,Solution,Rx,500,200,100000,10,78.99,789.9,,,
+Duramycin,Tetracyclines,Oxytetracycline,Solution,Rx,500,200,100000,10,41.99,419.9,,,
+Bio-Mycin,Tetracyclines,Oxytetracycline,Solution,Rx,500,200,100000,10,66.49,664.9,,,
+OxyTet,Tetracyclines,Oxytetracycline,Solution,Rx,500,100,50000,20,30.99,619.8,,,
+Terramycin,Tetracyclines,Oxytetracycline,Tablet,Rx,100 Tablets,250,25000,40,89.99,3599.6,1121.227778,3916864,4391696719
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+NuFlor,Amphenicols,Florfenicol,Solution,Rx,500,300,150000,6.666666667,339.99,2266.6,,,
+Resflor,Amphenicols,Florfenicol,Solution,Rx,100,300,30000,33.33333333,91.99,3066.333333,,,
+Norfenicol,Amphenicols,Florfenicol,Solution,Rx,500,300,150000,6.666666667,356.99,2379.933333,,,
+LonCor,Amphenicols,Florfenicol,Solution,Rx,500,300,150000,6.666666667,344.59,2297.266667,2502.533333,52976,132574205.9
+,,,,,,,,,,,,,
+Penicillin,Penicillins,Penicillin G,Solution,Rx,500,180,90000,11.11111111,42.95,477.2222222,,,
+CombiPen,Penicillins,Penicillin G,Solution,Rx,250,180,45000,22.22222222,28.69,637.5555556,,,
+DuraPen,Penicillins,Penicillin G,Solution,Rx,250,180,45000,22.22222222,27.49,610.8888889,,,
+ProPen,Penicillins,Penicillin G,Solution,Rx,500,180,90000,11.11111111,36.99,411,534.1666667,619840,331097866.7
+,,,,,,,,,,,,,
+Today,Cephalosporins,Cephapirin sodium,Solution,Rx,12x10ml Syringe,20,2400,416.6666667,53.49,22287.5,,,
+Tomorrow,Cephalosporins,Cephapirin Benzathine,Solution,Rx,12x10ml Syringe,30,3600,277.7777778,42.99,11941.66667,,,
+Excede (Swine),Cephalosporins,Ceftiofur,Solution,Rx,100,100,10000,100,135.95,13595,,,
+Excede (Cattle),Cephalosporins,Ceftiofur,Solution,Rx,250,200,50000,20,568.99,11379.8,,,
+Excenel,Cephalosporins,Ceftiofur,Solution,Rx,50,250,12500,80,184.95,14796,,,
+Naxcel,Cephalosporins,Ceftiofur,Powder,Rx,1 grams,NA,1000,1000,39.79,39790,18964.99444,26999,512035885
+,,,,,,,,,,,,,
+SulfaMed,Sulfonamides,Sulfadimethoxine,Solution,Rx,250,400,100000,10,33.99,339.9,,,
+SMZ TMP,Sulfonamides,Sulfamethoxazole and trimethoprim,Solution,Rx,473.176,40,18927.04,52.83446329,59.95,3167.426074,,,
+Di-Methox,Sulfonamides,Sulfadimethoxine,Solution,Rx,3800,126,478800,2.08855472,74.95,156.5371763,1221.28775,301691,368451522.6
+,,,,,,,,,,,,,
+Tylan,Macrolides,Tylosin,Solution,Rx,500,200,100000,10,79.99,799.9,,,
+Macrosyn,Macrolides,Tulathromycin,Solution,Rx,500,100,50000,20,868.99,17379.8,,,
+Zactran,Macrolides,Gamithromycin,Solution,Rx,250,150,37500,26.66666667,445.99,11893.06667,,,
+Increxxa,Macrolides,Tulathromycin,Solution,Rx,250,100,25000,40,513.99,20559.6,,,
+Draxxin,Macrolides,Tulathromycin,Solution,Rx,250,100,25000,40,895.99,35839.6,,,
+Zuprevo,Macrolides,Tildipirosin,Solution,Rx,250,180,45000,22.22222222,1176.2,26137.77778,,,
+Tulissin,Macrolides,Tulathromycin,Solution,Rx,500,100,50000,20,1142.99,22859.8,19352.79206,524188,10144501366
+,,,,,,,,,,,,,
+Gentamicin,Aminoglycosides,Gentamicin Sulfate,Solution,OTC,250,5,1250,800,16.99,13592,13592,339109,4609169528
+,,,,,,,,,,,,,
+Baytril,Quinolones,Enrofloxacin,Solution,Rx,250,100,25000,40,145.99,5839.6,,,
+Enroflox,Quinolones,Enrofloxacin,Solution,Rx,250,100,25000,40,119.95,4798,5318.8,24383,129688300.4
+,,,,,,,,,,,,,
+LincoMed,Lincosamide,Lincomycin hydrochloride,Solution,Rx,100,300,30000,33.33333333,22.99,766.3333333,766.3333333,177700,136177433.3
+,,,,,,,,,,,,,$20'755'392'826.64

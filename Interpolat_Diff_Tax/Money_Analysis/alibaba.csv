@@ -1,0 +1,36 @@
+,code,Chinese.name.searched.on.Alibaba,price_1,price_2,price_3,average,num_hits,antibiotic,percentage effective,number surveys
+1,AMP,____,380,260,180,273.3333,68,Ampicillin,0,74
+2,CHL,___,185,230,270,228.3333,330,Chloramphenicol,6,65
+3,CIP,____,190,160,180,176.6667,81,Ciprofloxacin,18,97
+4,TET,___,170,180,180,176.6667,313,Tetracycline,6,104
+5,SXT,___,145,220,210,191.6667,237,Sulfamethoxazole-Trimethoprim,3,66
+6,AMX,____,205,100,200,168.3333,295,Amoxicillin,0,20
+7,SMN,_______,315,210,295,273.3333,261,Sulfamonomethoxine,0,7
+8,SMZ,_____,180,128,100,136,177,Sulfamethoxazole,0,6
+9,NAL,___,NA,NA,NA,NA,20,Nalidixic acid,5,43
+10,TMP,____,118,245,190,184.3333,333,Trimethoprim,0,7
+11,SUD,____,140,160,200,166.6667,542,Sulfadiazine,0,3
+12,SOX,_____,NA,NA,NA,NA,26,Sulfafurazole/Sulfisoxazole,8,24
+13,CTX,____,600,520,500,540,122,Cefotaxime,16,32
+14,CAZ,____,900,1100,1000,1000,38,Ceftazidime,29,21
+15,GEN,____,360,850,680,630,323,Gentamicin,25,109
+16,CRO,_____,500,420,380,433.3333,69,Ceftriaxone,36,33
+17,CST,___,420,140,100,220,216,Colistin,72,25
+18,IPM,____,NA,NA,NA,NA,0,Imipenem,86,21
+19,TIG,____,400,300,NA,350,7,Tigecycline,89,9
+20,FOX,____,500,NA,NA,500,14,Cefoxitin,48,29
+22,AZM,____,709,950,700,786.3333,25,Azithromycin,50,4
+23,FEP,____,NA,NA,NA,NA,12,Cefepime,40,10
+24,SSS,__,NA,NA,NA,NA,2426,Sulphonamides,NA,NA
+25,VAN,____,6000,6000,5500,5833.3333,117,Vancomycin,100,6
+26,STR,___,220,180,190,196.6667,348,Streptomycin,50,4
+27,MEM,____,NA,NA,NA,NA,16,Meropenem,79,14
+28,NIT,____,600,NA,NA,600,20,Nitrofurantoin,33,3
+29,ERY,___,480,550,440,490,361,Erythromycin,30,30
+30,CLI,____,490,298,330,372.6667,93,Clindamycin,26,27
+31,GEN,____,360,850,680,630,184,Gentamicin,25,109
+32,TMP,____,118,205,200,174.3333,216,Trimethoprim,0,7
+33,DOX,____,530,380,520,476.6667,425,Doxycycline,20,10
+34,PEN,___,130,110,120,120,886,Penicillin,10,10
+35,OXA,____,600,580,600,593.3333,10,Oxacillin,0,8
+36,RIF,___,360,800,960,706.6667,22,Rifampicin,50,2

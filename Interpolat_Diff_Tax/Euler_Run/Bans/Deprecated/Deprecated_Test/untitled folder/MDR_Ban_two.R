@@ -42,14 +42,14 @@ amr <- function(t, y, parms) {
 
 approx_sigma <- function(sigma_mat){
   
-  usage = data.frame("time" = seq(0,10300),
+  usage = data.frame("time" = seq(0,10000),
                      "PopUsage1" = c(rep(sigma_mat[1,1], 3000),
                                      rep(sigma_mat[1,2], 365*3), rep(sigma_mat[1,3], 365*3), rep(sigma_mat[1,4], 365*3),
-                                     rep(sigma_mat[1,5], 365*3), rep(sigma_mat[1,6], 365*3), rep(sigma_mat[1,7], 10301 - (3000 + (365*3)*5))),
+                                     rep(sigma_mat[1,5], 365*3), rep(sigma_mat[1,6], 365*3), rep(sigma_mat[1,7], 10001 - (3000 + (365*3)*5))),
                      
                      "PopUsage2" = c(rep(sigma_mat[2,1], 3000),
                                      rep(sigma_mat[2,2], 365*3), rep(sigma_mat[2,3], 365*3), rep(sigma_mat[2,4], 365*3),
-                                     rep(sigma_mat[2,5], 365*3), rep(sigma_mat[2,6], 365*3), rep(sigma_mat[2,7], 10301 - (3000 + (365*3)*5))))
+                                     rep(sigma_mat[2,5], 365*3), rep(sigma_mat[2,6], 365*3), rep(sigma_mat[2,7], 10001 - (3000 + (365*3)*5))))
                      
   return(usage)
 }
@@ -158,7 +158,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
       parms[["int_round"]] <- i
     }
   }
-  out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10300), parms = parms, approx_sigma)
+  out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma)
   return(out_run)
 }
 
@@ -179,7 +179,7 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper,
   parms[["int_round"]] <- 1
   
   #Real Model Run 
-  run_real <- ode_wrapper(y = init, func = func, times = seq(0, 10300), parms = parms, approx_sigma)
+  run_real <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma)
   return(run_real)
 }
 
@@ -189,17 +189,17 @@ usage_fun <- function(parms){
   
   #In case there is no intervention
   if(parms[["int_round"]] == 0) {
-    usage = data.frame("time" = seq(0,7300),
-                       "PopUsage1" = rep(parms[["sigma_mat"]][1,2], 7301),
-                       "PopUsage2" = rep(parms[["sigma_mat"]][2,2], 7301))
+    usage = data.frame("time" = seq(0,7000),
+                       "PopUsage1" = rep(parms[["sigma_mat"]][1,2], 7001),
+                       "PopUsage2" = rep(parms[["sigma_mat"]][2,2], 7001))
   }
   #Intervention
   if(parms[["int_round"]] > 0) {
-    usage = data.frame("time" = seq(0,7300),
+    usage = data.frame("time" = seq(0,7000),
                        "PopUsage1" = c(rep(parms[["sigma_mat"]][1,2] , 365*3), rep(parms[["sigma_mat"]][1,3] , 365*3), rep(parms[["sigma_mat"]][1,4] , 365*3),
-                                       rep(parms[["sigma_mat"]][1,5], 365*3), rep(parms[["sigma_mat"]][1,6] , 365*3), rep(parms[["sigma_mat"]][1,7] , (365*3)+(7301-(365*3)*6))),
+                                       rep(parms[["sigma_mat"]][1,5], 365*3), rep(parms[["sigma_mat"]][1,6] , 365*3), rep(parms[["sigma_mat"]][1,7] , (365*3)+(7001-(365*3)*6))),
                        "PopUsage2" = c(rep(parms[["sigma_mat"]][2,2] , 365*3), rep(parms[["sigma_mat"]][2,3] , 365*3), rep(parms[["sigma_mat"]][2,4] , 365*3),
-                                       rep(parms[["sigma_mat"]][2,5], 365*3), rep(parms[["sigma_mat"]][2,6] , 365*3), rep(parms[["sigma_mat"]][2,7] , (365*3)+(7301-(365*3)*6))))
+                                       rep(parms[["sigma_mat"]][2,5], 365*3), rep(parms[["sigma_mat"]][2,6] , 365*3), rep(parms[["sigma_mat"]][2,7] , (365*3)+(7001-(365*3)*6))))
   }
   usage$totusage = rowSums(usage[2:3])
   usage$reduc_use = parms[["sigma1"]] + parms[["sigma2"]] - usage$totusage
@@ -289,7 +289,7 @@ parms = list(lambda = 1/365*(2),
              c1 = 0.95636319, c2 = 0.90284600, 
              c12 = 0.62569857, 
              PED = matrix(c(-1.5, 0.5,
-                            0.25, -1), #Be aware of this matrix
+                            0, -1), #Be aware of this matrix
                           nrow = 2, ncol = 2, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0), 
@@ -376,7 +376,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   parms_base = append(parms_base, parms["sigma_mat"])
   
   #Run Baseline
-  run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10300), parms = parms_base, approx_sigma)[[1]]
+  run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, approx_sigma)[[1]]
   run_base_agg <- agg_func(run_base)
   values <- tail(run_base_agg, 1)
   
@@ -394,7 +394,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
         as.list(sample(sort(as.numeric(parms_base[c("c1", "c2", "c12")]), decreasing = T)[1:2]), size = 3, replace = F)
       parms_base["c123"] <- as.list(sort(as.numeric(parms_base[c("c1", "c2", "c12")]), decreasing = T)[3])
       
-      run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10300), parms = parms_base, approx_sigma)[[1]]
+      run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms_base, approx_sigma)[[1]]
       run_base_agg <- agg_func(run_base)
       values <- tail(run_base_agg, 1)
     }
@@ -422,14 +422,14 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
     if(i == 1) {
       parms[["eff_tax"]][,] <- parms[["base_tax"]]
       parms[["int_round"]] <- 1
-      out_run <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10300), parms = parms, approx_sigma)
+      out_run <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, approx_sigma)
       out <- out_run[[1]]
       parms <- out_run[[2]]
     }
     if(i >= 2 & i <= 3) {
       parms[["eff_tax"]][as.numeric(substr(res_order_vec[i-1], 2, 2)), c(1:6)] <- parms[["base_tax"]]
       parms[["int_round"]] <- 1
-      out_run <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10300), parms = parms, approx_sigma)
+      out_run <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10000), parms = parms, approx_sigma)
       out <- out_run[[1]]
       parms <- out_run[[2]]
     }
@@ -439,7 +439,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
       parms <- diff[[2]]
     }
     if(i >= 10 & i <= 11) {
-      ban <- ban_wrapper(times = seq(0, 10300), init, parms, amr_ode, approx_sigma, ban = i-9)
+      ban <- ban_wrapper(times = seq(0, 10000), init, parms, amr_ode, approx_sigma, ban = i-9)
       out <- ban[[1]]
       parms <- ban[[2]]
     }
@@ -464,7 +464,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
                   nrow(under_thresh[under_thresh$aggR2 < 0,]))
     
     #Find the Sum and make each value proportionate to one another 
-    prop_vec <- sum(under_50) / (10300 - parms[["t_n"]])
+    prop_vec <- sum(under_50) / (10000 - parms[["t_n"]])
     
     prop_vec_shan <- under_50 / sum(under_50)
     prop_vec_shan <- prop_vec_shan[prop_vec_shan != 0]
@@ -480,12 +480,12 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
     store_vec_avganti[i] <- prop_vec
   }
   
-  output <- c(store_vec_inf, store_vec_res, store_vec_shan, store_vec_avganti, parms_base[c(1:21)])
+  output <- c(store_vec_inf, store_vec_res, store_vec_shan, store_vec_avganti, parms_base[c(1:22)])
   names(output) <- c("flat_inf", "singleHR_inf", "singleLR_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", "banHR_inf", "banLR_inf", 
                      "flat_res", "singleHR_res", "singleLR_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res", "banHR_res", "banLR_res", 
                      "flat_shan", "singleHR_shan", "singleLR_shan", "diff1_shan", "diff2_shan", "diff3_shan", "diff4_shan", "diff5_shan", "diff6_shan", "banHR_shan",  "banLR_shan", 
                      "flat_avganti", "singleHR_avganti", "singleLR_avganti", "diff1_avganti", "diff2_avganti", "diff3_avganti", "diff4_avganti", "diff5_avganti", "diff6_avganti", "banHR_avganti", "banLR_avganti", 
-                     names(parms_base[c(1:21)]))
+                     names(parms_base[c(1:22)]))
   return(output)
 }
 

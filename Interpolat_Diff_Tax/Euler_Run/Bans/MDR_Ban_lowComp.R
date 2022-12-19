@@ -334,9 +334,9 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c1 = 0.95636319, c2 = 0.90284600, c3 = 0.66383335,
              c12 = 0.62569857, c13 = 0.59669175, c23 = 0.56935615,
              c123 = 0.54109666,
-             PED = matrix(c(-1, 0.6, 0.6, 
-                            0.6, -1, 0.6,
-                            0.6, 0.6, -1), #Be aware of this matrix
+             PED = matrix(c(-1, 0.4, 0.4, 
+                            0.4, -1, 0.4,
+                            0.4, 0.4, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
@@ -611,8 +611,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 }
  
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_parms_highComp.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_highComp.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_parms_lowComp.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_lowComp.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)
