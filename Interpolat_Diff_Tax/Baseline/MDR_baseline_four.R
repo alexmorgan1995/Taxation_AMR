@@ -227,7 +227,8 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   
   parms[["eff_tax"]][as.numeric(substr(med_char_1rd[1], 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd][1]/med_char_val)))
   parms[["eff_tax"]][as.numeric(substr(med_char_1rd[2], 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd][2]/med_char_val)))
-  parms[["eff_tax"]][parms[["eff_tax"]] < 0.00001] <- 0
+  
+  parms[["actual_tax"]][,1:6] <- parms[["eff_tax"]][,1]
   
   #First Round of Diff Taxation
   
@@ -238,32 +239,48 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
     for(i in 2:int_gen) {
       parms[["int_round"]] <- i-1
       run <- agg_func(ode_wrapper(y = init, func = func, times = seq(0, parms[["t_n"]] + (parms[["time_between"]]*(i-1))), parms = parms, approx_sigma)[[1]])
-
+      
       values <- tail(run, 1)[4:7]
       
       if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
-        parms[["eff_tax"]][,i] <- 0
+        parms[["eff_tax"]][,i:6] <- 0; parms[["actual_tax"]][,i:6] <- 0
       } else {
         
         low_char <- names(values)[which.min(values)]
         high_char <- names(values)[which.max(values)]
         med_char <- names(values)[setdiff(1:4, c(which.min(values), which.max(values)))]
-        med_char_val <- mean(as.numeric(values[med_char]))
         
-        parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/med_char_val)))
-
-        parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/med_char_val)))
-        parms[["eff_tax"]][as.numeric(substr(med_char[1], 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char][1],1)/med_char_val)))
-        parms[["eff_tax"]][as.numeric(substr(med_char[2], 2, 2)), c((i):6)] <- as.numeric((parms[["base_tax"]]*(tail(run[med_char][2],1)/med_char_val)))
+        parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- (((1 + as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/med_char_val)))) - 
+                                                                                (1 + parms[["actual_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)])) / 
+                                                                               (1 + parms[["actual_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))
         
-        parms[["eff_tax"]][parms[["eff_tax"]] < 0.00001] <- 0
+        parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- (((1 + as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/med_char_val)))) - 
+                                                                                 (1 + parms[["actual_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)])) / 
+                                                                                (1 + parms[["actual_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))
+        
+        parms[["eff_tax"]][as.numeric(substr(med_char[1], 2, 2)), c((i):6)] <- (((1 + as.numeric((parms[["base_tax"]]*(tail(run[med_char][1],1)/med_char_val)))) - 
+                                                                                   (1 + parms[["actual_tax"]][as.numeric(substr(med_char[1], 2, 2)), (i-1)])) / 
+                                                                                  (1 + parms[["actual_tax"]][as.numeric(substr(med_char[1], 2, 2)), (i-1)]))
+        
+        parms[["eff_tax"]][as.numeric(substr(med_char[2], 2, 2)), c((i):6)] <- (((1 + as.numeric((parms[["base_tax"]]*(tail(run[med_char][2],1)/med_char_val)))) - 
+                                                                                   (1 + parms[["actual_tax"]][as.numeric(substr(med_char[2], 2, 2)), (i-1)])) / 
+                                                                                  (1 + parms[["actual_tax"]][as.numeric(substr(med_char[2], 2, 2)), (i-1)]))
+        #Store the Actual Tax Rate
+        new_tax <- c((1 + as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/med_char_val)))) - 1,
+                     (1 + as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/med_char_val)))) - 1,
+                     (1 + as.numeric((parms[["base_tax"]]*(tail(run[med_char][1],1)/med_char_val)))) - 1,
+                     (1 + as.numeric((parms[["base_tax"]]*(tail(run[med_char][2],1)/med_char_val)))) - 1)
+        names(new_tax) <- c(low_char, high_char, med_char[1], med_char[2])
+        parms[["actual_tax"]][,i:6] <- c(new_tax[["R1"]], new_tax[["R2"]], new_tax[["R3"]], new_tax[["R4"]])
+        
       }
       parms[["int_round"]] <- i
     }
   }
-  out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10000), parms = parms, approx_sigma)
+  out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10300), parms = parms, approx_sigma)
   return(out_run)
 }
+
 
 # Single Taxation Function ------------------------------------------------
 
@@ -306,12 +323,17 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c23 = 0.75, c24 = 0.71, c34 = 0.7,
              c123 = 0.7, c124 = 0.65, c134 = 0.625, c234 = 0.6,
              c1234 = 0.6,
-             PED = matrix(c(-1, 0.25, 0.25, 0.25, 
-                            0.25, -1, 0.25, 0.25,
-                            0.25, 0.25, -1, 0.25,
-                            0.25, 0.25, 0.25, -1), #Be aware of this matrix
+             PED = matrix(c(-1.75,  0.75,  0.5,   0.25, 
+                            0.5,   -1.5,   0.75,  0.5,
+                            0.25,   0.5,  -1.25,  0.75,
+                            0,      0.25,  0.5,  -1), #Be aware of this matrix
                           nrow = 4, ncol = 4, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0,
+                                0, 0, 0, 0, 0, 0), 
+                              nrow = 4, ncol = 6, byrow = T),
+             actual_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0,
                                 0, 0, 0, 0, 0, 0), 

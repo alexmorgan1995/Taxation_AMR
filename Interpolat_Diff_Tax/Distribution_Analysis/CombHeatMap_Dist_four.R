@@ -271,7 +271,7 @@ test <- ggarrange(comb_res, comb_inf,
                   heights = c(0.1, 0.1, 0.1), common.legend = T)
 
 ggsave(test, filename = "test_v1_four.png", dpi = 300, width = 11, height = 13, units = "in",
-       path = "/Users/amorgan/Desktop")
+       path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")
 
 
 

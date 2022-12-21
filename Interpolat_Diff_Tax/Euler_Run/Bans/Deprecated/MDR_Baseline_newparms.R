@@ -250,6 +250,8 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/values_1rd[med_char_1rd])))
   parms[["eff_tax"]][as.numeric(substr(med_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd]/values_1rd[med_char_1rd])))
   
+  parms[["actual_tax"]][,1:6] <- parms[["eff_tax"]][,1]
+  
   #First Round of Diff Taxation
   
   parms[["int_round"]] <- 1
@@ -262,7 +264,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
       values <- tail(run, 1)[4:6]
       
       if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
-        parms[["eff_tax"]][,i] <- 0
+        parms[["eff_tax"]][,i:6] <- 0; parms[["actual_tax"]][,i:6] <- 0
       } else {
         
         low_char <- names(values)[which.min(values)]
@@ -270,14 +272,22 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
         med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
         
         parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd]))))-
-                                                                                (1+parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))/
-                                                                               (1+parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))
+                                                                                (1+parms[["actual_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))/
+                                                                               (1+parms[["actual_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))
         parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd]))))-
-                                                                                 (1+parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))/
-                                                                                (1+parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))
+                                                                                 (1+parms[["actual_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))/
+                                                                                (1+parms[["actual_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))
         parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd]))))-
-                                                                                (1+parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))/
-                                                                               (1+parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))
+                                                                                (1+parms[["actual_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))/
+                                                                               (1+parms[["actual_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))
+        
+        #Store the Actual Tax Rate
+        new_tax <- c((1+as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))) - 1,
+                     (1+as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))) - 1,
+                     (1+as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))) - 1)
+        names(new_tax) <- c(low_char, high_char, med_char)
+        parms[["actual_tax"]][,i:6] <- c(new_tax[["R1"]], new_tax[["R2"]], new_tax[["R3"]])
+        
       }
       parms[["int_round"]] <- i
     }
@@ -285,6 +295,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10300), parms = parms, approx_sigma)
   return(out_run)
 }
+
 
 # Extract Usage for Integrals -----------------------------------------------------------
 
@@ -334,14 +345,18 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c1 = 0.95636319, c2 = 0.90284600, c3 = 0.66383335,
              c12 = 0.62569857, c13 = 0.59669175, c23 = 0.56935615,
              c123 = 0.54109666,
-             PED = matrix(c(-1.5, 0.75, 0.5, 
-                            0.25, -1.25, 0.75,
-                            0, 0.25, -1), #Be aware of this matrix
+             PED = matrix(c(-2, 1, 0.5, 
+                            0.5, -1.5, 1,
+                            0.25, 0.5, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0), 
                               nrow = 3, ncol = 6, byrow = T),
+             actual_tax = matrix(c(0, 0, 0, 0, 0, 0, 
+                                   0, 0, 0, 0, 0, 0, 
+                                   0, 0, 0, 0, 0, 0), 
+                                 nrow = 3, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
 
 # The Function ------------------------------------------------------------
@@ -439,6 +454,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   parms_base = as.list(parms_frame[n,])
   parms_base = append(parms_base, parms["PED"])
   parms_base = append(parms_base, parms["eff_tax"])
+  parms_base = append(parms_base, parms["actual_tax"])
   
   #Run Baseline
   run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10300), parms = parms_base, approx_sigma)[[1]]
@@ -556,12 +572,12 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
     store_vec_avganti[i] <- prop_vec
   }
   
-  output <- c(store_vec_inf, store_vec_res, store_vec_shan, store_vec_avganti, parms_base[c(1:28)])
+  output <- c(store_vec_inf, store_vec_res, store_vec_shan, store_vec_avganti, parms_base[c(1:29)])
   names(output) <- c("flat_inf", "singleHR_inf", "singleMR_inf", "singleLR_inf", "diff1_inf", "diff2_inf", "diff3_inf", "diff4_inf", "diff5_inf", "diff6_inf", "banHR_inf", "banMR_inf", "banLR_inf", 
                      "flat_res", "singleHR_res", "singleMR_res", "singleLR_res", "diff1_res", "diff2_res", "diff3_res", "diff4_res", "diff5_res", "diff6_res", "banHR_res", "banMR_res", "banLR_res", 
                      "flat_shan", "singleHR_shan", "singleMR_shan", "singleLR_shan", "diff1_shan", "diff2_shan", "diff3_shan", "diff4_shan", "diff5_shan", "diff6_shan", "banHR_shan", "banMR_shan", "banLR_shan", 
                      "flat_avganti", "singleHR_avganti", "singleMR_avganti", "singleLR_avganti", "diff1_avganti", "diff2_avganti", "diff3_avganti", "diff4_avganti", "diff5_avganti", "diff6_avganti", "banHR_avganti", "banMR_avganti", "banLR_avganti", 
-                     names(parms_base[c(1:28)]))
+                     names(parms_base[c(1:29)]))
   return(output)
 }
 
@@ -583,7 +599,7 @@ test <- mclapply(1:1000,
                  agg_func = agg_func,
                  ode_wrapper = ode_wrapper,
                  approx_sigma = approx_sigma,
-                 thresh = 0.75,
+                 thresh = 0.5,
                  mc.cores = 10,
                  ban_wrapper = ban_wrapper) 
 
@@ -611,8 +627,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 }
  
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_parms_75.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_75.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_parms_Base_new.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_Base_new.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)

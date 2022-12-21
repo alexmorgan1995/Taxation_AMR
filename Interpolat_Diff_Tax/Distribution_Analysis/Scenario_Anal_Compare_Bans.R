@@ -2,31 +2,31 @@ library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); 
 
 rm(list=ls())
 
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/Bans/New")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/Bans/")
 
 # Import in Dataset -------------------------------------------------------
 
-win_import_base <- readRDS("MDR_run_ban_realPED_Base.RDS")
+win_import_base <- readRDS("MDR_run_Base.RDS")
 win_import_base[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                   "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
 win_import_base$scen <- "Baseline"
 
-win_import_biasPED <- readRDS("MDR_run_ban_highComp.RDS")
+win_import_biasPED <- readRDS("MDR_run_highComp.RDS")
 win_import_biasPED[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                      "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
 win_import_biasPED$scen <- "High Comp"
 
-win_import_realPED <- readRDS("MDR_run_ban_lowComp.RDS")
+win_import_realPED <- readRDS("MDR_run_lowComp.RDS")
 win_import_realPED[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                      "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
 win_import_realPED$scen <- "Low Comp"
 
-win_import_25 <- readRDS("MDR_run_ban_realPED_25.RDS")
+win_import_25 <- readRDS("MDR_run_25.RDS")
 win_import_25[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                 "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
 win_import_25$scen <- "25% Threshold"
 
-win_import_75 <- readRDS("MDR_run_ban_realPED_75.RDS")
+win_import_75 <- readRDS("MDR_run_75.RDS")
 win_import_75[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                 "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
 win_import_75$scen <- "75% Threshold"
@@ -275,7 +275,7 @@ int_failure_p <- ggplot(prop_vec, aes(intervention, scen)) + theme_bw() +
 test <- ggarrange(res_plot, inf_plot,avg_anti_plot, ncol = 1, nrow = 3)
 
 ggsave(test, filename = "scen_compare.png", dpi = 300, width = 13, height = 12, units = "in",
-       path = "/Users/amorgan/Desktop")
+       path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")
 
 ggsave(int_failure_p, filename = "int_failure.png", dpi = 300, width = 13, height = 6, units = "in",
-       path = "/Users/amorgan/Desktop")
+       path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")

@@ -216,7 +216,6 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper,
 
 # Dual Model --------------------------------------------------------------
 
-
 multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, ode_wrapper, approx_sigma){
   
   parms["time_between"] <- time_between
@@ -233,6 +232,8 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/values_1rd[med_char_1rd])))
   parms[["eff_tax"]][as.numeric(substr(med_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd]/values_1rd[med_char_1rd])))
   
+  parms[["actual_tax"]][,1:6] <- parms[["eff_tax"]][,1]
+  
   #First Round of Diff Taxation
   
   parms[["int_round"]] <- 1
@@ -245,7 +246,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
       values <- tail(run, 1)[4:6]
       
       if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
-        parms[["eff_tax"]][,i] <- 0
+        parms[["eff_tax"]][,i:6] <- 0; parms[["actual_tax"]][,i:6] <- 0
       } else {
         
         low_char <- names(values)[which.min(values)]
@@ -253,14 +254,22 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
         med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
         
         parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd]))))-
-                                                                                (1+parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))/
-                                                                               (1+parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))
+                                                                                (1+parms[["actual_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))/
+                                                                               (1+parms[["actual_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))
         parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd]))))-
-                                                                                 (1+parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))/
-                                                                                (1+parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))
+                                                                                 (1+parms[["actual_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))/
+                                                                                (1+parms[["actual_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))
         parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd]))))-
-                                                                                (1+parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))/
-                                                                               (1+parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))
+                                                                                (1+parms[["actual_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))/
+                                                                               (1+parms[["actual_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))
+        
+        #Store the Actual Tax Rate
+        new_tax <- c((1+as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))) - 1,
+                     (1+as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))) - 1,
+                     (1+as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))) - 1)
+        names(new_tax) <- c(low_char, high_char, med_char)
+        parms[["actual_tax"]][,i:6] <- c(new_tax[["R1"]], new_tax[["R2"]], new_tax[["R3"]])
+        
       }
       parms[["int_round"]] <- i
     }
@@ -268,6 +277,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   out_run <- ode_wrapper(y = init, func = func, times = seq(0, 10300), parms = parms, approx_sigma)
   return(out_run)
 }
+
 
 # Baseline Parms ----------------------------------------------------------
 
@@ -307,6 +317,10 @@ parms = list(lambda = 1/365*(2), int_round = 1,
                                 0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0), 
                               nrow = 3, ncol = 6, byrow = T),
+             actual_tax = matrix(c(0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0), 
+                              nrow = 3, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
 
 # Intervention Scenarios --------------------------------------------------
@@ -330,24 +344,6 @@ for(i in 1:6) {
   diff_tax_list[[i]] <- multi_int_fun(i, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[2]]
 }
 
-# Convert DiffTax to EffTax --------------------------------------------------
-
-conv_diff_efftax <- function(efftax_mat, gen) {
-  efftax_mat <- efftax_mat + 1
-  eff_tax <- matrix(NA, nrow = 3, ncol = 6)
-  eff_tax[,1:6] <- efftax_mat[,1]
-  if(gen > 1) {
-    for(i in 2:gen) {
-      eff_tax[,i:6] <- efftax_mat[,i] * eff_tax[,i-1]
-    }
-  }
-  return(eff_tax-1)
-}
-
-#Testing the Function
-efftax_mat <- diff_tax_list[[3]]$eff_tax
-test_mat <- conv_diff_efftax(efftax_mat,3)
-
 # Creating the Time + EffTax Matrix ---------------------------------------
 
 year_tax <- function(mat){
@@ -364,7 +360,6 @@ year_tax <- function(mat){
   return(time_data)
 }
 
-tax_data <- year_tax(test_mat)
 
 # Drug Class Dataframe ----------------------------------------------------
 
@@ -387,7 +382,7 @@ for(i in 1:10){
   eff_tax <- list_scen[[i]]$eff_tax
   
   if(i > 5) {
-    eff_tax <- conv_diff_efftax(list_scen[[i]]$eff_tax, i-4)
+    eff_tax <- list_scen[[i]]$actual_tax
   }
   
   data_year <- year_tax(eff_tax)
@@ -399,3 +394,6 @@ for(i in 1:10){
   tax_list[[i]] <- list(data_year_new, sum(data_year_new$total))
 }
 
+test <- unlist(lapply(tax_list , "[[" , 2))
+names(test) <- c("flat", "s1", "s2", "s3", "diff1", "diff2", "diff3", "diff4", "diff5", "diff6")
+max(test)

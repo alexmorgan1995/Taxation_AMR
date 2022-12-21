@@ -362,6 +362,8 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/values_1rd[med_char_1rd])))
   parms[["eff_tax"]][as.numeric(substr(med_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[med_char_1rd]/values_1rd[med_char_1rd])))
   
+  parms[["actual_tax"]][,1:6] <- parms[["eff_tax"]][,1]
+  
   #First Round of Diff Taxation
   
   parms[["int_round"]] <- 1
@@ -374,7 +376,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
       values <- tail(run, 1)[4:6]
       
       if(values[1] == 0 & values[2] == 0 & values[3] == 0) {
-        parms[["eff_tax"]][,i] <- 0
+        parms[["eff_tax"]][,i:6] <- 0; parms[["actual_tax"]][,i:6] <- 0
       } else {
         
         low_char <- names(values)[which.min(values)]
@@ -382,15 +384,23 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
         med_char <- names(values)[setdiff(1:3, c(which.min(values), which.max(values)))]
         
         parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd]))))-
-                                                                                (1+parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))/
-                                                                               (1+parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))
+                                                                                (1+parms[["actual_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))/
+                                                                               (1+parms[["actual_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))
         parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd]))))-
-                                                                                 (1+parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))/
-                                                                                (1+parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))
+                                                                                 (1+parms[["actual_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))/
+                                                                                (1+parms[["actual_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))
         parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd]))))-
-                                                                                (1+parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))/
-                                                                               (1+parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))
-      }
+                                                                                (1+parms[["actual_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))/
+                                                                               (1+parms[["actual_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))
+      
+        #Store the Actual Tax Rate
+        new_tax <- c((1+as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))) - 1,
+                     (1+as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))) - 1,
+                     (1+as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd])))) - 1)
+        names(new_tax) <- c(low_char, high_char, med_char)
+        parms[["actual_tax"]][,i:6] <- c(new_tax[["R1"]], new_tax[["R2"]], new_tax[["R3"]])
+        
+        }
       parms[["int_round"]] <- i
     }
   }
@@ -423,20 +433,25 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              eta_wr = maps_est["eta_wr"], 
              eta_rw = maps_est["eta_rw"], 
              eta_rr = maps_est["eta_rr_rrr"], eta_rrr = maps_est["eta_rr_rrr"],  
-             c1 = maps_est["c1"], c2 = maps_est["c2"], 
-             c3 = maps_est["c3"],
-             c12 = maps_est["c12"], c13 = maps_est["c13"], 
-             c23 = maps_est["c23"],
-             c123 = maps_est["c123"],
-             PED = matrix(c(-1.5, 0.75, 0.5, 
-                            0.25, -1.25, 0.75,
-                            0, 0.25, -1), #Be aware of this matrix
+             eta_wr = 10, eta_rw = 0.06203388, 
+             eta_rr = 0.09420535, eta_rrr = 0.09420535,  
+             c1 = 0.95636319, c2 = 0.90284600, c3 = 0.66383335,
+             c12 = 0.62569857, c13 = 0.59669175, c23 = 0.56935615,
+             c123 = 0.54109666,
+             PED = matrix(c(-1.5, 1, 0.5, 
+                            0.5, -1.25, 0.75,
+                            0.25, 0.5, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0), 
                               nrow = 3, ncol = 6, byrow = T),
+             actual_tax = matrix(c(0, 0, 0, 0, 0, 0, 
+                                   0, 0, 0, 0, 0, 0, 
+                                   0, 0, 0, 0, 0, 0), 
+                                 nrow = 3, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
+
 
 # Baseline Model ----------------------------------------------------------
 
@@ -530,7 +545,7 @@ test <- ggarrange(p_data[[1]], "", "",
   bgcolor("white") + border("white")
 
 ggsave(test, filename = "traj_plots1.png", dpi = 300, width = 9, height = 10, units = "in",
-       path = "/Users/amorgan/Desktop") 
+       path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/") 
 
 # Figure ------------------------------------------------------------------
 

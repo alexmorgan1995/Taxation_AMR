@@ -1,14 +1,15 @@
 library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); library("rootSolve"); library("viridis"); library("cowplot")
 rm(list=ls())
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/Bans/New")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/Bans")
 
 # Import in Dataset -------------------------------------------------------
 
-win_import_change <- readRDS("MDR_run_ban_realPED_Base.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_ban_realPED_75.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_ban_realPED_25.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_ban_highComp.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_ban_lowComp.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_Base.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_Base_fixedthresh.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_75.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_25.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_highComp.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_lowComp.RDS"); win_import <- win_import_change
 
 win_import[win_import == -1000] <- NA
 
@@ -122,7 +123,7 @@ box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = varia
                              "DT (5Rd)", "DT (6Rd)",
                              "Ban (HR)", "Ban (MR)", "Ban (LR)")) 
 
-ggplot_build(box_res)$data
+#ggplot_build(box_res)$data
 
 comb_res <- ggarrange(box_res, win_res_p, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
 
@@ -280,7 +281,7 @@ test <- ggarrange(comb_res, comb_inf,
           heights = c(0.1, 0.1, 0.1), common.legend = T)
 
 ggsave(test, filename = "test_v1.png", dpi = 300, width = 11, height = 13, units = "in",
-       path = "/Users/amorgan/Desktop")
+       path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")
 
 box_avganti <- box_avganti + theme(axis.text.x = element_text(size=12)) 
 

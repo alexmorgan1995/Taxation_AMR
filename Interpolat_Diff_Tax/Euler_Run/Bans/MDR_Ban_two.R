@@ -128,7 +128,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   
   parms[["eff_tax"]][as.numeric(substr(low_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[low_char_1rd]/med_char_val)))
   parms[["eff_tax"]][as.numeric(substr(high_char_1rd, 2, 2)), c(1:6)] <- as.numeric((parms[["base_tax"]]*(values_1rd[high_char_1rd]/med_char_val)))
-  
+  parms[["actual_tax"]][,1:6] <- parms[["eff_tax"]][,1]
   #First Round of Diff Taxation
   
   parms[["int_round"]] <- 1
@@ -141,19 +141,24 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
       values <- tail(run, 1)[4:5]
       
       if(values[1] == 0 & values[2] == 0) {
-        parms[["eff_tax"]][,i] <- 0
+        parms[["eff_tax"]][,i:6] <- 0; parms[["actual_tax"]][,i:6] <- 0
       } else {
         
         low_char <- names(values)[which.min(values)]
         high_char <- names(values)[which.max(values)]
         
         parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), c((i):6)] <- (((1 + as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/med_char_val)))) -  
-                                                                               (1 + parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)])) / 
-                                                                               (1 + parms[["eff_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))
+                                                                               (1 + parms[["actual_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)])) / 
+                                                                               (1 + parms[["actual_tax"]][as.numeric(substr(low_char, 2, 2)), (i-1)]))
         parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), c((i):6)] <- (((1 + as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/med_char_val)))) -  
-                                                                                 (1 + parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)])) / 
-                                                                                (1 + parms[["eff_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))
+                                                                                 (1 + parms[["actual_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)])) / 
+                                                                                (1 + parms[["actual_tax"]][as.numeric(substr(high_char, 2, 2)), (i-1)]))
         
+        #Store the Actual Tax Rate
+        new_tax <- c((1 + as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/med_char_val)))) - 1,
+                     (1 + as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/med_char_val)))) - 1)
+        names(new_tax) <- c(low_char, high_char)
+        parms[["actual_tax"]][,i:6] <- c(new_tax[["R1"]], new_tax[["R2"]])
       }
       parms[["int_round"]] <- i
     }
@@ -288,10 +293,13 @@ parms = list(lambda = 1/365*(2),
              eta_rr = 0.09420535, 
              c1 = 0.95636319, c2 = 0.90284600, 
              c12 = 0.62569857, 
-             PED = matrix(c(-1.5, 0.5,
-                            0.25, -1), #Be aware of this matrix
+             PED = matrix(c(-1.5, 0.75,
+                            0.5, -1), #Be aware of this matrix
                           nrow = 2, ncol = 2, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0), 
+                              nrow = 2, ncol = 6, byrow = T),
+             actual_tax = matrix(c(0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0), 
                               nrow = 2, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
@@ -374,6 +382,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   parms_base = append(parms_base, parms["PED"])
   parms_base = append(parms_base, parms["eff_tax"])
   parms_base = append(parms_base, parms["sigma_mat"])
+  parms_base = append(parms_base, parms["actual_tax"])
   
   #Run Baseline
   run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10300), parms = parms_base, approx_sigma)[[1]]
@@ -456,8 +465,7 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
     out$aggR2 <- out$R2 + out$R12 
     
     #Determine the X% Thresholds that you want to be under
-    thresholds <- unlist(out[parms[["t_n"]]-1,7:8]*thresh)
-    under_thresh <- sweep(out[out[,1] > parms[["t_n"]],][,7:8], 2, thresholds)
+    under_thresh <- sweep(out[out[,1] > parms[["t_n"]],][,7:8], 2, thresh)
     
     #Calculate the number of days you are under said threshold
     under_50 <- c(nrow(under_thresh[under_thresh$aggR1 < 0,]), 
@@ -506,7 +514,7 @@ test <- mclapply(1:1000,
                  agg_func = agg_func,
                  ode_wrapper = ode_wrapper, 
                  approx_sigma = approx_sigma,
-                 thresh = 0.5,
+                 thresh = 0.25,
                  mc.cores = 10) 
 
 #Combine the Output into a "normal" looking dataframe
