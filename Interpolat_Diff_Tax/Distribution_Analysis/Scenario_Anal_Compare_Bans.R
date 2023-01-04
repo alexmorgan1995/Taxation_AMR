@@ -21,15 +21,15 @@ win_import_realPED[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singl
                      "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
 win_import_realPED$scen <- "Low Comp"
 
-win_import_25 <- readRDS("MDR_run_25.RDS")
+win_import_25 <- readRDS("MDR_run_10.RDS")
 win_import_25[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                 "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
-win_import_25$scen <- "25% Threshold"
+win_import_25$scen <- "10% Threshold"
 
-win_import_75 <- readRDS("MDR_run_75.RDS")
+win_import_75 <- readRDS("MDR_run_05.RDS")
 win_import_75[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                 "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
-win_import_75$scen <- "75% Threshold"
+win_import_75$scen <- "5% Threshold"
 
 win_import_2class <- readRDS("MDR_run_two.RDS")
 win_import_2class[c("singleMR_inf",  "singleMR_res", "singleMR_shan", "singleMR_avganti",
@@ -236,7 +236,7 @@ for(z in 1:7) {
   for(i in 1:15) {
     prop_1000 <- win_import[,i]
     prop_vec[i+(15*(z-1)),2] <- length(prop_1000[prop_1000 == -1000])/sum(!is.na(prop_1000))
-    prop_vec[i+(15*(z-1)),3] <- c("Baseline", "Case Study", "Severe", "25% Thresh", "75% Thresh", "Two Classes", "Four Classes")[z]
+    prop_vec[i+(15*(z-1)),3] <- c("Baseline", "Case Study", "Severe", "10% Thresh", "5% Thresh", "Two Classes", "Four Classes")[z]
   }
 }
 

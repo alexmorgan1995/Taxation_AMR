@@ -306,17 +306,32 @@ year_tax <- function(mat){
   return(time_data)
 }
 
-# Drug Class Dataframe ----------------------------------------------------
 
-data_anti <- data.frame("Antibiotic" = c("Tetracyclines", "Amphenicols", "Penicillin", "Cephalosporins", "Sulphonamides", "Macrolides",
+# US Tax Vector -----------------------------------------------------------
+
+us_data_anti <- data.frame("Antibiotic" = c("Tetracyclines", "Amphenicols", "Penicillin", "Cephalosporins", "Sulphonamides", "Macrolides",
                                          "Aminoglycosides", "Quinolones", "Lincosamides"),
                         "Revenue" = c(4391696719, 132574205.9, 331097866.7, 512035885, 368451522.6, 10144501366, 4609169528,129688300.4, 136177433.3),
-                        "Resistance" = c(31.57, 6.9, 9.13, 6.10, 19.80, 0.73, 9.10, 3.53, 0),
-                        "Group" = c(1, 2, 2, 2, 1, 3, 2, 3, 3))
+                        "Resistance" = c(44.67, 6.9, 9.13, 6.10, 19.80, 4.04, 5.18, 10.19, 6.1),
+                        "Group" = c(1, 3, 2, 3, 1, 3, 3, 2, 3))
 
-tax_vector <- c("G1" = sum(data_anti[data_anti$Group == 1,]$Revenue), 
-                "G2" = sum(data_anti[data_anti$Group == 2,]$Revenue), 
-                "G3" = sum(data_anti[data_anti$Group == 3,]$Revenue))
+US_tax_vector <- c("G1" = sum(us_data_anti[us_data_anti$Group == 1,]$Revenue), 
+                "G2" = sum(us_data_anti[us_data_anti$Group == 2,]$Revenue), 
+                "G3" = sum(us_data_anti[us_data_anti$Group == 3,]$Revenue))
+
+# Chinese Tax Vector ------------------------------------------------------
+
+chinese_data_anti <- data.frame("Antibiotic" = c("Tetracyclines", "Amphenicols", "Penicillin", "Sulphonamides", "Macrolides",
+                                         "Aminoglycosides", "Quinolones", "Lincosamides", "Pleuromutilin", "Polymixins"),
+                        "Revenue" = c(489583767, 120519161, 178126701, 135421844, 312666612, 135362423, 25613376.9, 38706032.8, 15008333.2, 63890376),
+                        "Resistance" = c(63.35, 42.25, 31.4325, 52.77, 7.5, 23.11, 39.875, 26, 0, 5.75),
+                        "Group" = c(1, 1, 2, 1, 3, 2, 2, 2, 3, 3))
+
+chinese_tax_vector <- c("G1" = sum(chinese_data_anti[chinese_data_anti$Group == 1,]$Revenue), 
+                   "G2" = sum(chinese_data_anti[chinese_data_anti$Group == 2,]$Revenue), 
+                   "G3" = sum(chinese_data_anti[chinese_data_anti$Group == 3,]$Revenue))
+
+comb_taxvector <- list(US_tax_vector, chinese_tax_vector)
 
 # Baseline Parms ----------------------------------------------------------
 
@@ -437,7 +452,6 @@ parm_data_comb <- data.frame(parm_data, t_n = 3000, int_round = 0,
 
 # Run Sensitivity Analysis ------------------------------------------------
 
-
 mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func, ode_wrapper, approx_sigma) {
   
   parms_base = as.list(parms_frame[n,])
@@ -510,18 +524,27 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
       eff_tax <- parms$actual_tax
     }
 
-    data_year_new <- year_tax(eff_tax)
-    data_year_new[,2:4] <- sweep(data_year_new[,2:4], 2, tax_vector, "*")
-    data_year_new$total <- rowSums(data_year_new[,2:4])
-
-    #Store Computation List
-
-    tax_vec[i] <- sum(data_year_new$total)
+    for(z in 1:2){
+      data_year_new <- year_tax(eff_tax)
+      tax_china_US <- comb_taxvector[[z]]
+        
+      data_year_new[,2:4] <- sweep(data_year_new[,2:4], 2, tax_china_US, "*")
+      data_year_new$total <- rowSums(data_year_new[,2:4])
+      tax_vec[seq(1,20, by = 2)[i]+(z-1)] <- sum(data_year_new$total)
+    }
   }
   
   output <- tax_vec
-  names(output) <- c("flat", "singleHR", "singleMR", "singleLR", 
-                     "diff1", "diff2", "diff3", "diff4", "diff5", "diff6")
+  names(output) <- c("flat_US", "flat_China",
+                     "singleHR_US", "singleHR_China",
+                     "singleMR_US", "singleMR_China",
+                     "singleLR_US", "singleLR_China", 
+                     "diff1_US", "diff1_China", 
+                     "diff2_US", "diff2_China",
+                     "diff3_US", "diff3_China", 
+                     "diff4_US", "diff4_China", 
+                     "diff5_US", "diff5_China", 
+                     "diff6_US", "diff6_China")
   return(output)
 }
 
@@ -549,13 +572,13 @@ test <- mclapply(1:1000,
 
 #Combine the Output into a "normal" looking dataframe
 comb_data <- data.frame(do.call(rbind, test))
-comb_data_new <- data.frame(matrix(NA, nrow = nrow(comb_data), ncol = 10))
+comb_data_new <- data.frame(matrix(NA, nrow = nrow(comb_data), ncol = 20))
 
 for(i in 1:nrow(comb_data)) {
-  comb_data_new[i,] <- unlist(comb_data[i,1:10])
+  comb_data_new[i,] <- unlist(comb_data[i,1:20])
 }
 
-colnames(comb_data_new) <- colnames(comb_data)[1:10]
+colnames(comb_data_new) <- colnames(comb_data)[1:20]
 
 #Save the output
 saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Tax/taxlist.RDS")

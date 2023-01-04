@@ -5,9 +5,8 @@ setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/I
 # Import in Dataset -------------------------------------------------------
 
 win_import_change <- readRDS("MDR_run_Base.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_Base_fixedthresh.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_75.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_25.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_05.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_10.RDS"); win_import <- win_import_change
 win_import_change <- readRDS("MDR_run_highComp.RDS"); win_import <- win_import_change
 win_import_change <- readRDS("MDR_run_lowComp.RDS"); win_import <- win_import_change
 
@@ -241,6 +240,7 @@ prop_win_avganti$Color <- "black"
 prop_win_avganti[prop_win_avganti$Average_Anti == max(prop_win_avganti$Average_Anti),4] <- "white"
 
 #Win Heat Map
+
 win_avganti_p <- ggplot(prop_win_avganti, aes(Interventions, "")) + theme_bw() +
   geom_tile(aes(fill = Average_Anti)) + 
   facet_grid(. ~ factors, scales = "free", space = "free") +
@@ -262,7 +262,6 @@ win_avganti_p <- ggplot(prop_win_avganti, aes(Interventions, "")) + theme_bw() +
 
 #Box Plot
 
-
 box_avganti <- ggplot(m_avganti, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.0001, 3)) +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") +
   facet_grid(. ~ factors, scales = "free_x", space = "free")  + theme_bw() + labs(y = "Number of Available Antibiotics", x = "")  + 
@@ -272,7 +271,7 @@ box_avganti <- ggplot(m_avganti, aes(x=variable, y=value, fill = variable, alpha
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank(),
         strip.text.x = element_text(size = 11, colour = "black", face="bold")) 
 
-comb_avg_anti <- ggarrange(box_avganti, win_avganti_p, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
+comb_avg_anti <- ggarrange(box_avganti, win_avganti_p, ncol = 1, nrow= 2, heights = c(1, 0.6), align = "v")
 
 # Combine the Plots Together ----------------------------------------------
 
