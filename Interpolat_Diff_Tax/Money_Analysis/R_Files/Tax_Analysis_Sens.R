@@ -323,7 +323,7 @@ US_tax_vector <- c("G1" = sum(us_data_anti[us_data_anti$Group == 1,]$Revenue),
 
 chinese_data_anti <- data.frame("Antibiotic" = c("Tetracyclines", "Amphenicols", "Penicillin", "Sulphonamides", "Macrolides",
                                          "Aminoglycosides", "Quinolones", "Lincosamides", "Pleuromutilin", "Polymixins"),
-                        "Revenue" = c(489583767, 120519161, 178126701, 135421844, 312666612, 135362423, 25613376.9, 38706032.8, 15008333.2, 63890376),
+                        "Revenue" = c(489583767, 120519161, 279786263, 135421844, 312666612, 135362423, 25613376.9, 38706032.8, 17761438, 63890376),
                         "Resistance" = c(63.35, 42.25, 31.4325, 52.77, 7.5, 23.11, 39.875, 26, 0, 5.75),
                         "Group" = c(1, 1, 2, 1, 3, 2, 2, 2, 3, 3))
 
