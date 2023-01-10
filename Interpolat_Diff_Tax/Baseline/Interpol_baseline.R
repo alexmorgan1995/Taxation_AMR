@@ -148,8 +148,7 @@ ban_ode_wrapper <- function(times, y, parms, func, approx_sigma, ban) {
       
       sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
                               stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
-                              stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,3]) + (eff_tax[3,i]*PED[3,3]))))
-      
+                              stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,3]))))
       
       sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0] <- 0
       
@@ -201,7 +200,6 @@ ode_wrapper <- function(times, y, parms, func, approx_sigma) {
       sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
                               stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
                               stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,3]) + (eff_tax[3,i]*PED[3,3]))))
-      
       
       sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0.01] <- 0.01
       
@@ -553,12 +551,22 @@ figure_run <- agg_func(multi_int_fun(6, 365*3, parms, init, amr, agg_func, ode_w
 
 m_sigma <- melt(figure_run, id.vars = "time", measure.vars = colnames(figure_run)[4:6])
 
-ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
-  labs(x = "Time", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(limits = c(0,0.5), expand = c(0, 0)) + 
-  scale_x_continuous(limits = c(0,3000) , expand = c(0.04, 0.5)) +
+ggplot(m_sigma, aes(time/365, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
+  labs(x = "Time (Years)", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(limits = c(0,0.6), expand = c(0, 0)) + 
+  scale_x_continuous(limits = c(0,2999/365) , expand = c(0.04, 0.5)) +
   theme(axis.text=element_text(size=11),axis.title =element_text(size=12))
 
-ggplot(m_sigma, aes(time, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
-  labs(x = "Time", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.5), expand = c(0, 0)) + 
-  scale_x_continuous(limits = c(3001,3001 + 365*3) , expand = c(0, 0.5)) +
+ggplot(m_sigma, aes(time/365, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
+  labs(x = "Time (Years)", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.6), expand = c(0, 0)) + 
+  scale_x_continuous(limits = c(3000/365,(3000 + 364*3)/365) , expand = c(0,0)) +
+  theme(axis.text=element_text(size=11), axis.title =element_text(size=12), axis.text.y = element_blank())
+
+ggplot(m_sigma, aes(time/365, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
+  labs(x = "Time (Years)", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.6), expand = c(0, 0)) + 
+  scale_x_continuous(limits = c(3000/365,(3000 + 364*3)/365) , expand = c(0,0)) +
+  theme(axis.text=element_text(size=11), axis.title =element_text(size=12), axis.text.y = element_text(size=12))
+
+ggplot(m_sigma, aes(time/365, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
+  labs(x = "Time (Years)", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.6), expand = c(0, 0)) + 
+  scale_x_continuous(limits = c((3000 + 364*3)/365,(3000 + 364*4)/365), expand = c(0,0)) +
   theme(axis.text=element_text(size=11), axis.title =element_text(size=12), axis.text.y = element_blank())

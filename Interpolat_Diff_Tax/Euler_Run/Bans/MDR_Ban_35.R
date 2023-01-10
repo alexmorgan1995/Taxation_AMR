@@ -88,9 +88,9 @@ ode_wrapper <- function(times, y, parms, func, approx_sigma) {
     for(i in 1:parms[["int_round"]]) {
       stor_sigma <- sigma_mat[,i]
       
-      sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
-                              stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
-                              stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,3]) + (eff_tax[3,i]*PED[3,3]))))
+      sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[1,2]) + (eff_tax[3,i]*PED[1,3]))),
+                              stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[2,1]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[2,3]))),
+                              stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[3,1]) + (eff_tax[2,i]*PED[3,2]) + (eff_tax[3,i]*PED[3,3]))))
       
       sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0.01] <- 0.01
       
@@ -157,9 +157,9 @@ ban_wrapper <- function(times, init, parms, func, approx_sigma, ban) {
   
   if(ban >= 1 & ban <= 3) {
     ban_vec[as.numeric(substr(res_order_vec, 2, 2))] <- 1
-    sigma_mat[,2:7] = c(sigma_mat[1,1]*(1 + ((ban_vec[1]*PED[1,1]) + (ban_vec[2]*PED[2,1]) + (ban_vec[3]*PED[3,1]))),
-                        sigma_mat[2,1]*(1 + ((ban_vec[1]*PED[1,2]) + (ban_vec[2]*PED[2,2]) + (ban_vec[3]*PED[3,2]))),
-                        sigma_mat[3,1]*(1 + ((ban_vec[1]*PED[1,3]) + (ban_vec[2]*PED[2,3]) + (ban_vec[3]*PED[3,3]))))
+    sigma_mat[,2:7] = c(sigma_mat[1,1]*(1 + ((ban_vec[1]*PED[1,1]) + (ban_vec[2]*PED[1,2]) + (ban_vec[3]*PED[1,3]))),
+                        sigma_mat[2,1]*(1 + ((ban_vec[1]*PED[2,1]) + (ban_vec[2]*PED[2,2]) + (ban_vec[3]*PED[2,3]))),
+                        sigma_mat[3,1]*(1 + ((ban_vec[1]*PED[3,1]) + (ban_vec[2]*PED[3,2]) + (ban_vec[3]*PED[3,3]))))
     sigma_mat[as.numeric(substr(res_order_vec, 2, 2)),2:7] <- 0
     }
   
