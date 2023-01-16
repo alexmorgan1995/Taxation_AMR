@@ -170,12 +170,16 @@ for(i in 1:(length(post_dist)-1)) {
   })
 }
 
-ggarrange( p_list[[1]],  p_list[[2]],  p_list[[3]], 
-           p_list[[4]],  p_list[[5]],  p_list[[6]], 
-           p_list[[7]],  p_list[[8]],  p_list[[9]],
-           p_list[[10]],  p_list[[11]], nrow = 4, ncol = 3, common.legend = T, legend = "bottom")
+p_dist <- ggarrange( p_list[[1]],  p_list[[2]],  p_list[[3]], 
+                     p_list[[4]],  p_list[[5]],  p_list[[6]], 
+                     p_list[[7]],  p_list[[8]],  p_list[[9]],
+                     p_list[[10]],  p_list[[11]], nrow = 4, ncol = 3, common.legend = T, legend = "bottom") + 
+  bgcolor("white") + border("white")
 
 
+
+ggsave(p_dist, filename = "post_dist.png", dpi = 300, width = 11, height = 13, units = "in",
+       path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")
 
 # Parms -------------------------------------------------------------------
 

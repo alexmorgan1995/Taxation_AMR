@@ -1,7 +1,5 @@
-library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr")
+library("deSolve"); library("reshape2"); library("parallel")
 rm(list=ls())
-
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Model_Fit/Model_Output/New")
 
 # ODEs --------------------------------------------------------------------
 
@@ -128,61 +126,6 @@ ode_wrapper <- function(times, y, parms, func, approx_sigma) {
   return(list(out, parms))
 }
 
-
-# Ban Function -----------------------------------------------------------
-
-ban_ode_wrapper <- function(times, y, parms, func, approx_sigma, ban) {
-  
-  sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
-                       rep(parms[["sigma2"]], 7),
-                       rep(parms[["sigma3"]], 7)), 
-                     nrow = 3, ncol = 7, byrow = T)
-  
-  if(ban >= 1 & ban <= 3)
-  
-  eff_tax <- parms[["eff_tax"]]; PED <- parms[["PED"]]
-  
-  if(parms[["int_round"]] > 0 ) {
-    for(i in 1:parms[["int_round"]]) {
-      stor_sigma <- sigma_mat[,i]
-      
-      sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
-                              stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
-                              stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,3]))))
-      
-      sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0] <- 0
-      
-      if(colSums(sigma_mat)[i+1] > 1) {
-        sigma_mat[,(i+1):7] <- sigma_mat[,i+1]/(sum(sigma_mat[,i+1])+0.01)
-      }
-    }
-  }
-  
-  parms[["sigma_mat"]] <- sigma_mat
-  
-  sigma_data <- approx_sigma(sigma_mat)
-  
-  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
-  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
-  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
-  
-  #Run the model 
-  out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
-  
-  n_data <- ncol(out)-1
-  
-  timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
-  
-  if(timing[1,1] != tail(times,1)) {
-    for(i in 1:n_data){
-      out[seq(timing[[1]]+2,tail(times,1)+1),i+1] <- timing[i,i+1]
-    }
-  }
-  out[out < 1e-10] <- 0
-  
-  return(list(out, parms))
-}
-
 # ODE Wrapper Function ----------------------------------------------------
 
 ode_wrapper <- function(times, y, parms, func, approx_sigma) {
@@ -200,6 +143,7 @@ ode_wrapper <- function(times, y, parms, func, approx_sigma) {
       sigma_mat[,(i+1):7] = c(stor_sigma[1]*(1 + ((eff_tax[1,i]*PED[1,1]) + (eff_tax[2,i]*PED[2,1]) + (eff_tax[3,i]*PED[3,1]))),
                               stor_sigma[2]*(1 + ((eff_tax[1,i]*PED[1,2]) + (eff_tax[2,i]*PED[2,2]) + (eff_tax[3,i]*PED[3,2]))),
                               stor_sigma[3]*(1 + ((eff_tax[1,i]*PED[1,3]) + (eff_tax[2,i]*PED[2,3]) + (eff_tax[3,i]*PED[3,3]))))
+      
       
       sigma_mat[,(i+1):7][sigma_mat[,(i+1)] < 0.01] <- 0.01
       
@@ -268,80 +212,6 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper,
   return(run_real)
 }
 
-
-
-# Ban Function ------------------------------------------------------------
-
-ban_wrapper <- function(times, init, parms, func, approx_sigma, ban) {
-  
-  sigma_mat = matrix(c(rep(parms[["sigma1"]], 7),
-                       rep(parms[["sigma2"]], 7),
-                       rep(parms[["sigma3"]], 7)), 
-                     nrow = 3, ncol = 7, byrow = T)
-  ban_vec <- c(0,0,0)
-  PED <- parms[["PED"]]
-  
-  sigma_data <- approx_sigma(sigma_mat)
-  
-  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
-  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
-  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
-  
-  #Run Baseline
-  run_1rd <- agg_func(data.frame(ode(y = init, func = func, times = seq(0, parms[["t_n"]]), parms = parms)))
-  values_1rd <- tail(run_1rd, 1)[4:6]
-  
-  res_order_vec <- c(names(values_1rd)[which.max(values_1rd)],
-                     names(values_1rd)[setdiff(1:3, c(which.min(values_1rd), which.max(values_1rd)))],
-                     names(values_1rd)[which.min(values_1rd)])[ban]
-  
-  #Run the Tax Model
-  ban_vec <- c(0,0,0)
-  PED <- parms[["PED"]]
-  
-  if(ban >= 1 & ban <= 3) {
-    ban_vec[as.numeric(substr(res_order_vec, 2, 2))] <- 1
-    sigma_mat[,2:7] = c(sigma_mat[1,1]*(1 + ((ban_vec[1]*PED[1,1]) + (ban_vec[2]*PED[2,1]) + (ban_vec[3]*PED[3,1]))),
-                        sigma_mat[2,1]*(1 + ((ban_vec[1]*PED[1,2]) + (ban_vec[2]*PED[2,2]) + (ban_vec[3]*PED[3,2]))),
-                        sigma_mat[3,1]*(1 + ((ban_vec[1]*PED[1,3]) + (ban_vec[2]*PED[2,3]) + (ban_vec[3]*PED[3,3]))))
-    sigma_mat[as.numeric(substr(res_order_vec, 2, 2)),2:7] <- 0
-  }
-  
-  if(ban == "all") {
-    sigma_mat[,2:7] = c(0,0,0)
-  }
-  
-  for(i in 1:7) {
-    if(colSums(sigma_mat)[i] > 1) {
-      
-      sigma_mat[,i] <- sigma_mat[,i]/(sum(sigma_mat[,i])+0.01)
-    }   
-  }
-  
-  parms[["sigma_mat"]] <- sigma_mat; sigma_data <- approx_sigma(sigma_mat)
-  sigma_func1 <<- approxfun(sigma_data[,c(1,2)], rule = 2)
-  sigma_func2 <<- approxfun(sigma_data[,c(1,3)], rule = 2)
-  sigma_func3 <<- approxfun(sigma_data[,c(1,4)], rule = 2)
-  
-  #Run the model 
-  parms[["int_round"]] <- 1
-  out <- data.frame(ode(y = init, func = func, times = times, parms = parms))
-  
-  n_data <- ncol(out)-1
-  
-  timing <- t(sapply(1:n_data, function(x)  out[max(which(!is.na(out[,x+1]))),]))
-  
-  if(timing[1,1] != tail(times,1)) {
-    for(i in 1:n_data){
-      out[seq(timing[[1]]+2,tail(times,1)+1),i+1] <- timing[i,i+1]
-    }
-  }
-  
-  out[out < 1e-10] <- 0
-  
-  return(list(out, parms))
-}
-
 # Dual Model --------------------------------------------------------------
 
 multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, ode_wrapper, approx_sigma){
@@ -390,7 +260,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
         parms[["eff_tax"]][as.numeric(substr(med_char, 2, 2)), c((i):6)] <- (((1+as.numeric((parms[["base_tax"]]*(tail(run[med_char],1)/values_1rd[med_char_1rd]))))-
                                                                                 (1+parms[["actual_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))/
                                                                                (1+parms[["actual_tax"]][as.numeric(substr(med_char, 2, 2)), (i-1)]))
-      
+        
         #Store the Actual Tax Rate
         new_tax <- c((1+as.numeric((parms[["base_tax"]]*(tail(run[low_char],1)/values_1rd[med_char_1rd])))) - 1,
                      (1+as.numeric((parms[["base_tax"]]*(tail(run[high_char],1)/values_1rd[med_char_1rd])))) - 1,
@@ -398,7 +268,7 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
         names(new_tax) <- c(low_char, high_char, med_char)
         parms[["actual_tax"]][,i:6] <- c(new_tax[["R1"]], new_tax[["R2"]], new_tax[["R3"]])
         
-        }
+      }
       parms[["int_round"]] <- i
     }
   }
@@ -406,30 +276,47 @@ multi_int_fun <- function(int_gen, time_between, parms, init, func, agg_func, od
   return(out_run)
 }
 
+# Convert DiffTax to EffTax --------------------------------------------------
+
+conv_diff_efftax <- function(efftax_mat, gen) {
+  efftax_mat <- efftax_mat + 1
+  eff_tax <- matrix(NA, nrow = 3, ncol = 6)
+  eff_tax[,1:6] <- efftax_mat[,1]
+  if(gen > 1) {
+    for(i in 2:gen) {
+      eff_tax[,i:6] <- efftax_mat[,i] * eff_tax[,i-1]
+    }
+  }
+  return(eff_tax-1)
+}
+
+# Creating the Time + EffTax Matrix ---------------------------------------
+
+year_tax <- function(mat){
+  
+  time_data <- data.frame("time" = seq(1, 20),
+                          "Tax1" =  c(rep(mat[1,1], 3), rep(mat[1,2] , 3), rep(mat[1,3] , 3),
+                                      rep(mat[1,4], 3), rep(mat[1,5] , 3), rep(mat[1,6] , 5)),
+                          
+                          "Tax2" =  c(rep(mat[2,1], 3), rep(mat[2,2] , 3), rep(mat[2,3] , 3),
+                                      rep(mat[2,4], 3), rep(mat[2,5] , 3), rep(mat[2,6] , 5)),
+                          
+                          "Tax3" =  c(rep(mat[3,1], 3), rep(mat[3,2] , 3), rep(mat[3,3] , 3),
+                                      rep(mat[3,4], 3), rep(mat[3,5] , 3), rep(mat[3,6] , 5)))
+  return(time_data)
+}
+
 # Baseline Parms ----------------------------------------------------------
-
-post_dist_names <- grep("ABC_v3_",
-                        list.files("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Model_Fit/Model_Output/New"), value = TRUE)
-
-post_dist <- lapply(post_dist_names, read.csv)
-
-post_dist <- mapply(cbind, post_dist, "gen" = sapply(1:length(post_dist), function(x) paste0("gen_", x)), 
-                    SIMPLIFY=F)
-post_dist <- do.call("rbind", post_dist)
-
-maps_est <- colMeans(post_dist[post_dist$gen == tail(unique(post_dist$gen),1),][,1:11])
 
 init <- c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
           R12 = 0, R13 = 0, R23 = 0,
           R123 = 0)
 
 parms = list(lambda = 1/365*(2), int_round = 1, 
-             beta = maps_est["beta"], 
-             sigma1 = 0.25, sigma2 = 0.25, sigma3 = 0.25,
+             beta = 4.918742, sigma1 = 0.25, sigma2 = 0.25, sigma3 = 0.25,
              r_wt = 1/12, r_r = 1/10,  r_rr = 1/9,  r_rrr = 1/8, 
              r_t = 1/7, 
-             eta_wr = 1.53141359, 
-             eta_rw = 0.06203388, 
+             eta_wr = 1.53141359, eta_rw = 0.06203388, 
              eta_rr = 0.09420535, eta_rrr = 0.09420535,  
              c1 = 0.95636319, c2 = 0.90284600, c3 = 0.66383335,
              c12 = 0.62569857, c13 = 0.59669175, c23 = 0.56935615,
@@ -443,128 +330,251 @@ parms = list(lambda = 1/365*(2), int_round = 1,
                                 0, 0, 0, 0, 0, 0), 
                               nrow = 3, ncol = 6, byrow = T),
              actual_tax = matrix(c(0, 0, 0, 0, 0, 0, 
-                                   0, 0, 0, 0, 0, 0, 
-                                   0, 0, 0, 0, 0, 0), 
-                                 nrow = 3, ncol = 6, byrow = T),
+                                0, 0, 0, 0, 0, 0, 
+                                0, 0, 0, 0, 0, 0), 
+                              nrow = 3, ncol = 6, byrow = T),
              t_n = 3000, time_between = Inf, rho = 0.05, base_tax = 0.5)
 
+# Tax Data and Sales ------------------------------------------------------
 
-# Baseline Model ----------------------------------------------------------
+sales <- read.csv("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Money_Analysis/US_China_Group_Price.csv")
+t_sales <- setNames(data.frame(t(sales[,-1])), sales[,1])
 
-parms1 <- parms
-testrun_flat <- ode_wrapper(y = init, func = amr, times = seq(0, 10300), parms = parms1, approx_sigma)[[1]]
-test_run_agg <- agg_func(testrun_flat) 
-test_run_agg <- melt(test_run_agg, id.vars = "time", measure.vars = colnames(test_run_agg)[4:6])
-ggplot(test_run_agg, aes(time, value, color = variable)) + geom_line() + theme_bw()
+#Create LMIC Groupings 
 
-test_run_agg$AverageRes <- rowMeans(testrun_flat[,4:6])
-test_run_agg$TotInf <- rowSums(testrun_flat[,3:10])
+LMIC_tax_vector <- c("G1" = sum(t_sales[t_sales$Group_China == 1,]$Revenue_LMIC), 
+                     "G2" = sum(t_sales[t_sales$Group_China == 2,]$Revenue_LMIC), 
+                     "G3" = sum(t_sales[t_sales$Group_China == 3,]$Revenue_LMIC))
 
-parms1 <- parms; parms1[["eff_tax"]][,] <- 0.5; parms1[["int_round"]] <- 1
-testrun_flat <- agg_func(ode_wrapper(y = init, func = amr, times = seq(0, 10300), parms = parms1, approx_sigma)[[1]])
-test_plot_flat <- melt(testrun_flat, id.vars = "time", measure.vars = colnames(testrun_flat)[4:6])
-ggplot(test_plot_flat, aes(time, value, color = variable)) + geom_line() + theme_bw()
+#Create HIC Groupings
 
-# Intervention Scenarios --------------------------------------------------
+HIC_tax_vector <- c("G1" = sum(t_sales[t_sales$Group_US == 1,]$Revenue_HIC), 
+                     "G2" = sum(t_sales[t_sales$Group_US == 2,]$Revenue_HIC), 
+                     "G3" = sum(t_sales[t_sales$Group_US == 3,]$Revenue_HIC))
 
-#Flat Tax
+comb_taxvector <- list(HIC_tax_vector, LMIC_tax_vector)
 
-parms1 <- parms; parms1[["eff_tax"]][,] <- 0.5; parms1[["int_round"]] <- 1
-testrun_flat <- list(ode_wrapper(y = init, func = amr, times = seq(0, 10300), parms = parms1, approx_sigma)[[1]])
+# Parameter Ranges --------------------------------------------------------
 
-#Single Tax 
-single_list <- list()
+low_parm <- c(1/3650*(2), #lambda
+              0, #beta
+              0, #sigma1
+              0, #sigma2
+              0, #sigma3
+              1/365, #r_wt
+              1/365, #r_r
+              1/365, #r_rr
+              1/365, #r_rrr
+              1/365, #r_t
+              0.15, #eta_wr
+              0.006, #eta_rw
+              0.009, #eta_rr
+              0.009, #eta_rrr
+              0.5, #c1
+              0.5, #c2
+              0.5, #c3
+              0.5, #c12
+              0.5, #c13
+              0.5, #c23
+              0.5, #c123
+              0, #rho
+              0) #baseline tax
 
-for(i in 1:3) {
-  parms1 <- parms
-  single_list[[i]] <- single_tax(i, 0.5, parms1, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]]
+high_parm <- c(1/36.5*(2), #lambda
+               10, #beta
+               1, #sigma1
+               1, #sigma2
+               1, #sigma3
+               1/1, #r_wt
+               1/1, #r_r
+               1/1, #r_rr
+               1/1, #r_rrr
+               1/1, #r_t
+               10, #eta_wr
+               0.6, #eta_rw
+               0.9, #eta_rr
+               0.9, #eta_rrr
+               1, #c1
+               1, #c2
+               1, #c3
+               1, #c12
+               1, #c13
+               1, #c23
+               1, #c123
+               1, #rho
+               1) #baseline tax
+
+#Creating the Parm Dataframe
+
+parm_data <- data.frame(t(replicate(10000, runif(23, low_parm, high_parm))))
+
+colnames(parm_data) <- c("lambda", "beta", "sigma1", "sigma2", "sigma3", 
+                         "r_wt", "r_r", "r_rr", "r_rrr","r_t",
+                         "eta_wr", "eta_rw", "eta_rr", "eta_rrr",
+                         "c1", "c2", "c3", "c12", "c13", "c23", "c123",  
+                         "rho", "base_tax")
+
+for(i in 1:nrow(parm_data)) {
+  if(sum(parm_data[c("sigma1", "sigma2", "sigma3")][i,]) > 1) {
+    parm_data[c("sigma1", "sigma2", "sigma3")][i,] <- parm_data[c("sigma1", "sigma2", "sigma3")][i,]/
+      (sum(parm_data[c("sigma1", "sigma2", "sigma3")][i,]) + runif(1, 0, 1))
+  }
 }
 
-#Diff Tax
-diff_tax_list <- list()
-for(i in 1:6) {
-  diff_tax_list[[i]] <- multi_int_fun(i, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]]
+parm_data[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr")] <- t(sapply(1:nrow(parm_data), function(x) 
+  sort(as.numeric(parm_data[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr")][x,]), decreasing = T)))
+
+parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")] <- t(sapply(1:nrow(parm_data), function(x) 
+  sort(as.numeric(parm_data[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")][x,]), decreasing = F)))
+
+
+parm_data[c("c1", "c2", "c3")] <- t(sapply(1:nrow(parm_data), function(x) 
+  sample(sort(as.numeric(parm_data[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")][x,]), decreasing = T)[1:3], 
+         size = 3, replace = FALSE)))
+
+parm_data[c("c12", "c13", "c23")] <-  t(sapply(1:nrow(parm_data), function(x) 
+  sample(sort(as.numeric(parm_data[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")][x,]), decreasing = T)[4:6], 
+         size = 3, replace = FALSE)))
+
+parm_data["c123"] <- sapply(1:nrow(parm_data), function(x) 
+  sort(as.numeric(parm_data[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")][x,]), decreasing = T)[7])
+
+parm_data_comb <- data.frame(parm_data, t_n = 3000, int_round = 0,
+                             time_between = Inf)
+
+# Run Sensitivity Analysis ------------------------------------------------
+
+mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, low_parm, high_parm, agg_func, ode_wrapper, approx_sigma) {
+  
+  parms_base = as.list(parms_frame[n,])
+  parms_base = append(parms_base, parms["PED"])
+  parms_base = append(parms_base, parms["eff_tax"])
+  parms_base = append(parms_base, parms["actual_tax"])
+  
+  #Run Baseline
+  run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10300), parms = parms_base, approx_sigma)[[1]]
+  run_base_agg <- agg_func(run_base)
+  values <- tail(run_base_agg, 1)
+  
+  if(values[4] == 0 & values[5] == 0 & values[6] == 0) {
+    while(values[4] == 0 & values[5] == 0 & values[6] == 0) {
+      parms_base[c(1:23)] <- as.list(runif(23, low_parm, high_parm))
+      
+      if(sum(unlist(parms_base[c("sigma1", "sigma2", "sigma3")])) > 1) {
+        parms_base[c("sigma1", "sigma2", "sigma3")] <- as.list(unlist(parms_base[c("sigma1", "sigma2", "sigma3")])/
+                                                                 (sum(unlist(parms_base[c("sigma1", "sigma2", "sigma3")])) + runif(1, 0, 1)))
+      }
+      
+      parms_base[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr")] <- as.list(sort(as.numeric(parms_base[c("eta_wr", "eta_rw", "eta_rr", "eta_rrr")]), decreasing = T))
+      parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")] <- as.list(sort(as.numeric(parms_base[c("r_wt", "r_r", "r_rr", "r_rrr", "r_t")]), decreasing = F))
+      
+      parms_base[c("c1", "c2", "c3")] <- 
+        as.list(sample(sort(as.numeric(parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")]), decreasing = T)[1:3]), size = 3, replace = F)
+      
+      parms_base[c("c12", "c13", "c23")] <- 
+        as.list(sample(sort(as.numeric(parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")]), decreasing = T)[4:6]), size = 3, replace = F)
+      
+      parms_base["c123"] <- 
+        as.list(sort(as.numeric(parms_base[c("c1", "c2", "c3", "c12", "c13", "c23", "c123")]), decreasing = T)[7])
+      
+      run_base <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10300), parms = parms_base, approx_sigma)[[1]]
+      run_base_agg <- agg_func(run_base)
+      values <- tail(run_base_agg, 1)
+    }
+  }
+  
+  run <- run_base[run_base[,1] > parms_base[["t_n"]],]
+  run_base_agg <- run_base_agg[run_base_agg[,1] > parms_base[["t_n"]],]
+  
+  #Identifying the order of the resistances
+  res_order_vec <- c(names(values[4:6])[which.max(values[4:6])],
+                     names(values[4:6])[setdiff(1:3, c(which.min(values[4:6]), which.max(values[4:6])))],
+                     names(values[4:6])[which.min(values[4:6])])
+  
+  #Need to calculate a different baseline for each scenario for antibiotic usage 
+  tax_vec <- c()
+  
+  for(i in 1:10){
+    parms = parms_base
+    if(i == 1) {
+      parms[["eff_tax"]][,] <- parms[["base_tax"]]
+      parms[["int_round"]] <- 1
+      out_run <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10300), parms = parms, approx_sigma)
+      parms <- out_run[[2]]
+      eff_tax <- parms$eff_tax
+    }
+    if(i >= 2 & i <= 4) {
+      parms[["eff_tax"]][as.numeric(substr(res_order_vec[i-1], 2, 2)), c(1:6)] <- parms[["base_tax"]]
+      parms[["int_round"]] <- 1
+      out_run <- ode_wrapper(y = init, func = amr_ode, times = seq(0, 10300), parms = parms, approx_sigma)
+      parms <- out_run[[2]]
+      eff_tax <- parms$eff_tax
+    }
+    if(i >= 5 & i <= 10) {
+      diff <- multi_int_fun(i-4, 365*3, parms, init, amr_ode, agg_func, ode_wrapper, approx_sigma)
+      parms <- diff[[2]]
+      eff_tax <- parms$actual_tax
+    }
+
+    for(z in 1:2){
+      data_year_new <- year_tax(eff_tax)
+      tax_LMIC_HIC <- comb_taxvector[[z]]
+        
+      data_year_new[,2:4] <- sweep(data_year_new[,2:4], 2, tax_LMIC_HIC, "*")
+      data_year_new$total <- rowSums(data_year_new[,2:4])
+      tax_vec[seq(1,20, by = 2)[i]+(z-1)] <- sum(data_year_new$total)
+    }
+  }
+  
+  output <- tax_vec
+  names(output) <- c("flat_HIC", "flat_LMIC",
+                     "singleHR_HIC", "singleHR_LMIC",
+                     "singleMR_HIC", "singleMR_LMIC",
+                     "singleLR_HIC", "singleLR_LMIC", 
+                     "diff1_HIC", "diff1_LMIC", 
+                     "diff2_HIC", "diff2_LMIC",
+                     "diff3_HIC", "diff3_LMIC", 
+                     "diff4_HIC", "diff4_LMIC", 
+                     "diff5_HIC", "diff5_LMIC", 
+                     "diff6_HIC", "diff6_LMIC")
+  return(output)
 }
 
-#Bans
-ban_list <- list()
-for(i in 1:3) {
-  ban_list[[i]] <- ban_wrapper(times = seq(0, 10300), init, parms, amr, approx_sigma, ban = i)[[1]]
+# Run the Model -----------------------------------------------------------
+
+start_time <- Sys.time()
+
+test <- mclapply(1:1000, 
+                 FUN = mono_func, 
+                 parms_frame = parm_data_comb, 
+                 init = c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
+                          R12 = 0, R13 = 0, R23 = 0,
+                          R123 = 0), 
+                 amr_ode = amr, 
+                 usage_fun = usage_fun,
+                 multi_int_fun = multi_int_fun,
+                 low_parm = low_parm,
+                 high_parm = high_parm,
+                 agg_func = agg_func,
+                 ode_wrapper = ode_wrapper,
+                 approx_sigma = approx_sigma,
+                 mc.cores = 10) 
+ 
+# save --------------------------------------------------------------------
+
+#Combine the Output into a "normal" looking dataframe
+comb_data <- data.frame(do.call(rbind, test))
+comb_data_new <- data.frame(matrix(NA, nrow = nrow(comb_data), ncol = 20))
+
+for(i in 1:nrow(comb_data)) {
+  comb_data_new[i,] <- unlist(comb_data[i,1:20])
 }
 
-# Plotting the Scenarios --------------------------------------------------
+colnames(comb_data_new) <- colnames(comb_data)[1:20]
 
-#Create a combined list of all the scenarios
-list_scen <- unlist(list(testrun_flat, single_list, diff_tax_list, ban_list), recursive = FALSE)
+#Save the output
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Tax/taxlist_v1.RDS")
 
-melt_data <- list()
+end_time <- Sys.time()
+print(end_time - start_time)
 
-#Melt each one
-for(i in 1:length(list_scen)) {
-  data_agg <- agg_func(list_scen[[i]]) 
-  colnames(data_agg)[4:6] <- c("Antibiotic with Highest Res (HR)", "Antibiotic with Medium Res (MR)", "Antibiotic with Lowest Res (LR)") 
-  melt_data[[i]] <- data.frame(melt(data_agg, id.vars = "time", measure.vars = colnames(data_agg)[4:6]),
-                               "scen" = c("flat", "single1", "single2", "single3",
-                                          "diff1", "diff2", "diff3", "diff4", "diff5", "diff6",
-                                          "ban1", "ban2", "ban3")[i])
-}
-
-p_data <- list()
-
-#Plotting Loop
-for(i in 1:length(melt_data)) {
-  data <- melt_data[[i]]
-  p_data[[i]] <- ggplot(data, aes(time/365, value, color = variable)) + 
-    annotate("rect",xmin = 3000/365, xmax = Inf, ymin = 0, ymax = Inf, fill = "red", alpha = 0.075) +
-    geom_line() + theme_bw() + theme(legend.position = "bottom") +
-    labs(x = "Time (Years)", y = "Prevalence", title = c("Flat Tax",
-                                                 "Single Tax (HR)","Single Tax (MR)","Single Tax (LR)",
-                                                 "Diff Tax (1 Rd)", "Diff Tax (2 Rd)", "Diff Tax (3 Rd)",
-                                                 "Diff Tax (4 Rd)", "Diff Tax (5 Rd)", "Diff Tax (6 Rd)",
-                                                 "Ban (HR)", "Ban (MR)", "Ban (LR)")[i], color = "") +
-    scale_y_continuous(limits = c(0,0.75), expand = c(0,0)) + scale_x_continuous(expand = c(0,0), breaks = seq(0, 50, by = 5)) +
-    theme(legend.text = element_text(size=10), panel.grid = element_blank(),
-          axis.text=element_text(size=10), axis.title =element_text(size=10), title =element_text(size=10, face="bold"),
-          plot.title=element_text(hjust=0.05, vjust=-8, size = 10), plot.margin = unit(c(0.1,0.5,0.1,0.1), "cm")) 
-}
-
-test <- ggarrange(p_data[[1]], "", "",
-                  p_data[[2]], p_data[[3]],p_data[[4]], 
-                  p_data[[5]], p_data[[6]], p_data[[7]],
-                  p_data[[8]], p_data[[9]], p_data[[10]],
-                  p_data[[11]], p_data[[12]], p_data[[13]],
-                  labels = c("A", "", "",
-                             "B", "", "",
-                             "C", "", "",
-                             "", "", "",
-                             "D", "", ""), hjust = -.1,  nrow = 5, ncol = 3, common.legend = T, legend = "bottom")+ 
-  bgcolor("white") + border("white")
-
-ggsave(test, filename = "traj_plots1.png", dpi = 300, width = 9, height = 10, units = "in",
-       path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/") 
-
-# Figure ------------------------------------------------------------------
-
-figure_run <- agg_func(multi_int_fun(6, 365*3, parms, init, amr, agg_func, ode_wrapper, approx_sigma)[[1]])
-
-m_sigma <- melt(figure_run, id.vars = "time", measure.vars = colnames(figure_run)[4:6])
-
-ggplot(m_sigma, aes(time/365, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
-  labs(x = "Time (Years)", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(limits = c(0,0.6), expand = c(0, 0)) + 
-  scale_x_continuous(limits = c(0,2999/365) , expand = c(0.04, 0.5)) +
-  theme(axis.text=element_text(size=11),axis.title =element_text(size=12))
-
-ggplot(m_sigma, aes(time/365, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
-  labs(x = "Time (Years)", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.6), expand = c(0, 0)) + 
-  scale_x_continuous(limits = c(3000/365,(3000 + 364*3)/365) , expand = c(0,0)) +
-  theme(axis.text=element_text(size=11), axis.title =element_text(size=12), axis.text.y = element_blank())
-
-ggplot(m_sigma, aes(time/365, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
-  labs(x = "Time (Years)", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.6), expand = c(0, 0)) + 
-  scale_x_continuous(limits = c(3000/365,(3000 + 364*3)/365) , expand = c(0,0)) +
-  theme(axis.text=element_text(size=11), axis.title =element_text(size=12), axis.text.y = element_text(size=12))
-
-ggplot(m_sigma, aes(time/365, value, color = variable)) + geom_line() + theme_minimal() + theme(legend.position = "bottom") +
-  labs(x = "Time (Years)", y = "Prevalence", color = "Antibiotic Class") + scale_y_continuous(name = "", limits = c(0,0.6), expand = c(0, 0)) + 
-  scale_x_continuous(limits = c((3000 + 364*3)/365,(3000 + 364*4)/365), expand = c(0,0)) +
-  theme(axis.text=element_text(size=11), axis.title =element_text(size=12), axis.text.y = element_blank())
