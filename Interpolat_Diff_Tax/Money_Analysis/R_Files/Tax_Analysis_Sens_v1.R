@@ -337,7 +337,7 @@ parms = list(lambda = 1/365*(2), int_round = 1,
 
 # Tax Data and Sales ------------------------------------------------------
 
-sales <- read.csv("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Money_Analysis/US_China_Group_Price.csv")
+sales <- read.csv("/cluster/home/amorgan/Sens_Tax/US_China_Group_Price.csv")
 t_sales <- setNames(data.frame(t(sales[,-1])), sales[,1])
 
 #Create LMIC Groupings 

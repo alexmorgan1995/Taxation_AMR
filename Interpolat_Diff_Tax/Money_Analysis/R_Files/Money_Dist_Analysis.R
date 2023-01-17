@@ -3,13 +3,13 @@ rm(list=ls())
 
 # Import in Dataset -------------------------------------------------------
 
-tax_data <- readRDS("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Money_Analysis/taxlist.RDS")
+tax_data <- readRDS("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Money_Analysis/taxlist_v1.RDS")
 
 # Resistance --------------------------------------------------------------
 
 tax_dist <- tax_data
 m_tax_dist <- melt(tax_dist, measure.vars = colnames(tax_dist))
-m_tax_dist$country <- rep(c("USA", "China"), each = 1000, times = 10)
+m_tax_dist$country <- rep(c("HIC", "LMIC"), each = 1000, times = 10)
   
 test_stat <- pairwise.wilcox.test(m_tax_dist$value, m_tax_dist$variable,
                      p.adjust.method = "bonferroni")
@@ -33,7 +33,7 @@ calc_boxplot_stat <- function(x) {
 }
 
 #Box Plot
-box_tax <- ggplot(m_tax_dist, aes(x=variable, y=(value/1000000000)/200, fill=variable)) + 
+box_tax <- ggplot(m_tax_dist, aes(x=variable, y=(value/10000000000)/20, fill=variable)) + 
   stat_summary(fun.data = calc_boxplot_stat, geom="boxplot") + theme_bw() +
   facet_wrap(~country, scales="free", ncol = 1 , nrow = 2)  + labs(y = "Average Yearly Revenue ($ 10 Billion)", x = "") + 
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), 
@@ -53,8 +53,19 @@ box_tax <- ggplot(m_tax_dist, aes(x=variable, y=(value/1000000000)/200, fill=var
 
 # Average Box Plot --------------------------------------------------------
 
+tax_dist_average <- tax_data
+
+for(i in seq(1, 20, 2)) {
+  tax_dist_average <- cbind(tax_dist_average, rowSums(tax_dist_average[,c(i,i+1)]))
+}
+
+colnames(tax_dist_average)[21:30] <- c("FT", "ST_HR", "ST_MR", "ST_LR", "DT_1", "DT_2", "DT_3", "DT_4", "DT_5", "DT_6")
+
+m_tax_dist_average <- melt(tax_dist_average, measure.vars = colnames(tax_dist_average))
+m_tax_dist_average$country <- rep(c("HIC", "LMIC", "Global"), each = 1000, times = 10)
+
 #Box Plot
-country_box_tax <- ggplot(m_tax_dist, aes(x=country, y=(value/1000000000)/200, fill = country)) + coord_cartesian(ylim=c(0, 3)) + 
+country_box_tax <- ggplot(m_tax_dist_average, aes(x=country, y=(value/10000000000)/20, fill = country)) + coord_cartesian(ylim=c(0, 15)) + 
   geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Average Yearly Revenue ($ 10 Billion)", x = "") + 
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), 
         axis.text=element_text(size=11), 
