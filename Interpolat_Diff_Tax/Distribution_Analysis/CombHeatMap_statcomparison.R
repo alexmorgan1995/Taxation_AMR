@@ -109,7 +109,7 @@ win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
 #Box Plot
 box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-2, 2)) + 
   facet_grid(. ~ factors, scales = "free", space = "free") +
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Resistance per D-AMU (%)", x = "") + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Resistance per D-ABU (%)", x = "") + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title=element_text(size=11), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
@@ -190,7 +190,7 @@ win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
 #Box Plot
 box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.4, 0.5)) + 
   facet_grid(. ~ factors, scales = "free", space = "free") +
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Infections per D-AMU (%)", x = "") + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Infections per D-ABU (%)", x = "") + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title=element_text(size=11), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
@@ -279,7 +279,7 @@ test <- ggarrange(comb_res, comb_inf,
           comb_avg_anti, labels= c("A", "B", "C"), font.label=list(color="black",size=20) ,nrow = 3, ncol = 1, align="v",
           heights = c(0.1, 0.1, 0.1), common.legend = T)
 
-ggsave(test, filename = "run_high.png", dpi = 300, width = 11, height = 14, units = "in",
+ggsave(test, filename = "run_base.png", dpi = 300, width = 11, height = 14, units = "in",
        path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")
 
 box_avganti <- box_avganti + theme(axis.text.x = element_text(size=12)) 

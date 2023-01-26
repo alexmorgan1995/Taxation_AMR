@@ -4,55 +4,146 @@ rm(list=ls())
 
 setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/Bans/")
 
+
+# Calculating Intervention Failure ----------------------------------------
+
+intfail <- function(win_import_change) {
+  data <- win_import_change[,c(16:30)]
+  prop_vec <- data.frame("intervention" = colnames(data),
+                         "prop_inc" = NA)
+  for(i in 1:15) {
+    prop_1000 <- data[,i]
+    if(sum(!is.na(prop_1000)) == 0) {
+      prop_vec[i,2] <- NA
+    } else{
+      prop_vec[i,2] <- length(prop_1000[prop_1000 == -1000])/sum(!is.na(prop_1000))
+    }
+  }
+  return(prop_vec)
+}
+
 # Import in Dataset -------------------------------------------------------
 
-win_import_base <- readRDS("MDR_run_Base.RDS")
+#Baseline
+win_import_base <- readRDS("MDR_run_Base_tax.RDS") 
 win_import_base[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                   "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
+winintfail_base <- win_import_base
+win_import_base[win_import_base == -1000] <- NA
 win_import_base$scen <- "Baseline"
 
-win_import_biasPED <- readRDS("MDR_run_highComp.RDS")
-win_import_biasPED[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
+#Tax 25% of Revenue
+win_import_tax25 <- readRDS("MDR_run_Base_tax25.RDS")
+win_import_tax25[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
+                   "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
+winintfail_tax25 <- win_import_tax25
+win_import_tax25[win_import_tax25 == -1000] <- NA
+win_import_tax25$scen <- "Tax 25%"
+
+#Tax 75% of Revenue
+win_import_tax75 <- readRDS("MDR_run_Base_tax75.RDS")
+win_import_tax75[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
+                   "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
+winintfail_tax75 <- win_import_tax75
+win_import_tax75[win_import_tax75 == -1000] <- NA
+win_import_tax75$scen <- "Tax 75%"
+
+#PED of 0.6
+win_import_highComp <- readRDS("MDR_run_highComp_tax.RDS")
+win_import_highComp[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
+                      "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
+winintfail_highComp <- win_import_highComp
+win_import_highComp[win_import_highComp == -1000] <- NA
+win_import_highComp$scen <- "High Comp"
+
+#PED of 0.4
+win_import_lowComp <- readRDS("MDR_run_lowComp_tax.RDS")
+win_import_lowComp[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                      "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
-win_import_biasPED$scen <- "High Comp"
+winintfail_lowComp <- win_import_lowComp
+win_import_lowComp[win_import_lowComp == -1000] <- NA
+win_import_lowComp$scen <- "Low Comp"
 
-win_import_realPED <- readRDS("MDR_run_lowComp.RDS")
-win_import_realPED[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
-                     "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
-win_import_realPED$scen <- "Low Comp"
-
-win_import_25 <- readRDS("MDR_run_10.RDS")
-win_import_25[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
+#Effectiveness threshold of 35%
+win_import_35 <- readRDS("MDR_run_35_tax.RDS")
+win_import_35[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                 "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
-win_import_25$scen <- "10% Threshold"
+winintfail_tax35 <- win_import_35
+win_import_35[win_import_35 == -1000] <- NA
+win_import_35$scen <- "35% Threshold"
 
-win_import_75 <- readRDS("MDR_run_05.RDS")
-win_import_75[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
+#Effectiveness threshold of 10%
+win_import_10 <- readRDS("MDR_run_10_tax.RDS")
+win_import_10[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                 "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
-win_import_75$scen <- "5% Threshold"
+winintfail_tax10 <- win_import_10
+win_import_10[win_import_10 == -1000] <- NA
+win_import_10$scen <- "10% Threshold"
 
-win_import_2class <- readRDS("MDR_run_two.RDS")
+#Effectiveness threshold of 5%
+win_import_05 <- readRDS("MDR_run_05_tax.RDS")
+win_import_05[c("singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
+                "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
+winintfail_tax05 <- win_import_05
+win_import_05[win_import_05 == -1000] <- NA
+win_import_05$scen <- "5% Threshold"
+
+#2 antibiotic classes
+win_import_2class <- readRDS("MDR_run_two_tax.RDS")
 win_import_2class[c("singleMR_inf",  "singleMR_res", "singleMR_shan", "singleMR_avganti",
                     "singleMR2_inf",  "singleMR2_res", "singleMR2_shan", "singleMR2_avganti",
                     "banMR_inf",  "banMR_res", "banMR_shan", "banMR_avganti",
                     "banMR2_inf",  "banMR2_res", "banMR2_shan", "banMR2_avganti")] <- NA
+winintfail_twoclass <- win_import_2class
+win_import_2class[win_import_2class == -1000] <- NA
 win_import_2class$scen <- "Two Classes"
 
-win_import_4class <- readRDS("MDR_run_four.RDS")
-win_import_4class$scen <- "Four Classes"
+#4 antibiotic classes
+win_import_4class <- readRDS("MDR_run_four_tax.RDS")
 colnames(win_import_4class)[grep("MR1", colnames(win_import_4class))] <- c("singleMR_inf", "banMR_inf", "singleMR_res" , "banMR_res", 
                                                                            "singleMR_shan","banMR_shan","banMR_avganti")
+winintfail_fourclass <- win_import_4class
+win_import_4class[win_import_4class == -1000] <- NA
+win_import_4class$scen <- "Four Classes"
+
 
 #The MR1 in the avganti for single MR intervention is already without the MR1
 
-win_import_base <- win_import_base[,colnames(win_import_4class)]
-win_import_biasPED <- win_import_biasPED[,colnames(win_import_4class)]
-win_import_25 <- win_import_25[,colnames(win_import_4class)]
-win_import_75 <- win_import_75[,colnames(win_import_4class)]
-win_import_2class <- win_import_2class[,colnames(win_import_4class)]
-win_import_realPED <- win_import_realPED[,colnames(win_import_4class)]
+win_import_base <- win_import_base[,colnames(win_import_4class)]; fail_base <- intfail(winintfail_base)
+win_import_tax25 <- win_import_tax25[,colnames(win_import_4class)]; fail_tax25 <- intfail(winintfail_tax25)
+win_import_tax75 <- win_import_tax75[,colnames(win_import_4class)]; fail_tax75 <- intfail(winintfail_tax75)
+win_import_highComp <- win_import_highComp[,colnames(win_import_4class)]; fail_highComp <- intfail(winintfail_highComp)
+win_import_lowComp <- win_import_lowComp[,colnames(win_import_4class)]; fail_lowComp <- intfail(win_import_lowComp)
+win_import_35 <- win_import_35[,colnames(win_import_4class)]; fail_35 <- intfail(winintfail_tax35)
+win_import_10 <- win_import_10[,colnames(win_import_4class)]; fail_10 <- intfail(winintfail_tax10)
+win_import_05 <- win_import_05[,colnames(win_import_4class)]; fail_05 <- intfail(winintfail_tax05)
+win_import_2class <- win_import_2class[,colnames(win_import_4class)]; fail_2class <- intfail(winintfail_twoclass)
+fail_4class <- intfail(winintfail_fourclass)
 
-comb_imp <- rbind(win_import_base,win_import_realPED, win_import_biasPED, win_import_25, win_import_75, win_import_2class, win_import_4class)
+
+intfail(win_import_lowComp)
+
+data <- win_import_lowComp[,c(16:30)]
+prop_vec <- data.frame("intervention" = colnames(data),
+                       "prop_inc" = NA)
+for(i in 1:15) {
+  prop_1000 <- data[,i]
+  if(sum(!is.na(prop_1000)) == 0) {
+    prop_vec[i,2] <- NA
+  } else{
+    prop_vec[i,2] <- length(prop_1000[prop_1000 == -1000])/sum(!is.na(prop_1000))
+  }
+}
+
+
+vec_fail <- do.call("rbind", lapply(list(win_import_base, win_import_tax25, win_import_tax75, win_import_lowComp, win_import_highComp,
+                                         win_import_35, win_import_10, win_import_05, win_import_2class, win_import_4class), intfail))
+#Combine them together
+comb_imp <- rbind(win_import_base,
+                  win_import_tax25, win_import_tax75,
+                  win_import_lowComp, win_import_highComp, 
+                  win_import_35, win_import_10, win_import_05, 
+                  win_import_2class, win_import_4class)
 
 # Altering Data Infections ------------------------------------------------
 
@@ -87,10 +178,20 @@ for(i in unique(win_inf_trans$scen)) {
 }
 
 inf_frame$scen <- factor(inf_frame$scen, levels = rev(unique(inf_frame$scen)))
-inf_frame$factor <- c(rep("Baseline", 15), rep("Other", 6*15))
+inf_frame$factor <- c(rep("Baseline", 15), rep("Other", 9*15))
 inf_frame$factor <- factor(inf_frame$factor, levels = unique(inf_frame$factor))
-inf_frame$Int <- as.factor(rep(c(rep("Tax", 11),rep("Bans", 4)), 7))
+inf_frame$Int <- as.factor(rep(c(rep("Tax", 11),rep("Bans", 4)), 10))
 inf_frame$Int <- factor(inf_frame$Int, levels = unique(inf_frame$Int))
+
+#Multiplying the Dataframes together
+inf_frame$Infections_Scale <- inf_frame$Infections*vec_fail
+
+for(i in 1:10){
+  reformat <- inf_frame$Infections_Scale[c(1:15)+(15*i-1)]
+  print(reformat)
+}
+
+
 
 inf_plot <- ggplot(inf_frame, aes(Interventions, scen)) + theme_bw() +
   geom_tile(aes(fill = Infections)) + scale_fill_distiller(palette ="Blues", direction = 1) +
