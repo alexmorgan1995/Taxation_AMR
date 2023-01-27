@@ -4,7 +4,7 @@ setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/I
 
 # Import in Dataset -------------------------------------------------------
 
-win_import_change <- readRDS("MDR_run_two.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_two_tax.RDS"); win_import <- win_import_change
 
 win_import[win_import == -1000] <- NA
 
@@ -34,7 +34,6 @@ win_shan <- win_shan[rowSums(win_shan[, -1]) > 0, ]
 
 #Average Antibiotics
 win_avganti <- round((win_import[,34:44]), 3)
-
 
 # Resistance --------------------------------------------------------------
 
@@ -68,13 +67,17 @@ p <- ggplot(m_res, aes(x=factor(variable), y=value)) + geom_boxplot()
 prop_vec[,3] <- ggplot_build(p)$data[[1]]$ymax
 
 
-prop_win_res <- data.frame("Resistance" = colSums(win_res_trans, na.rm = T)/nrow(win_res_trans),
+prop_win_res <- data.frame("Resistance" = round((colSums(win_res_trans, na.rm = T)/nrow(win_res_trans))*100, 1),
                            "Interventions" = as.factor(c("FT", "ST (HR)", 
                                                          "ST (LR)", 
                                                          "DT (1Rd)", "DT (2Rd)",
                                                          "DT (3Rd)", "DT (4Rd)", 
                                                          "DT (5Rd)", "DT (6Rd)",
                                                          "Ban (HR)", "Ban (LR)")))
+
+#Tranformed Win
+prop_win_res$Resistance <- prop_win_res$Resistance*(1-prop_vec$prop_inc)
+prop_win_res$Resistance <- round(prop_win_res$Resistance/sum(prop_win_res$Resistance)*100,1)
 
 prop_win_res$Interventions <- factor(prop_win_res$Interventions, levels = c(prop_win_res$Interventions))
 prop_win_res$factors <- c(rep("Taxation", 9) , rep("Ban", 2))
@@ -103,7 +106,7 @@ win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.5, 1.5)) + 
+box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-1.5, 2)) + 
   facet_grid(. ~ factors, scales = "free", space = "free") +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Resistance (%)", x = "") + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
@@ -144,13 +147,17 @@ win_inf_trans <- t(apply(inc_inf, 1, function(x) {
   return(x)}
 ))
 
-prop_win_inf <- data.frame("Infections" = round(colSums(win_inf_trans)/nrow(win_inf_trans),3),
+prop_win_inf <- data.frame("Infections" = round((colSums(win_inf_trans)/nrow(win_inf_trans))*100, 1),
                            "Interventions" = as.factor(c("FT", "ST (HR)", 
                                                          "ST (LR)", 
                                                          "DT (1Rd)", "DT (2Rd)",
                                                          "DT (3Rd)", "DT (4Rd)", 
                                                          "DT (5Rd)", "DT (6Rd)",
                                                          "Ban (HR)", "Ban (LR)")))
+
+#Tranformed Win
+prop_win_inf$Infections <- prop_win_inf$Infections*(1-prop_vec$prop_inc)
+prop_win_inf$Infections <- round(prop_win_inf$Infections/sum(prop_win_inf$Infections)*100,1)
 
 prop_win_inf$Interventions <- factor(prop_win_inf$Interventions, levels = c(prop_win_inf$Interventions))
 prop_win_inf$factors <- c(rep("Taxation", 9), rep("Ban", 2))
@@ -179,7 +186,7 @@ win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-1.5, 1)) + 
+box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-2, 2)) + 
   facet_grid(. ~ factors, scales = "free", space = "free") +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Infections (%)", x = "") + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
@@ -216,13 +223,17 @@ win_avganti_trans <- t(apply(inc_avganti, 1, function(x) {
   return(x)}
 ))
 
-prop_win_avganti <- data.frame("Average_Anti" = round(colSums(win_avganti_trans)/nrow(win_avganti_trans),3),
+prop_win_avganti <- data.frame("Average_Anti" = round((colSums(win_avganti_trans)/nrow(win_avganti_trans))*100,1),
                                "Interventions" = as.factor(c("FT", "ST (HR)", 
                                                              "ST (LR)", 
                                                              "DT (1Rd)", "DT (2Rd)",
                                                              "DT (3Rd)", "DT (4Rd)", 
                                                              "DT (5Rd)", "DT (6Rd)",
                                                              "Ban (HR)", "Ban (LR)")))
+
+#Tranformed Win
+prop_win_avganti$Average_Anti <- prop_win_avganti$Average_Anti*(1-prop_vec$prop_inc)
+prop_win_avganti$Average_Anti <- round(prop_win_avganti$Average_Anti/sum(prop_win_avganti$Average_Anti)*100,1)
 
 prop_win_avganti$Interventions <- factor(prop_win_avganti$Interventions, levels = c(prop_win_avganti$Interventions))
 prop_win_avganti$factors <- c(rep("Taxation", 9), rep("Ban", 2))
@@ -251,9 +262,7 @@ win_avganti_p <- ggplot(prop_win_avganti, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-
-
-box_avganti <- ggplot(m_avganti, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.0001, 3)) +
+box_avganti <- ggplot(m_avganti, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.0001, 2)) +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") +
   facet_grid(. ~ factors, scales = "free_x", space = "free")  + theme_bw() + labs(y = "Number of Available Antibiotics", x = "")  + 
   scale_alpha_manual(values =  prop_vec$prop_inc) +
@@ -270,5 +279,5 @@ test <- ggarrange(comb_res, comb_inf,
                   comb_avg_anti, labels= c("A", "B", "C"), font.label=list(color="black",size=20) ,nrow = 3, ncol = 1, align="v",
                   heights = c(0.1, 0.1, 0.1), common.legend = T)
 
-ggsave(test, filename = "test_v1_two.png", dpi = 300, width = 11, height = 13, units = "in",
+ggsave(test, filename = "run_two.png", dpi = 300, width = 11, height = 13, units = "in",
        path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")
