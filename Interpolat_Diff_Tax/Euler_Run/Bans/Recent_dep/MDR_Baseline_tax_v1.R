@@ -382,10 +382,10 @@ low_parm <- c(1/3650*(2), #lambda
               0.5, #c13
               0.5, #c23
               0.5, #c123
-              0) #rho
+              0) #baseline tax
 
 high_parm <- c(1/36.5*(2), #lambda
-               10, #beta
+               20, #beta
                1, #sigma1
                1, #sigma2
                1, #sigma3
@@ -394,7 +394,7 @@ high_parm <- c(1/36.5*(2), #lambda
                1/1, #r_rr
                1/1, #r_rrr
                1/1, #r_t
-               10, #eta_wr
+               15, #eta_wr
                0.6, #eta_rw
                0.9, #eta_rr
                0.9, #eta_rrr

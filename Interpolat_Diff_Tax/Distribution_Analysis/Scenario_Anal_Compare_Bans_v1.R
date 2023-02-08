@@ -180,7 +180,7 @@ inf_frame$Infections_Scale_v1 <- inf_scale_vec
 inf_plot <- ggplot(inf_frame, aes(Interventions, scen)) + theme_bw() +
   geom_tile(aes(fill = Infections_Scale_v1)) + scale_fill_distiller(palette ="Blues", direction = 1) +
     facet_grid(factor~ Int, scales  = "free", space = "free") +
-  scale_x_discrete(name = "", expand = c(0, 0)) + ggtitle("Total Infections") +  
+  scale_x_discrete(name = "", expand = c(0, 0)) + ggtitle("Overall Infections (Sensitive + Resistant)") +  
   theme(strip.background = element_blank(), axis.text=element_text(size=11),
         strip.text = element_blank(), legend.position="bottom",
         plot.title = element_text(face = "bold", size = 15),
@@ -382,7 +382,7 @@ int_failure_p <- ggplot(vec_fail, aes(intervention, scen)) + theme_bw() +
 inf_noscale_plot <- ggplot(inf_frame, aes(Interventions, scen)) + theme_bw() +
   geom_tile(aes(fill = Infections)) + scale_fill_distiller(palette ="Blues", direction = 1) +
   facet_grid(factor~ Int, scales  = "free", space = "free") +
-  scale_x_discrete(name = "", expand = c(0, 0)) + ggtitle("Total Infections") +  
+  scale_x_discrete(name = "", expand = c(0, 0)) + ggtitle("Overall Infections (Sensitive + Resistant)") +  
   theme(strip.background = element_blank(), axis.text=element_text(size=11),
         strip.text = element_blank(), legend.position="bottom",
         plot.title = element_text(face = "bold", size = 15),

@@ -66,7 +66,7 @@ m_tax_dist_average <- melt(tax_dist_average, measure.vars = colnames(tax_dist_av
 m_tax_dist_average$country <- c(rep(c("HIC", "LMIC"), each = 1000, times = 10), rep("Global", 10000))
 
 #Box Plot
-country_box_tax <- ggplot(m_tax_dist_average, aes(x=country, y=(value/1000000000)/20, fill = country)) + coord_cartesian(ylim=c(0, 5)) + 
+country_box_tax <- ggplot(m_tax_dist_average, aes(x=country, y=(value/1000000000)/20, fill = country)) + coord_cartesian(ylim=c(0, 2.5)) + 
   geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Average Yearly Revenue ($ Billion)", x = "") + 
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), 
         axis.text=element_text(size=11), 

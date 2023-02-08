@@ -1,10 +1,11 @@
 library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); library("rootSolve"); library("viridis"); library("cowplot")
 rm(list=ls())
-setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/Bans")
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/Bans/")
 
 # Import in Dataset -------------------------------------------------------
 
 win_import_change <- readRDS("MDR_run_Base_tax.RDS"); win_import <- win_import_change
+
 win_import_change <- readRDS("MDR_run_Base_tax25.RDS"); win_import <- win_import_change
 win_import_change <- readRDS("MDR_run_Base_tax75.RDS"); win_import <- win_import_change
 
@@ -51,7 +52,7 @@ m_res <- melt(inc_res, measure.vars = colnames(inc_res))
 m_res$factors <- c(rep("Taxation", 10000), rep("Ban", 3000))
 m_res$factors <- factor(m_res$factors, levels = c("Taxation", "Ban"))
 
-test_stat <- pairwise.wilcox.test(m_res$value, m_res$variable,
+test_stat_res <- pairwise.wilcox.test(m_res$value, m_res$variable,
                      p.adjust.method = "bonferroni")
 
 #Intervention Failure
@@ -104,7 +105,7 @@ win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
-  guides(fill = guide_colorbar(title = "Probabilty that Intervention Wins",
+  guides(fill = guide_colorbar(title = "Probability that Intervention Wins",
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",
@@ -131,7 +132,7 @@ box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = varia
                              "DT (5Rd)", "DT (6Rd)",
                              "Ban (HR)", "Ban (MR)", "Ban (LR)")) 
 
-#ggplot_build(box_res)$data
+ggplot_build(box_res)$data
 
 comb_res <- ggarrange(box_res, win_res_p, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
 
@@ -149,7 +150,7 @@ m_inf <- melt(inc_inf, measure.vars = colnames(inc_inf))
 m_inf$factors <- c(rep("Taxation", 10000), rep("Ban", 3000))
 m_inf$factors <- factor(m_inf$factors, levels = c("Taxation", "Ban"))
 
-test_stat <- pairwise.wilcox.test(m_inf$value, m_inf$variable,
+test_stat_inf <- pairwise.wilcox.test(m_inf$value, m_inf$variable,
                                   p.adjust.method = "bonferroni")
 
 #Infections Wins
@@ -188,7 +189,7 @@ win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
-  guides(fill = guide_colorbar(title = "Probabilty that Intervention Wins",
+  guides(fill = guide_colorbar(title = "Probability that Intervention Wins",
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",
@@ -225,6 +226,10 @@ inc_avganti <- win_avganti
 m_avganti <- melt(inc_avganti, measure.vars = colnames(inc_avganti))
 m_avganti$factors <- c(rep("Taxation", 10000), rep("Ban", 3000))
 m_avganti$factors <- factor(m_avganti$factors, levels = c("Taxation", "Ban"))
+
+
+test_stat_avganti <- pairwise.wilcox.test(m_avganti$value, m_avganti$variable,
+                                  p.adjust.method = "bonferroni")
 
 inc_avganti[is.na(inc_avganti)] <- 0
 inc_avganti <- inc_avganti[rowSums(inc_avganti[, -1]) > 0, ]
@@ -265,7 +270,7 @@ win_avganti_p <- ggplot(prop_win_avganti, aes(Interventions, "")) + theme_bw() +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
-  guides(fill = guide_colorbar(title = "Probabilty that Intervention Wins",
+  guides(fill = guide_colorbar(title = "Probability that Intervention Wins",
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",

@@ -345,8 +345,8 @@ parms = list(lambda = 1/365*(2), int_round = 1,
              c1 = 0.95636319, c2 = 0.90284600, c3 = 0.66383335,
              c12 = 0.62569857, c13 = 0.59669175, c23 = 0.56935615,
              c123 = 0.54109666,
-             PED = matrix(c(-1.5, 1, 0.5, 
-                            0.5, -1.25, 0.75,
+             PED = matrix(c(-1.5, 1, 0.25, 
+                            0.5, -1.25, 0.5,
                             0.25, 0.5, -1), #Be aware of this matrix
                           nrow = 3, ncol = 3, byrow = T),
              eff_tax = matrix(c(0, 0, 0, 0, 0, 0, 
@@ -382,10 +382,10 @@ low_parm <- c(1/3650*(2), #lambda
               0.5, #c13
               0.5, #c23
               0.5, #c123
-              0) #rho
+              0) #baseline tax
 
 high_parm <- c(1/36.5*(2), #lambda
-               10, #beta
+               20, #beta
                1, #sigma1
                1, #sigma2
                1, #sigma3
@@ -394,7 +394,7 @@ high_parm <- c(1/36.5*(2), #lambda
                1/1, #r_rr
                1/1, #r_rrr
                1/1, #r_t
-               10, #eta_wr
+               15, #eta_wr
                0.6, #eta_rw
                0.9, #eta_rr
                0.9, #eta_rrr
@@ -627,8 +627,8 @@ for(i in 1:nrow(parm_data_comb_new)) {
 }
  
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_parms_Base_tax.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_Base_tax.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_parms_Base_tax_v2.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_Base_tax_v2.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)

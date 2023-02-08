@@ -268,8 +268,6 @@ single_tax <- function(res_order, tax, parms, init, func, agg_func, ode_wrapper,
   return(run_real)
 }
 
-
-
 # Ban Function ------------------------------------------------------------
 
 ban_wrapper <- function(times, init, parms, func, approx_sigma, ban) {
@@ -516,6 +514,11 @@ for(i in 1:length(melt_data)) {
 # Checking Usage and Average Usage ----------------------------------------
 
 melt_data_sigma <- list()
+data_agg <- list_scen[[1]][[2]]
+sigma_data <- data.frame(approx_sigma(data_agg$sigma_mat))
+
+data_agg <- list_scen[[4]][[2]]
+sigma_data <- data.frame(approx_sigma(data_agg$sigma_mat))
 
 for(i in 1:length(list_scen)) {
   data_agg <- list_scen[[i]][[2]]
