@@ -94,7 +94,7 @@ win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
-  guides(fill = guide_colorbar(title = "Probabilty that Intervention Wins",
+  guides(fill = guide_colorbar(title = "Probabilty that Intervention Wins (%)",
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",
@@ -108,7 +108,7 @@ win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
 #Box Plot
 box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-4.5, 3)) + 
   facet_grid(. ~ factors, scales = "free", space = "free") +
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Resistance (%)", x = "") + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Res under Curtailment", x = "") + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
@@ -123,7 +123,7 @@ box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = varia
 
 ggplot_build(box_res)$data
 
-comb_res <- ggarrange(box_res, win_res_p, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
+comb_res <- ggarrange(box_res, win_res_p, ncol =1, nrow= 2, heights = c(1, 0.5), align = "v")
 
 # Absolute Differences ----------------------------------------------------
 
@@ -174,7 +174,7 @@ win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
-  guides(fill = guide_colorbar(title = "Probabilty that Intervention Wins",
+  guides(fill = guide_colorbar(title = "Probabilty that Intervention Wins (%)",
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",
@@ -188,7 +188,7 @@ win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
 #Box Plot
 box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.4, 0.45)) + 
   facet_grid(. ~ factors, scales = "free", space = "free") +
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Infections (%)", x = "") + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Inf under Curtailment", x = "") + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), axis.text=element_text(size=11), 
         axis.title.y=element_text(size=12), axis.title.x= element_blank(), plot.margin = unit(c(0.3,1,0,1), "cm"),
@@ -203,7 +203,7 @@ box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = varia
 
 ggplot_build(box_inf)$data
 
-comb_inf <- ggarrange(box_inf, win_inf_p, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
+comb_inf <- ggarrange(box_inf, win_inf_p, ncol =1, nrow= 2, heights = c(1, 0.5), align = "v")
 
 # Average Antibiontics Available ------------------------------------------
 
@@ -250,7 +250,7 @@ win_avganti_p <- ggplot(prop_win_avganti, aes(Interventions, "")) + theme_bw() +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
-  guides(fill = guide_colorbar(title = "Probabilty that Intervention Wins",
+  guides(fill = guide_colorbar(title = "Probabilty that Intervention Wins (%)",
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",
@@ -273,7 +273,7 @@ box_avganti <- ggplot(m_avganti, aes(x=variable, y=value, fill = variable, alpha
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank(),
         strip.text.x = element_text(size = 11, colour = "black", face="bold")) 
 
-comb_avg_anti <- ggarrange(box_avganti, win_avganti_p, ncol =1, nrow= 2, heights = c(1, 0.6), align = "v")
+comb_avg_anti <- ggarrange(box_avganti, win_avganti_p, ncol =1, nrow= 2, heights = c(1, 0.5), align = "v")
 
 # Combine the Plots Together ----------------------------------------------
 

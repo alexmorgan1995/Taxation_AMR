@@ -37,7 +37,7 @@ calc_boxplot_stat <- function(x) {
 #Box Plot
 box_tax <- ggplot(m_tax_dist, aes(x=variable, y=(value/1000000000)/20, fill=variable)) + 
   stat_summary(fun.data = calc_boxplot_stat, geom="boxplot") + theme_bw() +
-  facet_wrap(~country, scales="free", ncol = 1 , nrow = 2)  + labs(y = "Average Yearly Revenue ($ Billion)", x = "") + 
+  facet_wrap(~country, scales="free", ncol = 1 , nrow = 2)  + labs(y = "Average Yearly Revenue (US$ Billion)", x = "") + 
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), 
         axis.text=element_text(size=11), 
         axis.title =element_text(size=12),  plot.margin = unit(c(0.3,1,0,1), "cm"),
@@ -67,7 +67,7 @@ m_tax_dist_average$country <- c(rep(c("HIC", "LMIC"), each = 1000, times = 10), 
 
 #Box Plot
 country_box_tax <- ggplot(m_tax_dist_average, aes(x=country, y=(value/1000000000)/20, fill = country)) + coord_cartesian(ylim=c(0, 2.5)) + 
-  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Average Yearly Revenue ($ Billion)", x = "") + 
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE) + theme_bw() + labs(y = "Average Yearly Revenue (US$ Billion)", x = "") + 
   theme(legend.position= "bottom", legend.text=element_text(size=11), legend.title =element_text(size=12), 
         axis.text=element_text(size=11), 
         axis.title =element_text(size=12),  plot.margin = unit(c(0.3,1,0,1), "cm"),

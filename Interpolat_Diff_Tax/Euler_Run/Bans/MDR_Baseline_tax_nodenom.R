@@ -540,7 +540,6 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
                         sum(rowMeans(data_temp_agg[4:6]))), 5)
     
     reduc_usage_vec <- sum(usage_fun(parms)[,6])
-    reduc_usage_perc <- sum(usage_fun(parms)[,6]/sum(usage_fun(parms)[,5]))
     
     #Aggregation
     out$aggR1 <- out$R1 + out$R12 + out$R13 + out$R123
@@ -565,9 +564,9 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
     if((base_int_res - out_vec[2]) < 0 & reduc_usage_vec < 0) {
       store_vec_res[i] <- -1000
     } else {
-      store_vec_res[i] <- (((out_vec[2] - base_int_res)/base_int_res)/reduc_usage_perc)
+      store_vec_res[i] <- ( out_vec[2] - base_int_res)
     }
-    store_vec_inf[i] <- (((out_vec[1] - base_tot_inf)/base_tot_inf)/reduc_usage_perc)
+    store_vec_inf[i] <- (out_vec[1] - base_tot_inf)
     store_vec_shan[i] <- -sum(sapply(1:length(prop_vec_shan), function(x) prop_vec_shan[x]*log(prop_vec_shan[x])))
     store_vec_avganti[i] <- prop_vec
   }
@@ -581,12 +580,11 @@ mono_func <- function(n, parms_frame, init, amr_ode, usage_fun, multi_int_fun, l
   return(output)
 }
 
-
 # Run the Model ----------------------------------------------------------
 
 start_time <- Sys.time()
 
-test <- mclapply(1:1000, 
+test <- mclapply(1:10, 
                  FUN = mono_func, 
                  parms_frame = parm_data_comb, 
                  init = c(X = 0.99, Wt = 1-0.99, R1 = 0, R2 = 0, R3 = 0,
@@ -628,10 +626,9 @@ for(i in 1:nrow(parm_data_comb_new)) {
   parm_list[[i]] <- p_list
 }
  
-
 #Save the output
-saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_parms_Base_tax_noscale.RDS")
-saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_Base_tax_noscale.RDS")
+saveRDS(parm_list, "/cluster/home/amorgan/Sens_Anal_Output/MDR_parms_Base_tax_nodenom.RDS")
+saveRDS(comb_data_new, "/cluster/home/amorgan/Sens_Anal_Output/MDR_run_Base_tax_nodenom.RDS")
 
 end_time <- Sys.time()
 print(end_time - start_time)
