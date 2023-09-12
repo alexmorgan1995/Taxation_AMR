@@ -2,7 +2,7 @@ library("deSolve"); library("ggplot2"); library("reshape2"); library("ggpubr"); 
 rm(list=ls())
 
 # Import in Resistance Dataset -------------------------------------------------------
-res_data <- read.csv("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Money_Analysis/China_data.csv")
+res_data <- read.csv("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Money_Analysis/Data/China_data.csv")
 
 #Salmonella
 salm_res_data <- res_data[res_data$Pathogens == "Salmonella" & res_data$PubDate > 2015 & res_data$SampleType == "Meat",]
@@ -49,5 +49,5 @@ mean(data_ceph_campy$Rescom, na.rm = T)
 
 # Import in Antibiotic Sales Data -----------------------------------------
 
-sales_data <- read.csv("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Money_Analysis/Antimicrobial_Sales_data_2022_v6_tvb.csv")
+sales_data <- read.csv("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Money_Analysis/Data/Antimicrobial_Sales_data_2022_v6_tvb.csv")
 china_sales_data <- sales_data[sales_data$CountryName == "China" & sales_data$Year == 2020,]

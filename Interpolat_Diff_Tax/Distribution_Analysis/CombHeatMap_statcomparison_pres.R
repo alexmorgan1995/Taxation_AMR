@@ -7,16 +7,30 @@ setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/I
 win_import_change <- readRDS("MDR_run_Base_tax.RDS"); win_import <- win_import_change
 
 win_import_change <- readRDS("MDR_run_Base_tax25.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_Base_tax25.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_Base_tax75.RDS"); win_import <- win_import_change
 win_import_change <- readRDS("MDR_run_Base_tax75.RDS"); win_import <- win_import_change
 
-win_import_change <- readRDS("MDR_run_05_tax.RDS"); win_import <- win_import_change
-win_import_change <- readRDS("MDR_run_10_tax.RDS"); win_import <- win_import_change
+
 win_import_change <- readRDS("MDR_run_35_tax.RDS"); win_import <- win_import_change
 win_import_change <- readRDS("MDR_run_highComp_tax.RDS"); win_import <- win_import_change
 win_import_change <- readRDS("MDR_run_lowComp_tax.RDS"); win_import <- win_import_change
 
-win_import[win_import == -1000] <- NA
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Euler_Run/Model_Output/Revisions")
+win_import_change <- readRDS("MDR_run_PED.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_Base_tax90.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_Base_tax10.RDS"); win_import <- win_import_change
 
+win_import_change <- readRDS("MDR_chick_extense.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_chick_intensive.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_cattle_extensive.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_cattle_intensive.RDS"); win_import <- win_import_change
+
+setwd("/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Extra_Anal")
+win_import_change <- readRDS("MDR_run_Base_nodenom.RDS"); win_import <- win_import_change
+win_import_change <- readRDS("MDR_run_Base_nohier.RDS"); win_import <- win_import_change
+
+win_import[win_import == -1000] <- NA
 
 for(i in seq_along(win_import)) {
   win_import[[i]] <- as(win_import[[i]], class(win_import[[i]][[1]]))
@@ -96,6 +110,13 @@ prop_win_res$factors <- factor(prop_win_res$factors, levels = c("Taxation", "Ban
 prop_win_res$Color <- "black" 
 prop_win_res[prop_win_res$Resistance == max(prop_win_res$Resistance),4] <- "white"
 
+#Confidence Intervals
+
+prop.test(max(colSums(win_res_trans, na.rm = T)),1000,correct=FALSE)
+
+(0.1461079*(0.19/0.168))
+(0.1924330*(0.19/0.168))
+
 #Win Heat Map
 win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
   geom_tile(aes(fill = Resistance)) + 
@@ -117,7 +138,7 @@ win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-2.5, 2)) + 
+box_res <- ggplot(m_res, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-4, 4)) + 
   facet_grid(. ~ factors, scales = "free", space = "free") +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Resistance under Curtailment", x = "") + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
@@ -170,6 +191,10 @@ prop_win_inf <- data.frame("Infections" = (round(colSums(win_inf_trans)/nrow(win
                                                          "DT (5Rd)", "DT (6Rd)",
                                                          "Ban (HR)", "Ban (MR)", "Ban (LR)")))
 
+prop_win_inf_old <- prop_win_inf
+
+
+
 #Tranformed Win
 prop_win_inf$Infections <- prop_win_inf$Infections*(1-prop_vec$prop_inc)
 prop_win_inf$Infections <- round(prop_win_inf$Infections/sum(prop_win_inf$Infections)*100,1)
@@ -179,6 +204,13 @@ prop_win_inf$factors <- c(rep("Taxation", 10), rep("Ban", 3))
 prop_win_inf$factors <- factor(prop_win_inf$factors, levels = c("Taxation", "Ban"))
 prop_win_inf$Color <- "black" 
 prop_win_inf[prop_win_inf$Infections == max(prop_win_inf$Infections),4] <- "white"
+
+#Confidence Intervals
+
+prop.test(max(colSums(win_inf_trans, na.rm = T)),1000,correct=FALSE)
+
+(0.2424382*(26.5/26.9))
+(0.2973298*(26.5/26.9))
 
 #Win Heat Map
 win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
@@ -201,7 +233,7 @@ win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
         plot.margin = unit(c(0,1,0,1.75), "cm"))
 
 #Box Plot
-box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.5, 0.5)) + 
+box_inf <- ggplot(m_inf, aes(x=variable, y=value, fill = variable, alpha = variable)) + coord_cartesian(ylim=c(-0.05, 0.05)) + 
   facet_grid(. ~ factors, scales = "free", space = "free") +
   geom_boxplot(outlier.shape = NA, show.legend = FALSE, fill = "red") + theme_bw() + labs(y = "Change in Infections under Curtailment", x = "") + 
   scale_alpha_manual(values=  prop_vec$prop_inc) +
@@ -260,6 +292,13 @@ prop_win_avganti$factors <- factor(prop_win_avganti$factors, levels = c("Taxatio
 prop_win_avganti$Color <- "black" 
 prop_win_avganti[prop_win_avganti$Average_Anti == max(prop_win_avganti$Average_Anti),4] <- "white"
 
+#Confidence Intervals
+
+prop.test(max(colSums(win_avganti_trans, na.rm = T)),1000,correct=FALSE)
+
+(0.4790375*(0.116 /0.51))
+(0.5408860*(0.116/0.51))
+
 #Win Heat Map
 
 win_avganti_p <- ggplot(prop_win_avganti, aes(Interventions, "")) + theme_bw() +
@@ -292,7 +331,18 @@ box_avganti <- ggplot(m_avganti, aes(x=variable, y=value, fill = variable, alpha
         legend.spacing.x = unit(0.3, 'cm'), axis.text.x = element_blank(), axis.ticks.x = element_blank(),
         strip.text.x = element_text(size = 11, colour = "black", face="bold")) 
 
+ggplot_build(box_avganti)$data
+
 comb_avg_anti <- ggarrange(box_avganti, win_avganti_p, ncol = 1, nrow= 2, heights = c(1, 0.5), align = "v")
+
+
+# Confidence Intervals for Win --------------------------------------------
+ggplot_build(box_inf)$data[[1]]
+ggplot_build(box_res)$data[1]
+ggplot_build(box_avganti)$data[1]
+
+prop.test(1219,3532,correct=FALSE)
+
 
 # Combine the Plots Together ----------------------------------------------
 
@@ -300,7 +350,7 @@ test <- ggarrange(comb_res, comb_inf,
           comb_avg_anti, labels= c("A", "B", "C"), font.label=list(color="black",size=20) ,nrow = 3, ncol = 1, align="v",
           heights = c(0.1, 0.1, 0.1), common.legend = T)
 
-ggsave(test, filename = "run_base.png", dpi = 300, width = 11, height = 14, units = "in",
+ggsave(test, filename = "cattle_intensive.png", dpi = 300, width = 11, height = 14, units = "in",
        path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")
 
 box_avganti <- box_avganti + theme(axis.text.x = element_text(size=12)) 

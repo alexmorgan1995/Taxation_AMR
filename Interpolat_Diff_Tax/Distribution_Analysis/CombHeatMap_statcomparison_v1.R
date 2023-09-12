@@ -105,7 +105,7 @@ win_res_p <- ggplot(prop_win_res, aes(Interventions, "")) + theme_bw() +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
-  guides(fill = guide_colorbar(title = "Probability that Intervention Wins (%)",
+  guides(fill = guide_colorbar(title = "Probability of Best Performing Intervention (%)",
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",
@@ -189,7 +189,7 @@ win_inf_p <- ggplot(prop_win_inf, aes(Interventions, "")) + theme_bw() +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
-  guides(fill = guide_colorbar(title = "Probability that Intervention Wins (%)",
+  guides(fill = guide_colorbar(title = "Probability of Best Performing Intervention (%)",
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",
@@ -270,7 +270,7 @@ win_avganti_p <- ggplot(prop_win_avganti, aes(Interventions, "")) + theme_bw() +
   scale_fill_distiller(palette ="Blues", direction = 1) +
   scale_x_discrete(name = "", expand = c(0, 0))  +   
   scale_y_discrete(name = "", expand = c(0, 0)) + 
-  guides(fill = guide_colorbar(title = "Probability that Intervention Wins (%)",
+  guides(fill = guide_colorbar(title = "Probability of Best Performing Intervention (%)",
                                title.position = "left", title.vjust = 1,
                                # draw border around the legend
                                frame.colour = "black",
@@ -300,7 +300,7 @@ test <- ggarrange(comb_res, comb_inf,
           comb_avg_anti, labels= c("A", "B", "C"), font.label=list(color="black",size=20) ,nrow = 3, ncol = 1, align="v",
           heights = c(0.1, 0.1, 0.1), common.legend = T)
 
-ggsave(test, filename = "run_base.png", dpi = 300, width = 11, height = 14, units = "in",
+ggsave(test, filename = "run_base_V1.png", dpi = 300, width = 11, height = 14, units = "in",
        path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")
 
 box_avganti <- box_avganti + theme(axis.text.x = element_text(size=12)) 

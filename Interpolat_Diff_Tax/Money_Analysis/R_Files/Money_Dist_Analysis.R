@@ -80,6 +80,7 @@ tax_plot <- ggarrange(country_box_tax, box_tax, nrow = 1, ncol = 2, widths = c(0
           font.label = list(size = 18, color = "black", face = "bold"))
 
 ggplot_build(country_box_tax)$data[[1]]
+ggplot_build(box_tax)$data[[1]]
 
 ggsave(tax_plot, filename = "tax_distribution_base.png", dpi = 300, width = 11.5, height = 6, units = "in",
        path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")
