@@ -505,6 +505,9 @@ avg_anti_noscale_plot <- ggplot(avganti_frame, aes(Interventions, scen)) + theme
 test_scale <- ggarrange(res_plot, inf_plot, avg_anti_plot, ncol = 1, nrow = 3)
 test_no_scale <- ggarrange(res_plot_noscale_plot, inf_noscale_plot, avg_anti_noscale_plot, ncol = 1, nrow = 3)
 
+ggsave(test_scale, filename = "scen_compare_pres.png", dpi = 300, width = 13, height = 14, units = "in",
+       path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")
+
 ggsave(test_scale, filename = "scen_compare_v1.png", dpi = 300, width = 13, height = 16, units = "in",
        path = "/Users/amorgan/Documents/PostDoc/Diff_Tax_Analysis/Theoretical_Analysis/Interpolat_Diff_Tax/Figures/")
 
