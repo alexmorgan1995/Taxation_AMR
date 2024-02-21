@@ -6,14 +6,14 @@ Code is separated based on the different sections of the study.
 
 1) Baseline Trajectory Plots (`Baseline`)
 
-2) Distribution Analysis for the Uncertainty Analysis ('Distribution_Analysis')
+2) Distribution Analysis for the Uncertainty Analysis (`Distribution_Analysis`)
 
-3) ABC-SMC Model Fit ('Model_Fit')
+3) ABC-SMC Model Fit (`Model_Fit`)
 
-4) Code for Running R code in Euler using Montecarlo sampling of parameter space ('Euler_Run') 
+4) Code for Running R code in Euler using Montecarlo sampling of parameter space (`Euler_Run`) 
 
-5) Extra analysis for code checking and hypothesis testing unrelated to the manuscript ('Extra_Anal')
+5) Extra analysis for code checking and hypothesis testing unrelated to the manuscript (`Extra_Anal`)
 
-6) Code for the revenue analysis and relevant data ('Money_Analysis')
+6) Code for the revenue analysis and relevant data (`Money_Analysis`)
 
-7) Figures for the final manuscript ('Figures'),
+7) Figures for the final manuscript (`Figures`),
